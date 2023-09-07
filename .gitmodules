@@ -1,0 +1,13 @@
+[submodule "Dependencies/glfwpp"]
+	path = Dependencies/glfwpp
+	url = https://github.com/janekb04/glfwpp
+[submodule "Dependencies/embed-resource"]
+	path = Dependencies/embed-resource
+	url = https://github.com/MaroonSkull/embed-resource.git
+[submodule "Dependencies/imgui"]
+	path = Dependencies/imgui
+	url = https://github.com/ocornut/imgui
+	branch = docking
+[submodule "Dependencies/glm"]
+	path = Dependencies/glm
+	url = https://github.com/g-truc/glm
