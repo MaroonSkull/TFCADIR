@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.13) #for target_sources relative patch
+cmake_minimum_required (VERSION 3.13) #for target_sources relative patch
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)

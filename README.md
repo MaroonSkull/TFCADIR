@@ -1,4 +1,6 @@
-﻿# TopSystems
+# TFCADIR
+
+for "the first CAD in Russia[, which has no analogues]"
 
 ## Данный репозитарий содержит реализацию следующей задачи:
 
