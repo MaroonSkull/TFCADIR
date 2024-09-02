@@ -1,6 +1,6 @@
 # TFCADIR
 
-for "the first CAD in Russia[, which has no analogues]"
+for "the first CAD in Russia[, which has no alternatives]"
 
 ## Данный репозитарий содержит реализацию следующей задачи:
 
