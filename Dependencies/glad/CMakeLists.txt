@@ -1,11 +1,21 @@
-# glad config, use C language
-cmake_minimum_required (VERSION 3.19)
+# 3.23+ for target_sources(FILE_SET)
+cmake_minimum_required (VERSION 3.23)
 project (glad LANGUAGES C)
 
-# glad
-add_library (glad
-	include/glad/gl.h
-	src/gl.c
+add_library (glad)
+
+target_sources (glad
+	PRIVATE
+		src/gl.c
+	
+	PUBLIC
+		FILE_SET gladHeaders
+		TYPE HEADERS
+		BASE_DIRS include
+		FILES
+			include/glad/gl.h
+			include/KHR/khrplatform.h
 )
 
-target_include_directories (glad PUBLIC include)
+# install command needs to reference the file set again
+install(TARGETS glad FILE_SET gladHeaders)
