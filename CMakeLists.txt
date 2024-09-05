@@ -49,7 +49,7 @@ target_sources (${PROJECT_NAME}
 # link libraries
 foreach (library
 # dependencies
-    Boost
+    Boost::headers
     OpenGL::GL
     spdlog::spdlog
     glad
