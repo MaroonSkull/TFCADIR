@@ -2,8 +2,6 @@
 cmake_minimum_required (VERSION 3.19)
 project (${PROJECT_NAME} LANGUAGES CXX)
 
-include (ExternalProject)
-
 #glad
 add_subdirectory (glad)
 add_dependencies (${PROJECT_NAME} glad)
@@ -46,16 +44,3 @@ target_include_directories (EmbedResource INTERFACE
     embed-resource
 )
 add_dependencies (${PROJECT_NAME} EmbedResource)
-
-#spdlog
-ExternalProject_Add (spdlog
-    PREFIX spdlog
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/Dependencies/spdlog
-    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-    -DCMAKE_INSTALL_PREFIX=${STAGING_DIR}
-    -DSPDLOG_BUILD_SHARED=OFF
-)
-add_dependencies (${PROJECT_NAME} spdlog)

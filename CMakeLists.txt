@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.13) #for target_sources relative patch
+cmake_minimum_required (VERSION 3.30) #for find Boost
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
@@ -22,18 +22,14 @@ add_subdirectory_checked (${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/embed-resourc
 add_executable (${PROJECT_NAME})
 target_compile_features (${PROJECT_NAME} PUBLIC cxx_std_17)
 
-# include OpenGL
+# include system libraries
 find_package (OpenGL REQUIRED)
+find_package (Boost #[[COMPONENTS statechart]] REQUIRED)
+find_package (spdlog) # TODO: сделать проверку на наличие spdlog
 
 add_subdirectory ("Dependencies")
 
-target_include_directories (${PROJECT_NAME}
-    PUBLIC TopSystemsTest
-    PUBLIC glm
-    PUBLIC ${STAGING_DIR}/include/ # spdlog
-)
-
-add_subdirectory ("TopSystemsTest")
+add_subdirectory ("Src")
 
 # Convert GLSL shaders to binary
 embed_resources(MyResources # todo rename 1D to 2D
@@ -47,13 +43,15 @@ target_sources (${PROJECT_NAME}
         Src/main.cpp
 
     PUBLIC
-    ${MyResources}
+        ${MyResources}
 )
 
 # link libraries
 foreach (library
 # dependencies
-    #OpenGL::GL
+    Boost
+    OpenGL::GL
+    spdlog::spdlog
     glad
     GLFWPP
     glm
