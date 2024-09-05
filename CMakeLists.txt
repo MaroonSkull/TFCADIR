@@ -6,11 +6,11 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-project ("TopSystems"
-    VERSION 0.1
-    DESCRIPTION "Решение тестового задания от ЗАО \"Топ Системы\" на позицию \"Разработчик С++\""
-    HOMEPAGE_URL "https://github.com/MaroonSkull/TopSystems"
-    LANGUAGES CXX
+project ("TFCADIR"
+    VERSION 0.2
+    DESCRIPTION "the first CAD in Russia[, which has no alternatives]"
+    HOMEPAGE_URL "https://github.com/MaroonSkull/TFCADIR"
+    LANGUAGES CXX C
 )
 
 include (CMake/utils.cmake)
@@ -42,8 +42,11 @@ embed_resources(MyResources # todo rename 1D to 2D
     Resources/glsl/1D/white_vert.glsl
 )
 
-target_sources (${PROJECT_NAME} PUBLIC
-    TopSystemsTest/TopSystemsTest.cpp
+target_sources (${PROJECT_NAME}
+    PRIVATE
+        Src/main.cpp
+
+    PUBLIC
     ${MyResources}
 )
 
