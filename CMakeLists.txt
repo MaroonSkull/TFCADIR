@@ -3,7 +3,15 @@ cmake_minimum_required (VERSION 3.30) #for find Boost
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
+  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+    "$<IF:                                                 \
+        $<AND:                                             \
+            $<C_COMPILER_ID:MSVC>,                         \
+            $<CXX_COMPILER_ID:MSVC>                        \
+        >,                                                 \
+        $<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>, \
+        $<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>  \
+    >")
 endif()
 
 project ("TFCADIR"
@@ -16,7 +24,9 @@ project ("TFCADIR"
 include (CMake/utils.cmake)
 
 #embed-resource
-add_subdirectory_checked (${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/embed-resource)
+add_subdirectory_checked (
+    ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/embed-resource
+)
 
 # Create target
 add_executable (${PROJECT_NAME})
@@ -62,5 +72,10 @@ foreach (library
     controller
     view
 )
-    target_link_libraries (${PROJECT_NAME} PRIVATE ${library})
-endforeach ()
+
+    target_link_libraries (${PROJECT_NAME}
+        PRIVATE
+            ${library}
+    )
+
+endforeach (library)
