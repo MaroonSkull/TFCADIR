@@ -1,5 +1,6 @@
-﻿#include "GLProgram.hpp"
-#include <GLProgram.hpp>
+﻿#include <GLProgram.hpp>
+#include <glad/gl.h>
+
 #include <sstream>
 
 

@@ -1,4 +1,9 @@
-﻿#include <Controller/OpenGL/ImGUI.hpp>
+#include <View/IView.hpp>
+#include <View/OpenGL/ImGUI.hpp>
+#include <Controller/OpenGL/ImGUI.hpp>
+
+#include <spdlog/spdlog.h>
+
 #include <stdexcept>
 
 OpenglImguiController::OpenglImguiController(model::FlatFigures* pModel) : pModel_(pModel) {

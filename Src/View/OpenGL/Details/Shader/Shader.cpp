@@ -1,4 +1,5 @@
 #include <Shader.hpp>
+
 #include <sstream>
 
 Shader::Shader(const Resource& ShaderSource, Shader::type shaderType) : shaderType_(shaderType), source_(ShaderSource.toString()) {

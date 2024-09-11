@@ -1,7 +1,10 @@
 ﻿#pragma once
+
 #include <glfwpp/glfwpp.h>
 #include <imgui.h>
 #include <imgui_internal.h> // для docking
+
+
 
 class GUI {
 private:

@@ -1,8 +1,10 @@
-#include <spdlog/spdlog.h>
-
 #include <Model/FlatFigure.hpp>
 #include <View/OpenGL/ImGUI.hpp>
 #include <Controller/OpenGL/ImGUI.hpp>
+
+#include <spdlog/spdlog.h>
+
+
 void handle_eptr(std::exception_ptr eptr) // passing by value is OK
 {
     try {

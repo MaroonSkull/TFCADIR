@@ -1,9 +1,11 @@
-﻿#pragma once
-#include <queue>
-#include <spdlog/spdlog.h>
-#include <imgui.h>
-#include <IController.hpp>
+#pragma once
+
+#include <Controller/IController.hpp>
 #include <Model/FlatFigure.hpp>
+
+#include <queue>
+
+
 
 // тут будет обработка всех действий пользователя, вызов модели
 class OpenglImguiController final : public IController {

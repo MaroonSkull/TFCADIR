@@ -1,20 +1,22 @@
-﻿#pragma once
+#pragma once
+
+// MVC
+#include <IView.hpp>
+#include <Controller/IController.hpp>
+#include <Controller/OpenGL/ImGUI.hpp>
+#include <Model/FlatFigure.hpp>
+
+// OpenGL
 #include <glad/gl.h>
 #include <glfwpp/glfwpp.h>
 #include <glm/mat4x4.hpp>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <Resource.h>
 
+// Details
 #include <GUI.hpp>
-
-#include <IView.hpp>
 #include <Shader.hpp>
 #include <GLProgram.hpp>
 
-#include <Controller/OpenGL/ImGUI.hpp>
-#include <Model/FlatFigure.hpp>
+
 
 class OpenglImguiView final : public IView {
 	friend class OpenglImguiController;

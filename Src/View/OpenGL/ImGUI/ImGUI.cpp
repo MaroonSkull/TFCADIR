@@ -1,9 +1,18 @@
-﻿#include <View/OpenGL/ImGUI.hpp>
+#include <View/OpenGL/ImGUI.hpp>
+
+#include <Resource.h>
 #include <glm/glm.hpp>
-#include <spdlog/spdlog.h>
-#include <sstream>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+
+#include <spdlog/spdlog.h>
+
+#include <sstream>
+
+
 
 OpenglImguiView::OpenglImguiView(model::FlatFigures* pModel, IController* pController) : GLFW_(glfw::init()), pModel_(pModel), pController_(pController) {
 	if (pModel_ == nullptr || pController_ == nullptr)

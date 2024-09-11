@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include <glad/gl.h>
 #include <Shader.hpp>
+
 #include <set>
 #include <optional>
 
