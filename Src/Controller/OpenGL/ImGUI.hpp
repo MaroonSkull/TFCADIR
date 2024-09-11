@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <Controller/IController.hpp>
 #include <Model/FlatFigure.hpp>
@@ -10,7 +10,7 @@
 // тут будет обработка всех действий пользователя, вызов модели
 class OpenglImguiController final : public IController {
 private:
-	model::FlatFigures* pModel_;
+	std::shared_ptr<model::FlatFigures> sp_model_;
 	std::queue<model::Memento> modelMementoQueue_;
 
 	float mousePositionNormalizedX_{};
@@ -20,7 +20,7 @@ private:
 	InputState currentStateRightMouseButton_{ InputState::undefined };
 	InputState currentStateMouseHover_{ InputState::undefined };
 public:
-	OpenglImguiController(model::FlatFigures *);
+	OpenglImguiController(std::shared_ptr<model::FlatFigures>);
 
 	// события непосредственного ввода
 	void onLeftMouseButton(InputState); // обработка расположения фигур

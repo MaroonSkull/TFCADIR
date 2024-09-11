@@ -22,8 +22,8 @@ class OpenglImguiView final : public IView {
 	friend class OpenglImguiController;
 private:
 	glfw::GlfwLibrary GLFW_; // RAII
-	model::FlatFigures* pModel_ = nullptr;
-	IController* pController_ = nullptr;
+	std::shared_ptr<model::FlatFigures> sp_model_;
+	std::shared_ptr<IController> sp_controller_;
 	glfw::Window* Window_ = nullptr;
 	GUI UI_{};
 	Shader* Vertex_ = nullptr;
@@ -48,7 +48,7 @@ private:
 	glm::mat4 transform(glm::vec2 const& Orientation, glm::vec3 const& Translate, glm::vec3 const& Up);
 public:
 	// init glfwpp, glad, window, imgui
-	OpenglImguiView(model::FlatFigures*, IController*);
+	OpenglImguiView(std::shared_ptr<model::FlatFigures>, std::shared_ptr<IController>);
 	~OpenglImguiView();
 
 	void draw();

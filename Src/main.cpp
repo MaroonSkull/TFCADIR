@@ -27,15 +27,15 @@ void handle_eptr(std::exception_ptr eptr) // passing by value is OK
 
 int main() {
 	try {
-		model::FlatFigures* pModel = new model::FlatFigures();
-		IController *pController = new OpenglImguiController(pModel);
-		IView* pView = new OpenglImguiView(pModel, pController);
+		auto sp_model = std::make_shared<model::FlatFigures>();
+		auto sp_controller = std::shared_ptr<IController>(new OpenglImguiController(sp_model));
+		auto sp_view = std::shared_ptr<IView>(new OpenglImguiView(sp_model, sp_controller));
 
-		while (!pView->shouldClose()) {
+		while (!sp_view->shouldClose()) {
 			// отлавливаем все события
 			glfw::pollEvents();
 
-			pView->draw();
+			sp_view->draw();
 		}
 	}
 	catch (...) {

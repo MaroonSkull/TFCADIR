@@ -6,8 +6,8 @@
 
 #include <stdexcept>
 
-OpenglImguiController::OpenglImguiController(model::FlatFigures* pModel) : pModel_(pModel) {
-	if (pModel_ == nullptr)
+OpenglImguiController::OpenglImguiController(std::shared_ptr<model::FlatFigures> sp_model) : sp_model_(sp_model) {
+	if (sp_model_ == nullptr)
 		throw std::invalid_argument{ "pModel cannot be nullptr in controller constructor!" };
 }
 
@@ -24,7 +24,7 @@ void OpenglImguiController::onLeftMouseButton(InputState state) {
 		switch (currentControllerState_) {
 		case ControllerState::triangleByCorners:
 			spdlog::info("triangleByCorners selected");
-			pModel_->createFigure<model::Triangle>(mousePositionNormalizedX_, mousePositionNormalizedY_);
+			sp_model_->createFigure<model::Triangle>(mousePositionNormalizedX_, mousePositionNormalizedY_);
 			break;
 
 		}
