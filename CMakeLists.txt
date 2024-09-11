@@ -68,9 +68,9 @@ foreach (library
     imgui
     EmbedResource
 # sources
-    model
-    controller
-    view
+    Model
+    Controller
+    View
 )
 
     target_link_libraries (${PROJECT_NAME}

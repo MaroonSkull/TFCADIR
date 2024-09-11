@@ -2,25 +2,18 @@
 project (${PROJECT_NAME})
 
 
-add_library (FlatFigureModel)
-add_dependencies (${PROJECT_NAME} FlatFigureModel)
 
-target_sources (FlatFigureModel
-    PRIVATE
+config_lib(FlatFigureModel
+    BASE_DIR
+        ../
+    PRIVATE_SOURCES
         FlatFigure.cpp
-    PUBLIC
-        FILE_SET flatFigureModelHeaders
-        TYPE HEADERS
-        BASE_DIRS ../
-        FILES
-            FlatFigure.hpp
-)
-
-target_compile_features (FlatFigureModel
-    PUBLIC
+    PUBLIC_SOURCES
+        FlatFigure.hpp
+    PRIVATE_DEPENDENCIES
+        spdlog::spdlog
+    COMPILE_FEATURES
         cxx_std_17
 )
 
-install (TARGETS FlatFigureModel FILE_SET flatFigureModelHeaders)
-
-add_library (model ALIAS FlatFigureModel)
+add_library (Model ALIAS FlatFigureModel)

@@ -2,28 +2,15 @@
 project (${PROJECT_NAME})
 
 
-add_library (GUI STATIC GUI.cpp)
-add_dependencies (${PROJECT_NAME} GUI)
 
-target_sources (GUI
-	PRIVATE
+config_lib(GUI
+    PRIVATE_SOURCES
 		GUI.cpp
-
-	PUBLIC
-		FILE_SET guiHeaders
-		TYPE HEADERS
-		FILES
-			GUI.hpp
+    PUBLIC_SOURCES
+        GUI.hpp
+    PUBLIC_DEPENDENCIES
+        GLFWPP
+        imgui
+    COMPILE_FEATURES
+        cxx_std_17
 )
-
-target_link_libraries(GUI
-	PRIVATE
-		glad
-		GLFWPP
-		imgui
-)
-
-target_compile_features (GUI PUBLIC cxx_std_17)
-
-# install command needs to reference the file set again
-install(TARGETS GUI FILE_SET guiHeaders)
