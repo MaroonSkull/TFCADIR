@@ -1,4 +1,7 @@
-#include <View/OpenGL/ImGUI.hpp>
+﻿#include <View/OpenGL/ImGUI.hpp>
+
+#include <boost/mp11/bind.hpp>
+#include <boost/signals2.hpp>
 
 #include <Resource.h>
 #include <glm/glm.hpp>
@@ -18,6 +21,8 @@ OpenglImguiView::OpenglImguiView(std::shared_ptr<model::FlatFigures> sp_model, s
 	if (sp_model_ == nullptr || sp_controller_ == nullptr)
 		throw std::invalid_argument{ "sp_model or sp_controller cannot be nullptr in view constructor!" };
 	try {
+		
+		mustBeRedrawSignal.connect(boost::bind(&OpenglImguiView::draw, this));
 		// Window
 		glfw::WindowHints hints;
 		hints.clientApi = glfw::ClientApi::OpenGl;

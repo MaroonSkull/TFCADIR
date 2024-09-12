@@ -15,7 +15,7 @@ if (POLICY CMP0141)
 endif()
 
 project ("TFCADIR"
-    VERSION 0.2
+    VERSION 0.2.1
     DESCRIPTION "the first CAD in Russia[, which has no alternatives]"
     HOMEPAGE_URL "https://github.com/MaroonSkull/TFCADIR"
     LANGUAGES CXX C

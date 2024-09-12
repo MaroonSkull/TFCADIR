@@ -1,6 +1,8 @@
-#include <View/IView.hpp>
+﻿#include <View/IView.hpp>
 #include <View/OpenGL/ImGUI.hpp>
 #include <Controller/OpenGL/ImGUI.hpp>
+
+#include <boost/signals2.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -26,7 +28,8 @@ void OpenglImguiController::onLeftMouseButton(InputState state) {
 			spdlog::info("triangleByCorners selected");
 			sp_model_->createFigure<model::Triangle>(mousePositionNormalizedX_, mousePositionNormalizedY_);
 			break;
-
+		default:
+			spdlog::error("undefined state have been recieved in OpenglImguiController::onLeftMouseButton");
 		}
 		break;
 
@@ -39,6 +42,8 @@ void OpenglImguiController::onLeftMouseButton(InputState state) {
 		spdlog::error("onLeftMouseButton undefined");
 		throw std::runtime_error{ "undefined state have been recieved in OpenglImguiController::onLeftMouseButton" };
 	}
+
+	mustBeRedrawSignal(); // Зависит от IView
 }
 
 // На тачпадах возможно отсутствие функционала нажатия на СКМ
