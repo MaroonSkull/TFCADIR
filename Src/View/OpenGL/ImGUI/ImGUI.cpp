@@ -1,4 +1,5 @@
-﻿#include <View/OpenGL/ImGUI.hpp>
+﻿#include "glfwpp/glfwpp.h"
+#include <View/OpenGL/ImGUI.hpp>
 
 #include <boost/mp11/bind.hpp>
 #include <boost/signals2.hpp>
@@ -23,14 +24,19 @@ OpenglImguiView::OpenglImguiView(std::shared_ptr<model::FlatFigures> sp_model, s
 	try {
 		
 		mustBeRedrawSignal.connect(boost::bind(&OpenglImguiView::draw, this));
+
+		// init glfwpp, glad, window, imgui
+		glfw::InitHints iHints;
+		iHints.platform = glfw::Platform::Wayland;
+
 		// Window
-		glfw::WindowHints hints;
-		hints.clientApi = glfw::ClientApi::OpenGl;
-		hints.openglProfile = glfw::OpenGlProfile::Core;
-		hints.contextVersionMajor = 3;
-		hints.contextVersionMinor = 3;
-		hints.openglForwardCompat = true;
-		hints.apply();
+		glfw::WindowHints wHints;
+		wHints.clientApi = glfw::ClientApi::OpenGl;
+		wHints.openglProfile = glfw::OpenGlProfile::Core;
+		wHints.contextVersionMajor = 3;
+		wHints.contextVersionMinor = 3;
+		wHints.openglForwardCompat = true;
+		wHints.apply();
 
 		Window_ = new glfw::Window{ 640, 480, "Interview test" };
 		// первый проход фреймбуфера рендерим в размерах самого окна.

@@ -1,6 +1,6 @@
 [submodule "Dependencies/glfwpp"]
 	path = Dependencies/glfwpp
-	url = https://github.com/janekb04/glfwpp
+	url = https://github.com/MaroonSkull/glfwpp
 [submodule "Dependencies/embed-resource"]
 	path = Dependencies/embed-resource
 	url = https://github.com/MaroonSkull/embed-resource.git
