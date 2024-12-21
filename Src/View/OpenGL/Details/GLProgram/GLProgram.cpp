@@ -60,9 +60,15 @@ void GLProgram::useProgram() const {
 	glUseProgram(programId_);
 }
 
-std::optional<const Shader *>GLProgram::getShader(Shader::type desiredShaderType) const {
+std::optional<const Shader *> GLProgram::getShader(Shader::type desiredShaderType) const {
 	for(auto &ConcreteShader : shadersList_)
 		if(ConcreteShader->getShaderType() == desiredShaderType)
 			return ConcreteShader;
 	return std::nullopt;
+}
+
+// TODO: add here work with uniform variables
+std::optional<GLint> GLProgram::getUniformLocation(std::string_view varName) const {
+	const auto location = glGetUniformLocation(programId_, varName.data());
+	return location == -1 ? std::nullopt : std::optional<GLint>{ location };
 }

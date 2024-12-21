@@ -1,4 +1,5 @@
-﻿#include <View/IView.hpp>
+﻿#include <glm/ext/matrix_transform.hpp>
+#include <View/IView.hpp>
 #include <View/OpenGL/ImGUI.hpp>
 #include <Controller/OpenGL/ImGUI.hpp>
 
@@ -116,10 +117,15 @@ void OpenglImguiController::onScroll(float momentWheel) {
 	if (momentWheel == 0.0f)
 		return;
 
-	if (momentWheel > 0.0f)
+	if (momentWheel > 0.0f){
 		spdlog::info("onScroll up, {}", momentWheel);
-	else
+	}
+	else{
 		spdlog::info("onScroll down, {}", momentWheel);
+	}
+	
+	sp_model_->camera_.position.z += 0.1f * momentWheel;
+		
 }
 
 void OpenglImguiController::addTriangleByCenter() {

@@ -21,4 +21,5 @@ public:
 	void useProgram() const;
 
 	std::optional<const Shader *>getShader(Shader::type) const;
+	std::optional<GLint> getUniformLocation(std::string_view varName) const;
 };

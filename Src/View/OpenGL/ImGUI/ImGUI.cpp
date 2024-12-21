@@ -5,8 +5,8 @@
 
 #include <Resource.h>
 #include <glm/glm.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -188,17 +188,6 @@ void OpenglImguiView::rescale_framebuffer() {
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO_);
 }
 
-glm::mat4 OpenglImguiView::transform(glm::vec2 const& Orientation, glm::vec3 const& Translate, glm::vec3 const& Up)
-{
-	glm::mat4 Proj = glm::perspective(glm::radians(45.f), 1.33f, 0.1f, 10.f);
-	//glm::mat4 Proj = glm::ortho(0.0f, Width, 0.0f, Height, 0.1f, 100.0f);
-	glm::mat4 ViewTranslate = glm::translate(glm::mat4(1.f), Translate);
-	glm::mat4 ViewRotateX = glm::rotate(ViewTranslate, Orientation.y, Up);
-	glm::mat4 View = glm::rotate(ViewRotateX, Orientation.x, Up);
-	glm::mat4 Model = glm::mat4(1.0f);
-	return Proj * View * Model;
-}
-
 void OpenglImguiView::draw() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -245,6 +234,22 @@ void OpenglImguiView::draw() {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	Pipeline_->useProgram();
+
+	// TODO: remove, temporary raw operations
+	sp_model_->model_ = glm::rotate(sp_model_->model_, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+	const auto view = glm::lookAt(
+    sp_model_->camera_.position,
+		sp_model_->camera_.target,
+		sp_model_->camera_.up
+	);
+	sp_model_->projection_ = glm::perspective(glm::radians(45.0f), 1.33f, 0.1f, 100.0f);
+
+	if (const auto modelLoc = Pipeline_->getUniformLocation("model"); modelLoc.has_value())
+		glUniformMatrix4fv(modelLoc.value(), 1, GL_FALSE, glm::value_ptr(sp_model_->model_));
+	if (const auto viewLoc = Pipeline_->getUniformLocation("view"); viewLoc.has_value())
+		glUniformMatrix4fv(viewLoc.value(), 1, GL_FALSE, glm::value_ptr(view));
+	if (const auto projectionLoc = Pipeline_->getUniformLocation("projection"); projectionLoc.has_value())
+		glUniformMatrix4fv(projectionLoc.value(), 1, GL_FALSE, glm::value_ptr(sp_model_->projection_));
 
 	glBindVertexArray(VAO_);
 	

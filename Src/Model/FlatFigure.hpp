@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <glm/ext/matrix_float4x4.hpp>
 #include <spdlog/spdlog.h>
 
 #include <string>
@@ -117,6 +118,17 @@ namespace model {
 			Figure<CurveBezier3>,
 			Figure<CurveBezier4>
 		>;
+
+		glm::mat4 model_{ 1.0f };
+		glm::mat4 projection_{ 1.0f };
+
+		struct Camera_t {
+			glm::vec3 position{ 0.0f, 0.0f, -1.0f };
+			glm::vec3 target{ 0.0f, 0.0f, 0.0f };
+			glm::vec3 up{ 0.0f, 1.0f, 0.0f };
+		};
+
+		Camera_t camera_{};
 
 	private:
 		std::vector<allFigures_t> Figures_;
