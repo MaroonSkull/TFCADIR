@@ -1,8 +1,10 @@
-﻿#include <Model/FlatFigure.hpp>
+#include <Model/FlatFigure.hpp>
 #include <View/OpenGL/ImGUI.hpp>
 #include <Controller/OpenGL/ImGUI.hpp>
 
 #include <spdlog/spdlog.h>
+
+#include <swogl/swogl.h>
 
 
 void handle_eptr(std::exception_ptr eptr) // passing by value is OK
@@ -30,6 +32,8 @@ int main() {
 		auto sp_model = std::make_shared<model::FlatFigures>();
 		auto sp_controller = std::shared_ptr<IController>(new OpenglImguiController(sp_model));
 		auto sp_view = std::shared_ptr<IView>(new OpenglImguiView(sp_model, sp_controller));
+
+		spdlog::info("swogl::add(5, 10) = {}", swogl::add(5, 10));
 
 		while (!sp_view->shouldClose()) {
 			// отлавливаем все события
