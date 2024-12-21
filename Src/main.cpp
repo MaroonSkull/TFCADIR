@@ -1,4 +1,4 @@
-#include <Model/FlatFigure.hpp>
+﻿#include <Model/FlatFigure.hpp>
 #include <View/OpenGL/ImGUI.hpp>
 #include <Controller/OpenGL/ImGUI.hpp>
 
@@ -48,5 +48,6 @@ int main() {
 
 	// Under VisualStudio, this must be called before main finishes to workaround a known VS issue
 	spdlog::drop_all();
+	
 	return 0;
 }

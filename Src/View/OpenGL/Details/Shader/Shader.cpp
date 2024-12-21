@@ -6,7 +6,6 @@ Shader::Shader(const Resource& ShaderSource, Shader::type shaderType) : shaderTy
 	// Create shader
 	shaderId_ = glCreateShader(shaderType_);
 
-
 	// Compile shader source code
 	const char* source = source_.c_str();
 	glShaderSource(shaderId_, 1, &source, nullptr);
@@ -25,6 +24,7 @@ Shader::Shader(const Resource& ShaderSource, Shader::type shaderType) : shaderTy
 		throw std::runtime_error{ err.str() };
 	}
 }
+
 
 Shader::~Shader() {
 	deleteShader();

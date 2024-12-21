@@ -11,10 +11,12 @@ class Shader {
 public:
 	enum type {
 		Vertex = GL_VERTEX_SHADER,
-		TessEvaluation = GL_TESS_EVALUATION_SHADER,
-		TessControl = GL_TESS_CONTROL_SHADER,
 		Geometry = GL_GEOMETRY_SHADER,
 		Fragment = GL_FRAGMENT_SHADER,
+		// control and evaluation shaders require GL 4.0 (or ARB_tessellation_shader)
+		TessEvaluation = GL_TESS_EVALUATION_SHADER,
+		TessControl = GL_TESS_CONTROL_SHADER,
+		// compute shader requires GL 4.3 (or ARB_compute_shader)
 		Compute = GL_COMPUTE_SHADER
 	};
 private:

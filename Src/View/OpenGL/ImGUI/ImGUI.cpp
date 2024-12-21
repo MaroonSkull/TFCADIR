@@ -1,5 +1,4 @@
-﻿#include "glfwpp/glfwpp.h"
-#include <View/OpenGL/ImGUI.hpp>
+﻿#include <View/OpenGL/ImGUI.hpp>
 
 #include <boost/mp11/bind.hpp>
 #include <boost/signals2.hpp>
@@ -18,16 +17,26 @@
 
 
 
-OpenglImguiView::OpenglImguiView(std::shared_ptr<model::FlatFigures> sp_model, std::shared_ptr<IController> sp_controller) : GLFW_(glfw::init()), sp_model_(sp_model), sp_controller_(sp_controller) {
+OpenglImguiView::OpenglImguiView(
+	std::shared_ptr<model::FlatFigures> sp_model,
+	std::shared_ptr<IController> sp_controller
+)
+	: GLFW_{ glfw::init() }
+	, sp_model_{ sp_model }
+	, sp_controller_{ sp_controller }
+{
 	if (sp_model_ == nullptr || sp_controller_ == nullptr)
-		throw std::invalid_argument{ "sp_model or sp_controller cannot be nullptr in view constructor!" };
+		throw std::invalid_argument {
+			"sp_model or sp_controller can't be nullptr in view constructor!"
+		};
 	try {
 		
 		mustBeRedrawSignal.connect(boost::bind(&OpenglImguiView::draw, this));
 
 		// init glfwpp, glad, window, imgui
 		glfw::InitHints iHints;
-		iHints.platform = glfw::Platform::Wayland;
+		iHints.platform = glfw::GlfwPlatform::Wayland;
+		iHints.apply();
 
 		// Window
 		glfw::WindowHints wHints;
@@ -48,7 +57,8 @@ OpenglImguiView::OpenglImguiView(std::shared_ptr<model::FlatFigures> sp_model, s
 		if (version == 0)
 			throw std::runtime_error{ "Failed to initialize OpenGL context" };
 
-		spdlog::info("Loaded OpenGL {}.{}", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
+		spdlog::info("Loaded OpenGL {}.{}",
+			GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
 
 
 		glViewport(0, 0, frameWidth_, frameHeight_);

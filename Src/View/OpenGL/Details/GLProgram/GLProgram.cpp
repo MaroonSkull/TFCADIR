@@ -36,13 +36,17 @@ void GLProgram::attachShader(const Shader* ShaderObject) {
 			<< " type shader is already attached!";
 		throw std::runtime_error{ err.str() };
 	}
+		glAttachShader(programId_, ShaderObject->getShaderId());
 }
 
 void GLProgram::linkProgram() const {
-	for (const auto& ShaderObject : shadersList_)
-		glAttachShader(programId_, ShaderObject->getShaderId());
-
 	glLinkProgram(programId_);
+
+	for (const auto& ShaderObject : shadersList_)
+		glDetachShader(programId_, ShaderObject->getShaderId());
+	// todo тут пора бы glDeleteShader() по идее
+	// https://stackoverflow.com/questions/9113154/proper-way-to-delete-glsl-shader
+	// как потом работать с UBO?
 
 	// Check shader program errors
 	checkProgram(GL_LINK_STATUS, "linking failed");
@@ -50,9 +54,6 @@ void GLProgram::linkProgram() const {
 	glValidateProgram(programId_);
 	checkProgram(GL_VALIDATE_STATUS, "validate failed");
 
-	// todo тут пора бы glDeleteShader() по идее
-	// https://stackoverflow.com/questions/9113154/proper-way-to-delete-glsl-shader
-	// как потом работать с UBO?
 }
 
 void GLProgram::useProgram() const {
