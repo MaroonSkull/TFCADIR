@@ -2,6 +2,8 @@
 cmake_minimum_required (VERSION 3.19)
 project (${PROJECT_NAME} LANGUAGES CXX)
 
+include(FetchContent)
+
 #glad
 add_subdirectory (glad)
 add_dependencies (${PROJECT_NAME} glad)
@@ -44,3 +46,11 @@ target_include_directories (EmbedResource INTERFACE
     embed-resource
 )
 add_dependencies (${PROJECT_NAME} EmbedResource)
+
+#SWOGL
+FetchContent_Declare(swogl
+    GIT_REPOSITORY https://github.com/MaroonSkull/swogl.git
+    GIT_TAG        93364869639d27bb8fd75cfc1df9add1f1d4eaf8
+)
+FetchContent_MakeAvailable(swogl)
+add_dependencies (${PROJECT_NAME} swogl)

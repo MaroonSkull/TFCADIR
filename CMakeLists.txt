@@ -61,6 +61,7 @@ foreach (library
 # dependencies
     Boost::headers
     OpenGL::GL
+    swogl::swogl
     spdlog::spdlog
     glad
     GLFWPP
