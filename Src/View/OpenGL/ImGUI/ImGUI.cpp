@@ -195,6 +195,7 @@ void OpenglImguiView::draw() {
 	// reinterpret_cast тут неизбежен, это вынужденная мера, чтобы передать opengl текстуру из GLFWPP в imgui
 	auto [frameSizes, momentWheel, mousePosition] = UI_.DrawGUI(reinterpret_cast<ImTextureID>(textureId_));
 	
+
 	// todo тут пригодится observer. Если модель и вью не изменились, новую текстуру не рендерим
 
 	// Render on the whole framebuffer
@@ -211,7 +212,7 @@ void OpenglImguiView::draw() {
 	// обработка операций непосредственного ввода с помощью канваса
 	// мб в лямбду завернуть, коллбэк оформить 
 	if (mousePosition) {
-		auto&& [x, y] = mousePosition.value();
+		const auto &[x, y] = mousePosition.value();
 		sp_controller_->onMouseHover(IController::InputState::hovered, x / frameWidth_, y / frameHeight_);
 
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) sp_controller_->onLeftMouseButton(IController::InputState::down);

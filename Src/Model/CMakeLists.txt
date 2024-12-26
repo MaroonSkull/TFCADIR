@@ -10,6 +10,7 @@ config_lib(FlatFigureModel
         FlatFigure.cpp
     PUBLIC_SOURCES
         FlatFigure.hpp
+        Model.hpp
     PRIVATE_DEPENDENCIES
         spdlog::spdlog
     COMPILE_FEATURES

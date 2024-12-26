@@ -22,14 +22,14 @@ void GUI::ShowMainMenuBar() {
             if(MenuItem("Sized", NULL, false, false)) {}  // Disabled item
             Separator();
             
-            if(Checkbox("##circlesegmentoverride", &circleSegmentsOverride))
-                circleSegmentsOverride_v = circleSegmentsOverride_v_default;
+            if(Checkbox("##circlesegmentoverride", &circleSegmentsOverride_))
+                circleSegmentsOverride_v_ = circleSegmentsOverride_v_default;
             SameLine(0.0f, GetStyle().ItemInnerSpacing.x);
-            circleSegmentsOverride |= SliderInt("Circle segments override", &circleSegmentsOverride_v, 3, 40);
-            if(Checkbox("##curvessegmentoverride", &curveSegmentsOverride))
-                curveSegmentsOverride_v = curveSegmentsOverride_v_default;
+            circleSegmentsOverride_ |= SliderInt("Circle segments override", &circleSegmentsOverride_v_, 3, 40);
+            if(Checkbox("##curvessegmentoverride", &curveSegmentsOverride_))
+                curveSegmentsOverride_v_ = curveSegmentsOverride_v_default;
             SameLine(0.0f, GetStyle().ItemInnerSpacing.x);
-            curveSegmentsOverride |= SliderInt("Curves segments override", &curveSegmentsOverride_v, 3, 40);
+            curveSegmentsOverride_ |= SliderInt("Curves segments override", &curveSegmentsOverride_v_, 3, 40);
             EndMenu();
         }
         EndMainMenuBar();
@@ -45,13 +45,13 @@ void GUI::ShowDockSpace() {
         dockId_ = DockBuilderAddNode(dockId_, dockFlags_);
         DockBuilderSetNodeSize(dockId_, GetMainViewport()->Size);
 
-        dockIdLog = DockBuilderSplitNode(dockId_, ImGuiDir_Down, 0.15f, nullptr, &dockId_);
-        dockIdTools = DockBuilderSplitNode(dockId_, ImGuiDir_Right, 0.25f, nullptr, &dockId_);
+        dockIdLog_ = DockBuilderSplitNode(dockId_, ImGuiDir_Down, 0.15f, nullptr, &dockId_);
+        dockIdTools_ = DockBuilderSplitNode(dockId_, ImGuiDir_Right, 0.25f, nullptr, &dockId_);
 
         DockBuilderDockWindow("Canvas", dockId_);
-        DockBuilderDockWindow("Tools", dockIdTools);
-        DockBuilderDockWindow("Log", dockIdLog);
-        DockBuilderDockWindow("Mouse coords", dockIdMouse);
+        DockBuilderDockWindow("Tools", dockIdTools_);
+        DockBuilderDockWindow("Log", dockIdLog_);
+        DockBuilderDockWindow("Mouse coords", dockIdMouse_);
 
         DockBuilderFinish(dockId_);
     }
@@ -90,6 +90,11 @@ ImVec2 GUI::ShowCanvas(ImTextureID renderTexture) {
         mousePositionAbsolute_ = GetMousePos();
         screenPositionAbsolute = GetItemRectMin();
         mousePositionRelative_ = ImVec2(mousePositionAbsolute_.x - screenPositionAbsolute.x, mousePositionAbsolute_.y - screenPositionAbsolute.y);
+
+        if (isCanvasHovered_) {
+            // вычисляем координаты курсора
+            
+        }
 
         EndChild();
     }

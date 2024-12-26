@@ -56,6 +56,13 @@ void OpenglImguiController::onWheelMouseButton(InputState state) {
 	switch (currentStateWheelMouseButton_ = state) {
 	case InputState::down:
 		spdlog::info("onWheelMouseButton pressed");
+
+		sp_model_->camera_.position = {
+			0.0f,
+			0.0f,
+			-1.0f
+		};
+
 		break;
 
 	case InputState::released:
@@ -125,6 +132,7 @@ void OpenglImguiController::onScroll(float momentWheel) {
 	}
 	
 	sp_model_->camera_.position.z += 0.1f * momentWheel;
+	sp_model_->camera_.position.z = std::clamp(sp_model_->camera_.position.z, -5.0f, -0.1f);
 		
 }
 
