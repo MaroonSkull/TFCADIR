@@ -213,6 +213,8 @@ void OpenglImguiView::draw() {
 	// мб в лямбду завернуть, коллбэк оформить 
 	if (mousePosition) {
 		const auto &[x, y] = mousePosition.value();
+		// to ndc and to model
+		sp_model_->camera_
 		sp_controller_->onMouseHover(IController::InputState::hovered, x / frameWidth_, y / frameHeight_);
 
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) sp_controller_->onLeftMouseButton(IController::InputState::down);

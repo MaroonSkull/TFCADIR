@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_float2.hpp"
 #include <glm/ext/matrix_float4x4.hpp>
 #include <spdlog/spdlog.h>
 
@@ -103,8 +105,18 @@ namespace model {
 
 	class Memento;
 
+	/**
+	 * @brief Полная хуйня, которая хранит в себе всё.
+	 * @details Хранит в себе:
+	 * - все фигуры в виде вариантов.
+	 * - координатную систему как таковую.
+	 * - координаты мыши.
+	 * - инвариантная матрица вьюпроекции и модели.
+	 * @todo рефакторинг обязателен
+	 */
 	class FlatFigures {
 	public:
+		// Ещё хочу добавить мнимые точки для привязок
 		using allFigures_t = std::variant<
 			Figure<Triangle>,
 			Figure<Triangle, isScribed::inscribed>,
@@ -119,6 +131,11 @@ namespace model {
 			Figure<CurveBezier4>
 		>;
 
+	private:
+		std::vector<allFigures_t> Figures_;
+		glm::mat4 inverseMVP_{};// = glm::inverse(MVP); // = projection * view * model
+
+	public:
 		glm::mat4 model_{ 1.0f };
 		glm::mat4 projection_{ 1.0f };
 
@@ -128,10 +145,69 @@ namespace model {
 			glm::vec3 up{ 0.0f, 1.0f, 0.0f };
 		};
 
-		Camera_t camera_{};
+		Camera_t camera_{}; // view = glm::lookAt(camera_.position, camera_.target, camera_.up);
+
+		struct Mouse_t {
+			glm::vec2 NDC{ 0.0f, 0.0f };
+			glm::vec2 clipSpace{ 0.0f, 0.0f };
+			glm::vec2 viewSpace{ 0.0f, 0.0f };
+			glm::vec2 worldSpace{ 0.0f, 0.0f };
+		};
+
+		Mouse_t mouse_{};
+
+		void setMouseCoordinates(glm::vec2 absoluteMousePos) {
+			// Преобразование абсолютных координат мыши в NDC
+			glm::vec4 ndcPosition = glm::inverse(getInverseMVP()) * glm::vec4(absoluteMousePos.x, absoluteMousePos.y, 0.0f, 1.0f);
+			ndcPosition /= ndcPosition.w;
+
+			// Заполнение NDC координат
+			mouse_.NDC = glm::vec2(ndcPosition);
+
+			// Преобразование NDC координат обратно в clipSpace
+			glm::vec4 clipPosition = glm::vec4(ndcPosition.x, ndcPosition.y, -1.0f, 1.0f);
+			clipPosition = clipPosition * 0.5f + 0.5f; // Нормализация в диапазон [0, 1]
+
+			// Заполнение clipSpace координат
+			mouse_.clipSpace = glm::vec2(clipPosition);
+
+			// Преобразование clipSpace координат в viewSpace
+			glm::vec4 viewPosition = glm::inverse(projection_) * glm::vec4(clipPosition.x, clipPosition.y, 0.0f, 1.0f);
+
+			// Заполнение viewSpace координат
+			mouse_.viewSpace = glm::vec2(viewPosition);
+
+			// Заполнение worldSpace координат и установка z = 0
+			mouse_.worldSpace = glm::vec2(viewPosition.x, viewPosition.y);
+		}
+
+		glm::mat4 getInverseMVP() {
+			inverseMVP_ = glm::inverse(projection_ * getView() * model_);
+			return inverseMVP_;
+		}
+
+		glm::mat4 getView() {
+			return glm::lookAt(camera_.position, camera_.target, camera_.up);
+		}
+
+		allFigures_t getFlatFigure(uint32_t id) {
+			return Figures_[id];
+		}
+
+		allFigures_t findFlatFigureByCoords(glm::vec2 coords, float delta) {
+			for (const auto & figure : Figures_) {
+				if (std::holds_alternative<Figure<Triangle>>(figure)) {
+					/*auto triangle = std::get<Figure<Triangle>>(figure);
+					if (triangle.obj_.first.x - triangle.obj_.radius < coords.x + delta && triangle.obj_.first.x + triangle.obj_.radius > coords.x - delta &&
+						triangle.obj_.first.y - triangle.obj_.radius < coords.y + delta && triangle.obj_.first.y + triangle.obj_.radius > coords.y - delta) {
+						return figure;	
+					}*/
+				}
+			}
+			return Figures_[0]; // todo: remove
+		}
 
 	private:
-		std::vector<allFigures_t> Figures_;
 
 		template<class... Ts>
 		struct overloaded : Ts... { using Ts::operator()...; };
