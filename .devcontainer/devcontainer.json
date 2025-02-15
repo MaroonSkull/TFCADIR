@@ -1,0 +1,34 @@
+{
+  "name": "TFCADIR Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile",
+    //"context": "..",
+    "args": {
+      "USERNAME": "${localEnv:USER}",
+      "WORKSPACE": "${localWorkspaceFolder}",
+      "USER_UID": "${localEnv:UID:1000}",
+      "USER_GID": "${localEnv:GID:1000}"
+    }
+  },
+  "runArgs": [
+    "--gpus", "all"
+  ],
+  "remoteUser": "${localEnv:USER}",
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "containerUser": "${localEnv:USER}",
+  "workspaceFolder": "${localWorkspaceFolder}",
+  "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind,consistency=cached",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools-extension-pack",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "twxs.cmake",
+        "continue.continue",
+        "mutantdino.resourcemonitor"
+      ]
+    }
+  }
+}
