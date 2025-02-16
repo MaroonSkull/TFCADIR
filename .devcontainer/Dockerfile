@@ -19,8 +19,11 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # * Anything else you want to do like clean up goes here *
 # ********************************************************
 
+# get ready mirrorlist
 RUN pacman -Sy --noconfirm reflector
 RUN reflector --latest 10 --sort rate --save /etc/pacman.d/mirrorlist
+
+# instal base 
 RUN pacman -S --noconfirm \
 		base-devel \
 		llvm \
@@ -37,7 +40,8 @@ RUN pacman -Sy --noconfirm \
 		glad \
 		boost \
 		spdlog \
-		glfw
+		glfw \
+		glm
 
 # WORKDIR /home/${USERNAME}/TFCADIR
 #WORKDIR $WORKSPACE
