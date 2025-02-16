@@ -10,9 +10,6 @@
       "USER_GID": "${localEnv:GID:1000}"
     }
   },
-  "runArgs": [
-    "--gpus", "all"
-  ],
   "remoteUser": "${localEnv:USER}",
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
@@ -24,6 +21,7 @@
     "vscode": {
       "extensions": [
         "ms-vscode.cpptools-extension-pack",
+        "ms-azuretools.vscode-docker",
         "llvm-vs-code-extensions.vscode-clangd",
         "twxs.cmake",
         "continue.continue",

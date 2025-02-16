@@ -23,15 +23,21 @@ RUN pacman -Sy --noconfirm reflector
 RUN reflector --latest 10 --sort rate --save /etc/pacman.d/mirrorlist
 RUN pacman -S --noconfirm \
 		base-devel \
+		llvm \
+		clang \
+		gdb \
 		cmake \
-		git \
-		mesa \
 		ninja \
+		git \
+		sudo \
+		openssh
+
+RUN pacman -Sy --noconfirm \
+		mesa \
 		glad \
 		boost \
 		spdlog \
-		glfw \
-		sudo
+		glfw
 
 # WORKDIR /home/${USERNAME}/TFCADIR
 #WORKDIR $WORKSPACE
