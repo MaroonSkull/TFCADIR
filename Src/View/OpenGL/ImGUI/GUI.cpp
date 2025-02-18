@@ -133,7 +133,7 @@ std::tuple<ImVec2, float, std::optional<ImVec2>> GUI::DrawGUI(ImTextureID render
 	auto canvasSize = ShowCanvas(renderTexture);
 	if (isCanvasHovered_) ShowSimpleOverlay();
 
-	ShowDemoWindow();
+	// SshowDemoWindow();
     Render();
 
     return (isCanvasHovered_) ?

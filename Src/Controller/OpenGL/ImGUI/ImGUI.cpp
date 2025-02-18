@@ -72,7 +72,7 @@ void OpenglImguiController::onWheelMouseButton(InputState state) {
 	default:
 	case InputState::undefined:
 		spdlog::error("onWheelMouseButton undefined");
-		throw std::runtime_error{ "undefined state have been recieved in OpenglImguiController::onWheelMouseButton" };
+		// throw std::runtime_error{ "undefined state have been recieved in OpenglImguiController::onWheelMouseButton" };
 	}
 }
 
@@ -93,7 +93,7 @@ void OpenglImguiController::onRightMouseButton(InputState state) {
 	default:
 	case InputState::undefined:
 		spdlog::error("onRightMouseButton undefined");
-		throw std::runtime_error{ "undefined state have been recieved in OpenglImguiController::onRightMouseButton" };
+		// throw std::runtime_error{ "undefined state have been recieved in OpenglImguiController::onRightMouseButton" };
 	}
 }
 
@@ -115,7 +115,7 @@ void OpenglImguiController::onMouseHover(InputState state, float x, float y) {
 	default:
 	case InputState::undefined:
 		spdlog::error("onMouseHover undefined");
-		throw std::runtime_error{ "undefined state have been recieved in OpenglImguiController::onMouseHover" };
+		// throw std::runtime_error{ "undefined state have been recieved in OpenglImguiController::onMouseHover" };
 	}
 }
 
@@ -123,17 +123,12 @@ void OpenglImguiController::onMouseHover(InputState state, float x, float y) {
 void OpenglImguiController::onScroll(float momentWheel) {
 	if (momentWheel == 0.0f)
 		return;
-
-	if (momentWheel > 0.0f){
-		spdlog::info("onScroll up, {}", momentWheel);
-	}
-	else{
-		spdlog::info("onScroll down, {}", momentWheel);
-	}
 	
-	sp_model_->camera_.position.z += 0.1f * momentWheel;
-	sp_model_->camera_.position.z = std::clamp(sp_model_->camera_.position.z, -5.0f, -0.1f);
-		
+	sp_model_->camera_.position.z += 0.1f * momentWheel * abs(sp_model_->camera_.position.z);
+	sp_model_->camera_.position.z = std::clamp(sp_model_->camera_.position.z, -100.0f, -1e-6f);
+	
+	const auto scrollDirection = (momentWheel > 0.0f ? "up" : "down");
+	spdlog::info("onScroll {}, moment = {}, z = {}", scrollDirection, momentWheel, sp_model_->camera_.position.z);
 }
 
 void OpenglImguiController::addTriangleByCenter() {

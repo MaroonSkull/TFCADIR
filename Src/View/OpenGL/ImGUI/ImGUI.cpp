@@ -241,21 +241,24 @@ void OpenglImguiView::draw() {
 	// TODO: remove, temporary raw operations
 	sp_model_->model_ = glm::rotate(sp_model_->model_, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 	const auto view = glm::lookAt(
-    sp_model_->camera_.position,
+		sp_model_->camera_.position,
 		sp_model_->camera_.target,
 		sp_model_->camera_.up
 	);
 	sp_model_->projection_ = glm::perspective(glm::radians(45.0f), 1.33f, 0.1f, 100.0f);
 
-	if (const auto modelLoc = Pipeline_->getUniformLocation("model"); modelLoc.has_value())
-		glUniformMatrix4fv(modelLoc.value(), 1, GL_FALSE, glm::value_ptr(sp_model_->model_));
-	if (const auto viewLoc = Pipeline_->getUniformLocation("view"); viewLoc.has_value())
-		glUniformMatrix4fv(viewLoc.value(), 1, GL_FALSE, glm::value_ptr(view));
-	if (const auto projectionLoc = Pipeline_->getUniformLocation("projection"); projectionLoc.has_value())
-		glUniformMatrix4fv(projectionLoc.value(), 1, GL_FALSE, glm::value_ptr(sp_model_->projection_));
+	auto setUniformMatrix = [&](const std::string& name, const glm::mat4& matrix) {
+		if (const auto loc = Pipeline_->getUniformLocation(name); loc.has_value()) {
+			glUniformMatrix4fv(loc.value(), 1, GL_FALSE, glm::value_ptr(matrix));
+		}
+	};
+
+	setUniformMatrix("model", sp_model_->model_);
+	setUniformMatrix("view", view);
+	setUniformMatrix("projection", sp_model_->projection_);
 
 	glBindVertexArray(VAO_);
-	
+
 	if (mousePosition) {
 		// получаем данные из модели и отправляем в опенгл
 		glBindBuffer(GL_ARRAY_BUFFER, VBO_);
@@ -285,7 +288,7 @@ void OpenglImguiView::draw() {
 	// обновляем показания FPS
 	std::stringstream title;
 	title << "Interview test | average FPS : " << static_cast<uint32_t>(ImGui::GetIO().Framerate)
-		  <<               ", momental FPS : " << static_cast<uint32_t>(1.0f / ImGui::GetIO().DeltaTime);
+		<< ", momental FPS : " << static_cast<uint32_t>(1.0f / ImGui::GetIO().DeltaTime);
 	Window_->setTitle(title.str().c_str());
 }
 
