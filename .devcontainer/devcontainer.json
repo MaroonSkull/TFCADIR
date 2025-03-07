@@ -25,7 +25,8 @@
         "llvm-vs-code-extensions.vscode-clangd",
         "twxs.cmake",
         "continue.continue",
-        "mutantdino.resourcemonitor"
+        "mutantdino.resourcemonitor",
+        "xaver.clang-format"
       ]
     }
   }

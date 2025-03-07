@@ -1,132 +1,158 @@
-﻿#include <GUI.hpp>
+﻿#include "imgui.h"
+#include <GUI.hpp>
+#include <spdlog/spdlog.h>
+#include <stdexcept>
 using namespace ImGui;
 
 void GUI::ShowMainMenuBar() {
-    if(BeginMainMenuBar()) {
-        if(BeginMenu("Menu")) {
-            if(BeginMenu("Examples")) {
-                if(MenuItem("1")) {}
-                if(MenuItem("2")) {}
-                if(MenuItem("3")) {}
-                EndMenu();
-            }
-            EndMenu();
-        }
-        if(BeginMenu("Edit")) {
-            if(MenuItem("Undo", "CTRL+Z")) {}
-            if(MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
-            EndMenu();
-        }
-        if(BeginMenu("View")) {
-            if(MenuItem("Grid")) {}
-            if(MenuItem("Sized", NULL, false, false)) {}  // Disabled item
-            Separator();
-            
-            if(Checkbox("##circlesegmentoverride", &circleSegmentsOverride_))
-                circleSegmentsOverride_v_ = circleSegmentsOverride_v_default;
-            SameLine(0.0f, GetStyle().ItemInnerSpacing.x);
-            circleSegmentsOverride_ |= SliderInt("Circle segments override", &circleSegmentsOverride_v_, 3, 40);
-            if(Checkbox("##curvessegmentoverride", &curveSegmentsOverride_))
-                curveSegmentsOverride_v_ = curveSegmentsOverride_v_default;
-            SameLine(0.0f, GetStyle().ItemInnerSpacing.x);
-            curveSegmentsOverride_ |= SliderInt("Curves segments override", &curveSegmentsOverride_v_, 3, 40);
-            EndMenu();
-        }
-        EndMainMenuBar();
-    }
+	if(!BeginMainMenuBar())
+		throw std::runtime_error("Failed to create main menu bar!");
+	
+	if(BeginMenu("Menu")) {
+		if(BeginMenu("Examples")) {
+			if(MenuItem("1")) {}
+			if(MenuItem("2")) {}
+			if(MenuItem("3")) {}
+			EndMenu();
+		}
+		EndMenu();
+	}
+	if(BeginMenu("Edit")) {
+		if(MenuItem("Undo", "CTRL+Z")) {}
+		if(MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+		EndMenu();
+	}
+	if(BeginMenu("View")) {
+		if(MenuItem("Grid")) {}
+		if(MenuItem("Sized", NULL, false, false)) {}  // Disabled item
+		Separator();
+		
+		if(Checkbox("##circlesegmentoverride", &circleSegmentsOverride_))
+			circleSegmentsOverride_v_ = circleSegmentsOverride_v_default;
+		SameLine(0.0f, GetStyle().ItemInnerSpacing.x);
+		circleSegmentsOverride_ |= SliderInt("Circle segments override", &circleSegmentsOverride_v_, 3, 40);
+		if(Checkbox("##curvessegmentoverride", &curveSegmentsOverride_))
+			curveSegmentsOverride_v_ = curveSegmentsOverride_v_default;
+		SameLine(0.0f, GetStyle().ItemInnerSpacing.x);
+		curveSegmentsOverride_ |= SliderInt("Curves segments override", &curveSegmentsOverride_v_, 3, 40);
+		EndMenu();
+	}
+	EndMainMenuBar();
 }
 
 void GUI::ShowDockSpace() {
-    dockId_ = DockSpaceOverViewport(0, GetMainViewport()); // move inside if
-    static bool init = true;
-    if(init) {
-        init = false;
-        DockBuilderRemoveNode(dockId_);
-        dockId_ = DockBuilderAddNode(dockId_, dockFlags_);
-        DockBuilderSetNodeSize(dockId_, GetMainViewport()->Size);
+	dockId_ = DockSpaceOverViewport(0, GetMainViewport()); // move inside if
+	static bool isInit{};
+	if(!isInit) {
+		isInit = true;
+		DockBuilderRemoveNode(dockId_);
+		dockId_ = DockBuilderAddNode(dockId_, dockFlags_);
+		DockBuilderSetNodeSize(dockId_, GetMainViewport()->Size);
 
-        dockIdLog_ = DockBuilderSplitNode(dockId_, ImGuiDir_Down, 0.15f, nullptr, &dockId_);
-        dockIdTools_ = DockBuilderSplitNode(dockId_, ImGuiDir_Right, 0.25f, nullptr, &dockId_);
+		dockIdLog_ = DockBuilderSplitNode(dockId_, ImGuiDir_Down, 0.15f, nullptr, &dockId_);
+		dockIdTools_ = DockBuilderSplitNode(dockId_, ImGuiDir_Right, 0.25f, nullptr, &dockId_);
 
-        DockBuilderDockWindow("Canvas", dockId_);
-        DockBuilderDockWindow("Tools", dockIdTools_);
-        DockBuilderDockWindow("Log", dockIdLog_);
-        DockBuilderDockWindow("Mouse coords", dockIdMouse_);
+		DockBuilderDockWindow("Canvas", dockId_);
+		DockBuilderDockWindow("Tools", dockIdTools_);
+		DockBuilderDockWindow("Log", dockIdLog_);
+		DockBuilderDockWindow("Mouse coords", dockIdMouse_);
 
-        DockBuilderFinish(dockId_);
-    }
+		DockBuilderFinish(dockId_);
+	}
 }
 
 void GUI::ShowLog() {
-    if(Begin("Log")) {
-        Text("Just logs here");
-    }
-    End();
+	if(Begin("Log")) {
+		Text("Just logs here");
+	}
+	End();
 }
 
 void GUI::ShowSidePanel() {
-    if(Begin("Tools")) {
-        Text("Side panel with tools");
-    }
-    End();
+	if(Begin("Tools")) {
+		Text("Side panel with tools");
+		// todo: add buttons for addLine, addTriangleByCorners and addCircle
+		if (Button("Add Line"))
+		{
+			// Code to handle adding a line
+			spdlog::info("Line added!");
+			sp_controller_->addLine();
+		}
+		SameLine();
+		if (Button("Add Triangle by Corners"))
+		{
+			// Code to handle adding a triangle by corners
+			spdlog::info("Triangle added by corners!");
+		}
+		SameLine();
+		if (Button("Add Circle"))
+		{
+			// Code to handle adding a circle
+			spdlog::info("Circle added!");
+		}
+
+	}
+	End();
 }
 
 ImVec2 GUI::ShowCanvas(ImTextureID renderTexture) {
-    ImVec2 canvasSize{};
-    ImVec2 screenPositionAbsolute{};
-    if (Begin("Canvas", nullptr, canvasFlags_)) {
-        // Using a Child allow to fill all the space of the window.
-        // It also alows customization
-        BeginChild("##Canvas", ImVec2(0.0f, 0.0f), false, ImGuiWindowFlags_NoMove);
-        // Разрешаем перехватывать событие прокрутки колесика
-        SetItemKeyOwner(ImGuiKey_MouseWheelY);
-        momentWheel_ = GetIO().MouseWheel;
-        // Get the size of the child (i.e. the whole draw size of the windows).
-        canvasSize = GetWindowSize();
+	ImVec2 canvasSize{};
+	ImVec2 screenPositionAbsolute{};
+	if (Begin("Canvas", nullptr, canvasFlags_)) {
+		// Using a Child allow to fill all the space of the window.
+		// It also alows customization
+		BeginChild("##Canvas", ImVec2(0.0f, 0.0f), false, ImGuiWindowFlags_NoMove);
+		// Разрешаем перехватывать событие прокрутки колесика
+		SetItemKeyOwner(ImGuiKey_MouseWheelY);
+		momentWheel_ = GetIO().MouseWheel;
+		// Get the size of the child (i.e. the whole draw size of the windows).
+		canvasSize = GetWindowSize();
 
-        // Because I use the texture from OpenGL, I need to invert the V from the UV.
-        Image(renderTexture, canvasSize, ImVec2(0, 1), ImVec2(1, 0));
-        isCanvasHovered_ = IsItemHovered();
-        mousePositionAbsolute_ = GetMousePos();
-        screenPositionAbsolute = GetItemRectMin();
-        mousePositionRelative_ = ImVec2(mousePositionAbsolute_.x - screenPositionAbsolute.x, mousePositionAbsolute_.y - screenPositionAbsolute.y);
+		// Because I use the texture from OpenGL, I need to invert the V from the UV.
+		Image(renderTexture, canvasSize, ImVec2(0, 1), ImVec2(1, 0));
+		isCanvasHovered_ = IsItemHovered();
+		mousePositionAbsolute_ = GetMousePos();
+		screenPositionAbsolute = GetItemRectMin();
+		mousePositionRelative_ = ImVec2(mousePositionAbsolute_.x - screenPositionAbsolute.x, mousePositionAbsolute_.y - screenPositionAbsolute.y);
 
-        if (isCanvasHovered_) {
-            // вычисляем координаты курсора
-            
-        }
+		if (isCanvasHovered_) {
+			// вычисляем координаты курсора
+			
+		}
 
-        EndChild();
-    }
-    End();
-    return canvasSize;
+		EndChild();
+	}
+	End();
+	return canvasSize;
 }
 
 void GUI::ShowSimpleOverlay() {
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_None
-        | ImGuiWindowFlags_NoDecoration
-        | ImGuiWindowFlags_AlwaysAutoResize
-        | ImGuiWindowFlags_NoFocusOnAppearing
-        | ImGuiWindowFlags_NoNav;
-    SetNextWindowBgAlpha(0.35f); // Transparent background
-    ImVec2 overlayPos = mousePositionAbsolute_;
-    overlayPos.x += 16;
-    overlayPos.y += 24;
-    SetNextWindowPos(overlayPos, ImGuiCond_Always);
-    SetNextWindowViewport(GetMainViewport()->ID);
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_None
+		| ImGuiWindowFlags_NoDecoration
+		| ImGuiWindowFlags_AlwaysAutoResize
+		| ImGuiWindowFlags_NoFocusOnAppearing
+		| ImGuiWindowFlags_NoNav;
+	SetNextWindowBgAlpha(0.35f); // Transparent background
+	ImVec2 overlayPos = mousePositionAbsolute_;
+	overlayPos.x += 16;
+	overlayPos.y += 24;
+	SetNextWindowPos(overlayPos, ImGuiCond_Always);
+	SetNextWindowViewport(GetMainViewport()->ID);
 
-    if(Begin("Mouse coords", nullptr, window_flags)) {
-        if(IsMousePosValid())
-            Text("%.1f,%.1f", mousePositionRelative_.x, mousePositionRelative_.y);
-        else
-            Text("<invalid>");
-    }
-    End();
+	if(Begin("Mouse coords", nullptr, window_flags)) {
+		if(IsMousePosValid())
+			Text("%.1f,%.1f", mousePositionRelative_.x, mousePositionRelative_.y);
+		else
+			Text("<invalid>");
+	}
+	End();
 }
 
+GUI::GUI(std::shared_ptr<controller::IController> sp_controller) : sp_controller_(sp_controller) {}
+
 std::tuple<ImVec2, float, std::optional<ImVec2>> GUI::DrawGUI(ImTextureID renderTexture) {
-    NewFrame();
-    ShowMainMenuBar();
+	NewFrame();
+	ShowMainMenuBar();
 	ShowDockSpace();
 	ShowLog();
 	ShowSidePanel();
@@ -134,9 +160,9 @@ std::tuple<ImVec2, float, std::optional<ImVec2>> GUI::DrawGUI(ImTextureID render
 	if (isCanvasHovered_) ShowSimpleOverlay();
 
 	// SshowDemoWindow();
-    Render();
+	Render();
 
-    return (isCanvasHovered_) ?
-        std::tuple<ImVec2, float, std::optional<ImVec2>>(canvasSize, momentWheel_, mousePositionRelative_) :
-        std::tuple<ImVec2, float, std::optional<ImVec2>>(canvasSize, momentWheel_, std::nullopt);
+	return (isCanvasHovered_) ?
+		std::tuple<ImVec2, float, std::optional<ImVec2>>(canvasSize, momentWheel_, mousePositionRelative_) :
+		std::tuple<ImVec2, float, std::optional<ImVec2>>(canvasSize, momentWheel_, std::nullopt);
 }

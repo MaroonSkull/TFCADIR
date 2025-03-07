@@ -1,7 +1,8 @@
-﻿#include <View/OpenGL/ImGUI.hpp>
+﻿#include "IController.hpp"
+#include <View/OpenGL/ImGUI.hpp>
 
-#include <boost/mp11/bind.hpp>
-#include <boost/signals2.hpp>
+// #include <boost/mp11/bind.hpp>
+// #include <boost/signals2.hpp>
 
 #include <Resource.h>
 #include <glm/glm.hpp>
@@ -19,9 +20,10 @@
 
 OpenglImguiView::OpenglImguiView(
 	std::shared_ptr<model::FlatFigures> sp_model,
-	std::shared_ptr<IController> sp_controller
+	std::shared_ptr<controller::IController> sp_controller
 )
 	: GLFW_{ glfw::init() }
+	, UI_{sp_controller_}
 	, sp_model_{ sp_model }
 	, sp_controller_{ sp_controller }
 {
@@ -31,7 +33,7 @@ OpenglImguiView::OpenglImguiView(
 		};
 	try {
 		
-		mustBeRedrawSignal.connect(boost::bind(&OpenglImguiView::draw, this));
+		// mustBeRedrawSignal.connect(boost::bind(&OpenglImguiView::draw, this));
 
 		// init glfwpp, glad, window, imgui
 		glfw::InitHints iHints;
@@ -211,26 +213,27 @@ void OpenglImguiView::draw() {
 
 	// обработка операций непосредственного ввода с помощью канваса
 	// мб в лямбду завернуть, коллбэк оформить 
-	if (mousePosition) {
+	if (mousePosition.has_value()) {
 		const auto &[x, y] = mousePosition.value();
 		// to ndc and to model
 		//sp_model_->camera_
-		sp_controller_->onMouseHover(IController::InputState::hovered, x / frameWidth_, y / frameHeight_);
 
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) sp_controller_->onLeftMouseButton(IController::InputState::down);
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) sp_controller_->onLeftMouseButton(IController::InputState::released);
+		sp_controller_->updateWorkspaceHoverState(controller::state::Workspace::hovered /*, x / frameWidth_, y / frameHeight_ */);
 
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) sp_controller_->onRightMouseButton(IController::InputState::down);
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Right)) sp_controller_->onRightMouseButton(IController::InputState::released);
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) sp_controller_->updateLeftMouseButtonState(controller::state::Button::down);
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) sp_controller_->updateLeftMouseButtonState(controller::state::Button::released);
 
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) sp_controller_->onWheelMouseButton(IController::InputState::down);
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle)) sp_controller_->onWheelMouseButton(IController::InputState::released);
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) sp_controller_->updateRightMouseButtonState(controller::state::Button::down);
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Right)) sp_controller_->updateRightMouseButtonState(controller::state::Button::released);
 
-		if (momentWheel != 0.0f) sp_controller_->onScroll(momentWheel);
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) sp_controller_->updateWheelMouseButtonState(controller::state::Button::down);
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle)) sp_controller_->updateWheelMouseButtonState(controller::state::Button::released);
+
+		if (momentWheel != 0.0f) sp_controller_->updateScroll(momentWheel);
 
 		// convert to normalised coords via glm
 	}
-	else sp_controller_->onMouseHover(IController::InputState::unhovered, 0.0f, 0.0f);
+	else sp_controller_->updateWorkspaceHoverState(controller::state::Workspace::unhovered);
 	
 
 	glClearColor(0.9f, 0.1f, 0.1f, 1.0f);

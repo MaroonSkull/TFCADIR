@@ -19,13 +19,13 @@
 
 
 class OpenglImguiView final : public IView {
-	friend class OpenglImguiController;
+	friend class OpenglImguiController; // wtf, i want to remove it. Looks like dirty design
 private:
 	glfw::GlfwLibrary GLFW_; // RAII
 	std::shared_ptr<model::FlatFigures> sp_model_;
-	std::shared_ptr<IController> sp_controller_;
+	std::shared_ptr<controller::IController> sp_controller_;
 	glfw::Window* Window_ = nullptr;
-	GUI UI_{};
+	GUI UI_;
 	Shader* Vertex_ = nullptr;
 	Shader* Fragment_ = nullptr;
 	GLProgram* Pipeline_ = nullptr;
@@ -51,7 +51,7 @@ private:
 	
 public:
 	// init glfwpp, glad, window, imgui
-	OpenglImguiView(std::shared_ptr<model::FlatFigures>, std::shared_ptr<IController>);
+	OpenglImguiView(std::shared_ptr<model::FlatFigures>, std::shared_ptr<controller::IController>);
 	~OpenglImguiView();
 
 	void draw();

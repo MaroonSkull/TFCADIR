@@ -3,11 +3,14 @@
 #include <glfwpp/glfwpp.h>
 #include <imgui.h>
 #include <imgui_internal.h> // для docking
-
+#include <memory>
+#include <optional>
+#include <Controller/IController.hpp>
 
 
 class GUI {
 private:
+	std::shared_ptr<controller::IController> sp_controller_;
 	ImGuiDockNodeFlags dockFlags_{ ImGuiDockNodeFlags_None };
 	ImGuiID dockId_{}; // id родительского окна, к которому будем цеплять все прочие панели
 	ImGuiID dockIdTools_{};
@@ -38,5 +41,6 @@ private:
 	// void ShowListPanel()
 	void ShowSimpleOverlay(); // пусть плавает за мышью и показывает её координаты, если они в пределах канваса
 public:
+	GUI(std::shared_ptr<controller::IController> sp_controller);
 	std::tuple<ImVec2, float, std::optional<ImVec2>> DrawGUI(ImTextureID renderTexture);
 };

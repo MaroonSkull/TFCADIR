@@ -1,9 +1,9 @@
 #pragma once
 
 // Observer
-#include <boost/signals2.hpp>
+// #include <boost/signals2.hpp>
 
-static boost::signals2::signal<void(void)> mustBeRedrawSignal;
+// static boost::signals2::signal<void(void)> mustBeRedrawSignal;
 
 class IView {
 public:
