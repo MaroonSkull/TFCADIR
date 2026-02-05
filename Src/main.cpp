@@ -39,7 +39,7 @@ int main() {
 		// spdlog::info("swogl::add(5, 10) = {}", swogl::add(5, 10));
 
 		while (!View->shouldClose()) {
-			// отлавливаем все события
+			// catch all events
 			glfw::pollEvents();
 
 			View->draw();

@@ -5,7 +5,7 @@
 
 namespace controller {
 
-// тут будет обработка всех действий пользователя, вызов модели
+// this is where all user actions will be handled, model calls
 class OpenglImguiController final : public IController {
 private:
 	std::shared_ptr<model::FlatFigures> sp_model_;
@@ -18,15 +18,15 @@ private:
 public:
 	OpenglImguiController(std::shared_ptr<model::FlatFigures>);
 
-	// события непосредственного ввода
-	void updateLeftMouseButtonState(state::Button); // обработка расположения фигур
-	void updateWheelMouseButtonState(state::Button); // перемещение по пространству
-	void updateRightMouseButtonState(state::Button); // отмена + перемещение по пространству
-	void updateWorkspaceHoverState(state::Workspace); // Пока не придумал зачем
+	// direct input events
+	void updateLeftMouseButtonState(state::Button); // handling figure placement
+	void updateWheelMouseButtonState(state::Button); // navigation through space
+	void updateRightMouseButtonState(state::Button); // cancel + navigation through space
+	void updateWorkspaceHoverState(state::Workspace); // haven't figured out purpose yet
 	void updateScreenspaceMousePosition(glm::vec2 ssp);
 	void updateScroll(float);
 
-	// события GUI
+	// GUI events
 	void addLine();
 	void addTriangleByCenter();
 	void addTriangleByCorners();

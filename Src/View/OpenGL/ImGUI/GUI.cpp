@@ -102,7 +102,7 @@ ImVec2 GUI::ShowCanvas(ImTextureID renderTexture) {
 		// Using a Child allow to fill all the space of the window.
 		// It also alows customization
 		BeginChild("##Canvas", ImVec2(0.0f, 0.0f), false, ImGuiWindowFlags_NoMove);
-		// Разрешаем перехватывать событие прокрутки колесика
+		// Allow capturing mouse wheel scroll event
 		SetItemKeyOwner(ImGuiKey_MouseWheelY);
 		momentWheel_ = GetIO().MouseWheel;
 		// Get the size of the child (i.e. the whole draw size of the windows).
@@ -116,7 +116,7 @@ ImVec2 GUI::ShowCanvas(ImTextureID renderTexture) {
 		mousePositionRelative_ = ImVec2(mousePositionAbsolute_.x - screenPositionAbsolute.x, mousePositionAbsolute_.y - screenPositionAbsolute.y);
 
 		if (isCanvasHovered_) {
-			// вычисляем координаты курсора
+			// calculate cursor coordinates
 			
 		}
 

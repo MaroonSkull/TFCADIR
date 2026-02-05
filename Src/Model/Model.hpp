@@ -31,9 +31,9 @@ struct Screen_t {};
 using type = std::variant<Local_t, World_t, View_t, Clip_t, Screen_t>;
 
 /**
- * @brief Координатная система
- * @details Класс представляет из себя хранилище координат,
- * позволяющий преобразовывать координаты между
+ * @brief Coordinate system
+ * @details Class represents a coordinate storage that allows transforming
+ * coordinates between:
  * - local space (or object space)
  * - world space
  * - view space (or eye space)
@@ -59,7 +59,7 @@ public:
 
   Object() = default;
   Object(glm::mat4x4 modelMatrix, glm::mat4x4 viewMatrix,
-         glm::mat4x4 projectionMatrix, type currentSystem = type::local)
+         glm::mat4x4 projectionMatrix, type currentSystem = Local_t{})
       : modelMatrix(modelMatrix), viewMatrix(viewMatrix),
         projectionMatrix(projectionMatrix), currentSystem(currentSystem) {}
 
@@ -71,15 +71,13 @@ public:
   void setViewMatrix(const glm::mat4x4 &matrix);
   void setProjectionMatrix(const glm::mat4x4 &matrix);
 
-  // Я хочу сделать полный двудольный граф, для этого хорошо подойдёт
-  // std::variant + std::visit
+  // TODO: Want to create a complete bipartite graph, std::variant + std::visit
+  // would be well suited for this
 };
 
-std::variant<type>
-
-    namespace literals {
-  // i want to write user-defined literals for Object class, like _ls, _ws, _vs,
-  // _cs for coordinates.
+namespace literals {
+// i want to write user-defined literals for Object class, like _ls, _ws, _vs,
+// _cs for coordinates.
 }
 
 } // namespace CoordinateSystem

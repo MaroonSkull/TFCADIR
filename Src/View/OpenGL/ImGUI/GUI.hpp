@@ -2,7 +2,7 @@
 
 #include <glfwpp/glfwpp.h>
 #include <imgui.h>
-#include <imgui_internal.h> // для docking
+#include <imgui_internal.h> // for docking
 #include <memory>
 #include <optional>
 #include <Controller/IController.hpp>
@@ -12,7 +12,7 @@ class GUI {
 private:
 	std::shared_ptr<controller::IController> sp_controller_;
 	ImGuiDockNodeFlags dockFlags_{ ImGuiDockNodeFlags_None };
-	ImGuiID dockId_{}; // id родительского окна, к которому будем цеплять все прочие панели
+	ImGuiID dockId_{}; // id of the parent window to which all other panels will be attached
 	ImGuiID dockIdTools_{};
 	ImGuiID dockIdLog_{};
 	ImGuiID dockIdMouse_{};
@@ -39,7 +39,7 @@ private:
 	void ShowSidePanel();
 	ImVec2 ShowCanvas(ImTextureID renderTexture);
 	// void ShowListPanel()
-	void ShowSimpleOverlay(); // пусть плавает за мышью и показывает её координаты, если они в пределах канваса
+	void ShowSimpleOverlay(); // let it float after the mouse and show its coordinates if within canvas
 public:
 	GUI(std::shared_ptr<controller::IController> sp_controller);
 	std::tuple<ImVec2, float, std::optional<ImVec2>> DrawGUI(ImTextureID renderTexture);

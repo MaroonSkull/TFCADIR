@@ -44,7 +44,7 @@ OpenglImguiView::OpenglImguiView(
     wHints.apply();
 
     Window_ = new glfw::Window{640, 480, "Interview test"};
-    // первый проход фреймбуфера рендерим в размерах самого окна.
+    // first framebuffer pass renders at window size
     std::tie(frameWidth_, frameHeight_) = Window_->getFramebufferSize();
     glfw::makeContextCurrent(*Window_);
     glfw::swapInterval(1); // Enable vsync
@@ -74,8 +74,8 @@ OpenglImguiView::OpenglImguiView(
     Fragment_->deleteShader();
     Vertex_->deleteShader();
 
-    // todo Похоже тут есть баг
-    // надо генерировать два фреймбуффера и в них по очереди отрисовывать
+    // todo looks like there's a bug here
+    // need to generate two framebuffers and render to them in turns
     create_framebuffer();
 
     // Imgui
@@ -139,7 +139,7 @@ void OpenglImguiView::create_triangle() {
 
   glGenBuffers(1, &VBO_);
   glBindBuffer(GL_ARRAY_BUFFER, VBO_);
-  // GL_DYNAMIC_DRAW - будем интенсивно менять данные.
+  // GL_DYNAMIC_DRAW - we will be changing data intensively
   glBufferData(GL_ARRAY_BUFFER, vertices_.size() * sizeof(vertices_.at(0)),
                vertices_.data(), GL_DYNAMIC_DRAW);
 
@@ -154,9 +154,9 @@ void OpenglImguiView::create_framebuffer() {
   glGenFramebuffers(1, &FBO_);
   glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
 
-  // Текстура, в которую мы будем рендерить
+  // Texture to which we will render
   glGenTextures(1, &textureId_);
-  // Рендербуфер для целей OpenGL
+  // Renderbuffer for OpenGL purposes
   glGenRenderbuffers(1, &RBO_);
   rescale_framebuffer();
 
@@ -196,13 +196,13 @@ void OpenglImguiView::draw() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
 
-  // reinterpret_cast тут неизбежен, это вынужденная мера, чтобы передать opengl
-  // текстуру из GLFWPP в imgui
+  // reinterpret_cast is inevitable here, it's a necessary measure to pass
+  // the texture from GLFWPP to imgui
   auto [frameSizes, momentWheel, mousePosition] =
       UI_.DrawGUI(reinterpret_cast<ImTextureID>(textureId_));
 
-  // todo тут пригодится observer. Если модель и вью не изменились, новую
-  // текстуру не рендерим
+  // todo observer would be useful here. If model and view haven't changed,
+  // don't render new texture
 
   // Render on the whole framebuffer
   glViewport(0, 0, frameWidth_, frameHeight_);
@@ -215,8 +215,8 @@ void OpenglImguiView::draw() {
     rescale_framebuffer();
   }
 
-  // обработка операций непосредственного ввода с помощью канваса
-  // мб в лямбду завернуть, коллбэк оформить
+  // handling direct input operations via canvas
+  // maybe wrap in lambda, create callback
   if (mousePosition.has_value()) {
     const auto &[x, y] = mousePosition.value();
     // to ndc and to model
@@ -283,7 +283,7 @@ void OpenglImguiView::draw() {
   glBindVertexArray(VAO_);
 
   if (mousePosition) {
-    // получаем данные из модели и отправляем в опенгл
+    // get data from model and send to opengl
     glBindBuffer(GL_ARRAY_BUFFER, VBO_);
     // glBufferSubData(GL_ARRAY_BUFFER, 0, vertices_.size() *
     // sizeof(vertices_.at(0)), vertices_.data());
@@ -306,9 +306,9 @@ void OpenglImguiView::draw() {
     glfw::makeContextCurrent(backupCurrentContext);
   }
 
-  // меняем буфер для следующего раза
+  // swap buffer for next time
   Window_->swapBuffers();
-  // обновляем показания FPS
+  // update FPS display
   std::stringstream title;
   title << "Interview test | average FPS : "
         << static_cast<uint32_t>(ImGui::GetIO().Framerate)

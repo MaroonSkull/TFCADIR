@@ -31,8 +31,8 @@ private:
 	GLProgram* Pipeline_ = nullptr;
 	GLsizei frameWidth_{};
 	GLsizei frameHeight_{};
-	// Пока что без EBO. Если добавлять, то можно сделать привязку к уже существующим точкам организовать.
-	// Ещё можно Point's хранить в каком-нибунадо как-то дь std::set или std::[unordered_]map и хранить в модели не точки, а их индексы
+	// No EBO for now. If adding, could link to existing points.
+	// Could also store Points in some std::set or std::[unordered_]map and store indices in the model instead of points
 	GLuint VAO_{}; // vertex array object
 	GLuint VBO_{}; // vertex buffer object
 	GLuint FBO_{}; // frame buffer object

@@ -7,7 +7,7 @@
 
 class GLProgram {
 private:
-	// множество шейдеров, из которых будем собирать программу
+	// set of shaders from which the program will be built
 	std::set<const Shader*, Shader::cmp> shadersList_;
 	GLuint programId_{};
 
