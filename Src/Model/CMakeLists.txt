@@ -13,6 +13,8 @@ config_lib(FlatFigureModel
         Model.hpp
     PRIVATE_DEPENDENCIES
         spdlog::spdlog
+    PUBLIC_DEPENDENCIES
+        glm
     COMPILE_FEATURES
         cxx_std_17
 )

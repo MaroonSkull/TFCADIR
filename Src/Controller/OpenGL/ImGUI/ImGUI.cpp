@@ -7,14 +7,15 @@
 // #include <boost/signals2.hpp>
 
 #include <spdlog/spdlog.h>
-
 #include <stdexcept>
+#include <algorithm>
+
+using namespace std::string_literals;
 
 namespace controller {
 
 OpenglImguiController::OpenglImguiController(std::shared_ptr<model::FlatFigures> sp_model)
-	: sp_model_(sp_model)
-	, fsm_(sp_model) {
+	: sp_model_(sp_model) {
 	if (sp_model_ == nullptr)
 		throw std::invalid_argument{ "pModel cannot be nullptr in controller constructor!" };
 }
@@ -121,7 +122,7 @@ void OpenglImguiController::updateScreenspaceMousePosition(glm::vec2 screenspace
 
 	spdlog::info("{}: normalizedPosition = ({}, {})", __PRETTY_FUNCTION__, screenspacePosition.x, screenspacePosition.y);
 	
-	sp_controller_->fsm_.process_event(fsm::events::OnMouseMove(screenspacePosition));
+	fsm_.process_event(fsm::events::OnMouseMove(screenspacePosition));
 
 }
 
@@ -139,31 +140,31 @@ void OpenglImguiController::updateScroll(float momentWheel) {
 }
 
 void OpenglImguiController::addLine() {
-	sp_controller_->fsm_.process_event(fsm::events::OnAddLine());
+	fsm_.process_event(fsm::events::OnAddLine());
 }
 
 void OpenglImguiController::addTriangleByCenter() {
-	sp_controller_->fsm_.process_event(fsm::events::OnAddTriangleByCenter());
+	fsm_.process_event(fsm::events::OnAddTriangleByCenter());
 }
 
 void OpenglImguiController::addTriangleByCorners() {
-	sp_controller_->fsm_.process_event(fsm::events::OnAddTriangleByCorners());
+	fsm_.process_event(fsm::events::OnAddTriangleByCorners());
 }
 
 void OpenglImguiController::addSquareByCenter() {
-	sp_controller_->fsm_.process_event(fsm::events::OnAddSquareByCenter());
+	fsm_.process_event(fsm::events::OnAddSquareByCenter());
 }
 
 void OpenglImguiController::addSquareByCorners() {
-	sp_controller_->fsm_.process_event(fsm::events::OnAddSquareByCorners());
+	fsm_.process_event(fsm::events::OnAddSquareByCorners());
 }
 
 void OpenglImguiController::addNgonByCenter() {
-	sp_controller_->fsm_.process_event(fsm::events::OnAddNgonByCenter());
+	fsm_.process_event(fsm::events::OnAddNgonByCenter());
 }
 
 void OpenglImguiController::addCircleByCenter() {
-	sp_controller_->fsm_.process_event(fsm::events::OnAddCircleByCenter());
+	fsm_.process_event(fsm::events::OnAddCircleByCenter());
 }
 
 // на будущее, сначала надо научиться определять коллизии
