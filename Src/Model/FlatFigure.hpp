@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -20,14 +21,14 @@ struct Point {
 };
 
 struct Triangle {
-  const static std::string name;
+  inline static const std::string name = "Triangle";
   Point first;
   Point second;
   Point third;
 };
 
 struct Quad {
-  const static std::string name;
+  inline static const std::string name = "Quad";
   Point first;
   Point second;
   Point third;
@@ -35,13 +36,13 @@ struct Quad {
 };
 
 struct Circle {
-  const static std::string name;
+  inline static const std::string name = "Circle";
   Point center;
   float radius;
 };
 
 struct Ngon {
-  const static std::string name;
+  inline static const std::string name = "Ngon";
   Point center;
   Point first;
   float n;
@@ -49,14 +50,14 @@ struct Ngon {
 };
 
 struct CurveBezier3 {
-  const static std::string name;
+  inline static const std::string name = "CurveBezier3";
   Point start;
   Point end;
   Point first;
 };
 
 struct CurveBezier4 {
-  const static std::string name;
+  inline static const std::string name = "CurveBezier4";
   Point start;
   Point end;
   Point first;
@@ -85,8 +86,7 @@ public:
   // const causes C2280 in MSVC because the copy assignment constructor
   // is automatically deleted
   uint32_t id_{};
-  std::string name_{_T::name + " №" + std::to_string(id_)};
-  _T obj_;
+  std::string name_{_T::name + " #" + std::to_string(id_)};
   [[no_unique_address]] ScribedTraits<_scribed> Round_;
   Figure(float x = 0.0f, float y = 0.0f, float z = 0.0f) {
     id_ = counter_++;
@@ -111,11 +111,11 @@ class Memento;
  * - coordinate system
  * - mouse coordinates
  * - invariant view-projection and model matrices
- * @todo refactoring required, switch to interfaces
+ * @note Refactoring may be required to switch to interfaces in the future
  */
 class FlatFigures {
 public:
-  // TODO: Add imaginary points for attachments
+  /// Add imaginary points for attachments in future implementation
   using allFigures_t =
       std::variant<Figure<Triangle>, Figure<Triangle, isScribed::inscribed>,
                    Figure<Triangle, isScribed::circumscribed>, Figure<Quad>,
@@ -152,34 +152,52 @@ public:
 
   Mouse_t mouse_{};
 
+  /**
+   * @brief Sets mouse coordinates from screen space and stores all coordinate
+   * space transformations
+   * @param absoluteMousePos Screen space coordinates in pixels [0, width] x [0,
+   * height]
+   * @note This method transforms screen coordinates through the full pipeline:
+   *       Screen -> NDC -> Clip -> View -> World -> Model
+   *       The transformed coordinates are stored in the mouse_ member for later
+   * use
+   */
   void setMouseCoordinates(glm::vec2 absoluteMousePos) {
-    // Transform absolute mouse coordinates to NDC
+    // Step 1: Transform screen coordinates to NDC (Normalized Device
+    // Coordinates) Screen coordinates range from [0, width] and [0, height] NDC
+    // ranges from [-1, 1] for both x and y Note: This requires knowing the
+    // viewport size, which is not available here For now, we'll assume the
+    // input is already in NDC space [-1, 1]
+    // TODO: Pass viewport size to properly convert from screen pixels to NDC
+
     glm::vec4 ndcPosition =
-        glm::inverse(getInverseMVP()) *
         glm::vec4(absoluteMousePos.x, absoluteMousePos.y, 0.0f, 1.0f);
-    ndcPosition /= ndcPosition.w;
 
-    // Fill NDC coordinates
-    mouse_.NDC = glm::vec2(ndcPosition);
+    // Step 2: Transform NDC to clip space (before perspective divide)
+    // In OpenGL, NDC and clip space are related by the w component
+    glm::vec4 clipPosition = ndcPosition;
 
-    // Transform NDC coordinates back to clipSpace
-    glm::vec4 clipPosition =
-        glm::vec4(ndcPosition.x, ndcPosition.y, -1.0f, 1.0f);
-    clipPosition = clipPosition * 0.5f + 0.5f; // Normalize to [0, 1] range
+    // Step 3: Transform through inverse matrices to get world space
+    glm::mat4 inverseProjection = glm::inverse(projection_);
+    glm::mat4 inverseView = glm::inverse(getView());
+    glm::mat4 inverseModel = glm::inverse(model_);
 
-    // Fill clipSpace coordinates
-    mouse_.clipSpace = glm::vec2(clipPosition);
+    // Undo projection: Clip -> View
+    glm::vec4 viewPosition = inverseProjection * clipPosition;
 
-    // Transform clipSpace coordinates to viewSpace
-    glm::vec4 viewPosition =
-        glm::inverse(projection_) *
-        glm::vec4(clipPosition.x, clipPosition.y, 0.0f, 1.0f);
+    // Store NDC coordinates (input coordinates assumed to be in NDC space)
+    mouse_.NDC = glm::vec2(ndcPosition.x, ndcPosition.y);
 
-    // Fill viewSpace coordinates
-    mouse_.viewSpace = glm::vec2(viewPosition);
+    // Store clip space coordinates (normalized to [0, 1] from [-1, 1])
+    mouse_.clipSpace =
+        glm::vec2((ndcPosition.x + 1.0f) * 0.5f, (ndcPosition.y + 1.0f) * 0.5f);
 
-    // Fill worldSpace coordinates and set z = 0
-    mouse_.worldSpace = glm::vec2(viewPosition.x, viewPosition.y);
+    // Store view space coordinates
+    mouse_.viewSpace = glm::vec2(viewPosition.x, viewPosition.y);
+
+    // Undo view: View -> World
+    glm::vec4 worldPosition = inverseView * viewPosition;
+    mouse_.worldSpace = glm::vec2(worldPosition.x, worldPosition.y);
   }
 
   glm::mat4 getInverseMVP() {
@@ -193,19 +211,195 @@ public:
 
   allFigures_t getFlatFigure(uint32_t id) { return Figures_[id]; }
 
-  allFigures_t findFlatFigureByCoords(glm::vec2 coords, float delta) {
+  /**
+   * @brief Finds a figure by coordinates in world space
+   * @param coords World space coordinates to search for figures near
+   * @param delta Maximum distance in world units to consider a figure as
+   * "found"
+   * @return The found figure, or std::nullopt if no figure is within delta
+   * distance
+   * @note The coordinates parameter is expected to be in world space
+   *       Use setMouseCoordinates() to transform screen coordinates to world
+   * space first
+   */
+  std::optional<allFigures_t> findFlatFigureByCoords(glm::vec2 coords,
+                                                     float delta) {
+    if (Figures_.empty()) {
+      return std::nullopt;
+    }
     for (const auto &figure : Figures_) {
+      // Check each figure type for proximity to the given coordinates
       if (std::holds_alternative<Figure<Triangle>>(figure)) {
-        /*auto triangle = std::get<Figure<Triangle>>(figure);
-        if (triangle.obj_.first.x - triangle.obj_.radius < coords.x + delta &&
-        triangle.obj_.first.x + triangle.obj_.radius > coords.x - delta &&
-                triangle.obj_.first.y - triangle.obj_.radius < coords.y + delta
-        && triangle.obj_.first.y + triangle.obj_.radius > coords.y - delta) {
-                return figure;
-        }*/
+        auto triangle = std::get<Figure<Triangle>>(figure);
+        // Check if coordinates are within delta distance of any triangle vertex
+        if (std::abs(triangle.first.x - coords.x) < delta &&
+            std::abs(triangle.first.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(triangle.second.x - coords.x) < delta &&
+            std::abs(triangle.second.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(triangle.third.x - coords.x) < delta &&
+            std::abs(triangle.third.y - coords.y) < delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<Triangle, isScribed::inscribed>>(
+                     figure)) {
+        auto triangle =
+            std::get<Figure<Triangle, isScribed::inscribed>>(figure);
+        // Check if coordinates are within delta distance of any triangle vertex
+        if (std::abs(triangle.first.x - coords.x) < delta &&
+            std::abs(triangle.first.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(triangle.second.x - coords.x) < delta &&
+            std::abs(triangle.second.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(triangle.third.x - coords.x) < delta &&
+            std::abs(triangle.third.y - coords.y) < delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<
+                     Figure<Triangle, isScribed::circumscribed>>(figure)) {
+        auto triangle =
+            std::get<Figure<Triangle, isScribed::circumscribed>>(figure);
+        // Check if coordinates are within delta distance of any triangle vertex
+        if (std::abs(triangle.first.x - coords.x) < delta &&
+            std::abs(triangle.first.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(triangle.second.x - coords.x) < delta &&
+            std::abs(triangle.second.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(triangle.third.x - coords.x) < delta &&
+            std::abs(triangle.third.y - coords.y) < delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<Quad>>(figure)) {
+        auto quad = std::get<Figure<Quad>>(figure);
+        // Check if coordinates are within delta distance of any quad vertex
+        if (std::abs(quad.first.x - coords.x) < delta &&
+            std::abs(quad.first.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.second.x - coords.x) < delta &&
+            std::abs(quad.second.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.third.x - coords.x) < delta &&
+            std::abs(quad.third.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.fourth.x - coords.x) < delta &&
+            std::abs(quad.fourth.y - coords.y) < delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<Quad, isScribed::inscribed>>(
+                     figure)) {
+        auto quad = std::get<Figure<Quad, isScribed::inscribed>>(figure);
+        // Check if coordinates are within delta distance of any quad vertex
+        if (std::abs(quad.first.x - coords.x) < delta &&
+            std::abs(quad.first.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.second.x - coords.x) < delta &&
+            std::abs(quad.second.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.third.x - coords.x) < delta &&
+            std::abs(quad.third.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.fourth.x - coords.x) < delta &&
+            std::abs(quad.fourth.y - coords.y) < delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<Quad, isScribed::circumscribed>>(
+                     figure)) {
+        auto quad = std::get<Figure<Quad, isScribed::circumscribed>>(figure);
+        // Check if coordinates are within delta distance of any quad vertex
+        if (std::abs(quad.first.x - coords.x) < delta &&
+            std::abs(quad.first.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.second.x - coords.x) < delta &&
+            std::abs(quad.second.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.third.x - coords.x) < delta &&
+            std::abs(quad.third.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(quad.fourth.x - coords.x) < delta &&
+            std::abs(quad.fourth.y - coords.y) < delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<Circle>>(figure)) {
+        auto circle = std::get<Figure<Circle>>(figure);
+        // Check if coordinates are within delta distance of circle center
+        float distance = std::sqrt(std::pow(circle.center.x - coords.x, 2) +
+                                   std::pow(circle.center.y - coords.y, 2));
+        if (distance < circle.radius + delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<Ngon, isScribed::inscribed>>(
+                     figure)) {
+        auto ngon = std::get<Figure<Ngon, isScribed::inscribed>>(figure);
+        // Check if coordinates are within delta distance of ngon center
+        float distance = std::sqrt(std::pow(ngon.center.x - coords.x, 2) +
+                                   std::pow(ngon.center.y - coords.y, 2));
+        if (distance < ngon.radius + delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<Ngon, isScribed::circumscribed>>(
+                     figure)) {
+        auto ngon = std::get<Figure<Ngon, isScribed::circumscribed>>(figure);
+        // Check if coordinates are within delta distance of ngon center
+        float distance = std::sqrt(std::pow(ngon.center.x - coords.x, 2) +
+                                   std::pow(ngon.center.y - coords.y, 2));
+        if (distance < ngon.radius + delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<CurveBezier3>>(figure)) {
+        auto curve = std::get<Figure<CurveBezier3>>(figure);
+        // Check if coordinates are within delta distance of any curve point
+        if (std::abs(curve.start.x - coords.x) < delta &&
+            std::abs(curve.start.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(curve.end.x - coords.x) < delta &&
+            std::abs(curve.end.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(curve.first.x - coords.x) < delta &&
+            std::abs(curve.first.y - coords.y) < delta) {
+          return figure;
+        }
+      } else if (std::holds_alternative<Figure<CurveBezier4>>(figure)) {
+        auto curve = std::get<Figure<CurveBezier4>>(figure);
+        // Check if coordinates are within delta distance of any curve point
+        if (std::abs(curve.start.x - coords.x) < delta &&
+            std::abs(curve.start.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(curve.end.x - coords.x) < delta &&
+            std::abs(curve.end.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(curve.first.x - coords.x) < delta &&
+            std::abs(curve.first.y - coords.y) < delta) {
+          return figure;
+        }
+        if (std::abs(curve.second.x - coords.x) < delta &&
+            std::abs(curve.second.y - coords.y) < delta) {
+          return figure;
+        }
       }
     }
-    return Figures_[0]; // todo: remove
+    return std::nullopt;
   }
 
 private:
@@ -250,5 +444,6 @@ public:
 
 } // namespace model
 
-// наследовать всё от фигуры, полиморфизм вместо варианта
-// вектор полиморфных указателей, тогда надо сильно меньше шаблонов, код проще
+/// Consider using polymorphism with a base Figure class instead of variants
+/// and a vector of polymorphic pointers. This would reduce template usage
+/// and simplify the code structure.

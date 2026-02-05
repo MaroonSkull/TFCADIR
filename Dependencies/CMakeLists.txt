@@ -18,6 +18,12 @@ add_dependencies (${PROJECT_NAME} GLFWPP)
 add_subdirectory_checked (${CMAKE_CURRENT_SOURCE_DIR}/glm)
 add_dependencies (${PROJECT_NAME} glm)
 
+# FSMConfig
+# Find yaml-cpp using standard CMake config (yaml-cpp::yaml-cpp target)
+find_package(yaml-cpp REQUIRED)
+add_subdirectory_checked (${CMAKE_CURRENT_SOURCE_DIR}/FSMConfig/src)
+add_dependencies (${PROJECT_NAME} fsmconfig)
+
 # imgui
 add_library (imgui
     imgui/imgui.cpp
