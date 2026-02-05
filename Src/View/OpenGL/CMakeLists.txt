@@ -6,13 +6,13 @@ add_subdirectory ("ImGUI")
 
 
 config_lib(ImGUIOpenGLView
-    BASE_DIR
-        ../../
-    PRIVATE_SOURCES
-        ImGUI/ImGUI.cpp
-    PUBLIC_SOURCES
-        ImGUI.hpp
-    PUBLIC_DEPENDENCIES
+	BASE_DIR
+		../../
+	PRIVATE_SOURCES
+		ImGUI/ImGUI.cpp
+	PUBLIC_SOURCES
+		ImGUI.hpp
+	PUBLIC_DEPENDENCIES
 		Model
 		ImGUIOpenGLController
 		IController
@@ -27,6 +27,6 @@ config_lib(ImGUIOpenGLView
 		EmbedResource
 		glad
 		imgui
-    COMPILE_FEATURES
-        cxx_std_17
+	COMPILE_FEATURES
+		cxx_std_17
 )

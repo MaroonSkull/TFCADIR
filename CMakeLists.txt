@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.30) #for find Boost
 
-# Enable Hot Reload for MSVC compilers if supported.
+#Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
@@ -23,16 +23,16 @@ project ("TFCADIR"
 
 include (CMake/utils.cmake)
 
-#embed-resource
+#embed - resource
 add_subdirectory_checked (
     ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/embed-resource
 )
 
-# Create target
+#Create target
 add_executable (${PROJECT_NAME})
-target_compile_features (${PROJECT_NAME} PUBLIC cxx_std_17)
+target_compile_features (${PROJECT_NAME} PUBLIC cxx_std_23)
 
-# include system libraries
+#include system libraries
 find_package (OpenGL REQUIRED)
 find_package (Boost #[[COMPONENTS statechart]] REQUIRED)
 find_package (spdlog) # TODO: сделать проверку на наличие spdlog
@@ -41,7 +41,7 @@ add_subdirectory ("Dependencies")
 
 add_subdirectory ("Src")
 
-# Convert GLSL shaders to binary
+#Convert GLSL shaders to binary
 embed_resources(MyResources # todo rename 1D to 2D
     Resources/glsl/1D/frag.glsl
     Resources/glsl/1D/vert.glsl
@@ -56,9 +56,9 @@ target_sources (${PROJECT_NAME}
         ${MyResources}
 )
 
-# link libraries
+#link libraries
 foreach (library
-# dependencies
+#dependencies
     Boost::headers
     OpenGL::GL
     swogl::swogl
@@ -68,7 +68,8 @@ foreach (library
     glm
     imgui
     EmbedResource
-# sources
+    fsmconfig
+#sources
     Model
     Controller
     View

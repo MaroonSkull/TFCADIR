@@ -1,12 +1,13 @@
-﻿#include <View/OpenGL/ImGUI.hpp>
+﻿#include "IController.hpp"
+#include <View/OpenGL/ImGUI.hpp>
 
-#include <boost/mp11/bind.hpp>
-#include <boost/signals2.hpp>
+// #include <boost/mp11/bind.hpp>
+// #include <boost/signals2.hpp>
 
 #include <Resource.h>
 #include <glm/glm.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -19,9 +20,10 @@
 
 OpenglImguiView::OpenglImguiView(
 	std::shared_ptr<model::FlatFigures> sp_model,
-	std::shared_ptr<IController> sp_controller
+	std::shared_ptr<controller::IController> sp_controller
 )
 	: GLFW_{ glfw::init() }
+	, UI_{sp_controller_}
 	, sp_model_{ sp_model }
 	, sp_controller_{ sp_controller }
 {
@@ -31,7 +33,7 @@ OpenglImguiView::OpenglImguiView(
 		};
 	try {
 		
-		mustBeRedrawSignal.connect(boost::bind(&OpenglImguiView::draw, this));
+		// mustBeRedrawSignal.connect(boost::bind(&OpenglImguiView::draw, this));
 
 		// init glfwpp, glad, window, imgui
 		glfw::InitHints iHints;
@@ -188,17 +190,6 @@ void OpenglImguiView::rescale_framebuffer() {
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO_);
 }
 
-glm::mat4 OpenglImguiView::transform(glm::vec2 const& Orientation, glm::vec3 const& Translate, glm::vec3 const& Up)
-{
-	glm::mat4 Proj = glm::perspective(glm::radians(45.f), 1.33f, 0.1f, 10.f);
-	//glm::mat4 Proj = glm::ortho(0.0f, Width, 0.0f, Height, 0.1f, 100.0f);
-	glm::mat4 ViewTranslate = glm::translate(glm::mat4(1.f), Translate);
-	glm::mat4 ViewRotateX = glm::rotate(ViewTranslate, Orientation.y, Up);
-	glm::mat4 View = glm::rotate(ViewRotateX, Orientation.x, Up);
-	glm::mat4 Model = glm::mat4(1.0f);
-	return Proj * View * Model;
-}
-
 void OpenglImguiView::draw() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -206,6 +197,7 @@ void OpenglImguiView::draw() {
 	// reinterpret_cast тут неизбежен, это вынужденная мера, чтобы передать opengl текстуру из GLFWPP в imgui
 	auto [frameSizes, momentWheel, mousePosition] = UI_.DrawGUI(reinterpret_cast<ImTextureID>(textureId_));
 	
+
 	// todo тут пригодится observer. Если модель и вью не изменились, новую текстуру не рендерим
 
 	// Render on the whole framebuffer
@@ -221,24 +213,27 @@ void OpenglImguiView::draw() {
 
 	// обработка операций непосредственного ввода с помощью канваса
 	// мб в лямбду завернуть, коллбэк оформить 
-	if (mousePosition) {
-		auto&& [x, y] = mousePosition.value();
-		sp_controller_->onMouseHover(IController::InputState::hovered, x / frameWidth_, y / frameHeight_);
+	if (mousePosition.has_value()) {
+		const auto &[x, y] = mousePosition.value();
+		// to ndc and to model
+		//sp_model_->camera_
 
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) sp_controller_->onLeftMouseButton(IController::InputState::down);
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) sp_controller_->onLeftMouseButton(IController::InputState::released);
+		sp_controller_->updateWorkspaceHoverState(controller::state::Workspace::hovered /*, x / frameWidth_, y / frameHeight_ */);
 
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) sp_controller_->onRightMouseButton(IController::InputState::down);
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Right)) sp_controller_->onRightMouseButton(IController::InputState::released);
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) sp_controller_->updateLeftMouseButtonState(controller::state::Button::down);
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) sp_controller_->updateLeftMouseButtonState(controller::state::Button::released);
 
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) sp_controller_->onWheelMouseButton(IController::InputState::down);
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle)) sp_controller_->onWheelMouseButton(IController::InputState::released);
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) sp_controller_->updateRightMouseButtonState(controller::state::Button::down);
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Right)) sp_controller_->updateRightMouseButtonState(controller::state::Button::released);
 
-		if (momentWheel != 0.0f) sp_controller_->onScroll(momentWheel);
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) sp_controller_->updateWheelMouseButtonState(controller::state::Button::down);
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle)) sp_controller_->updateWheelMouseButtonState(controller::state::Button::released);
+
+		if (momentWheel != 0.0f) sp_controller_->updateScroll(momentWheel);
 
 		// convert to normalised coords via glm
 	}
-	else sp_controller_->onMouseHover(IController::InputState::unhovered, 0.0f, 0.0f);
+	else sp_controller_->updateWorkspaceHoverState(controller::state::Workspace::unhovered);
 	
 
 	glClearColor(0.9f, 0.1f, 0.1f, 1.0f);
@@ -246,8 +241,27 @@ void OpenglImguiView::draw() {
 
 	Pipeline_->useProgram();
 
+	// TODO: remove, temporary raw operations
+	sp_model_->model_ = glm::rotate(sp_model_->model_, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+	const auto view = glm::lookAt(
+		sp_model_->camera_.position,
+		sp_model_->camera_.target,
+		sp_model_->camera_.up
+	);
+	sp_model_->projection_ = glm::perspective(glm::radians(45.0f), 1.33f, 0.1f, 100.0f);
+
+	auto setUniformMatrix = [&](const std::string& name, const glm::mat4& matrix) {
+		if (const auto loc = Pipeline_->getUniformLocation(name); loc.has_value()) {
+			glUniformMatrix4fv(loc.value(), 1, GL_FALSE, glm::value_ptr(matrix));
+		}
+	};
+
+	setUniformMatrix("model", sp_model_->model_);
+	setUniformMatrix("view", view);
+	setUniformMatrix("projection", sp_model_->projection_);
+
 	glBindVertexArray(VAO_);
-	
+
 	if (mousePosition) {
 		// получаем данные из модели и отправляем в опенгл
 		glBindBuffer(GL_ARRAY_BUFFER, VBO_);
@@ -277,7 +291,7 @@ void OpenglImguiView::draw() {
 	// обновляем показания FPS
 	std::stringstream title;
 	title << "Interview test | average FPS : " << static_cast<uint32_t>(ImGui::GetIO().Framerate)
-		  <<               ", momental FPS : " << static_cast<uint32_t>(1.0f / ImGui::GetIO().DeltaTime);
+		<< ", momental FPS : " << static_cast<uint32_t>(1.0f / ImGui::GetIO().DeltaTime);
 	Window_->setTitle(title.str().c_str());
 }
 

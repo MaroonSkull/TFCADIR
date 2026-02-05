@@ -8,11 +8,14 @@ config_lib(ImGUIOpenGLController
         ../../
     PRIVATE_SOURCES
         ImGUI/ImGUI.cpp
+        ../FSM.cpp
     PUBLIC_SOURCES
         ImGUI.hpp
+        ../FSM.hpp
     PUBLIC_DEPENDENCIES
         Model
         IController
+        fsmconfig
     PRIVATE_DEPENDENCIES
         Boost::headers
         ImGUIOpenGLView
@@ -20,5 +23,5 @@ config_lib(ImGUIOpenGLController
         GLFWPP
         spdlog::spdlog
     COMPILE_FEATURES
-        cxx_std_17
+        cxx_std_23
 )

@@ -18,6 +18,12 @@ add_dependencies (${PROJECT_NAME} GLFWPP)
 add_subdirectory_checked (${CMAKE_CURRENT_SOURCE_DIR}/glm)
 add_dependencies (${PROJECT_NAME} glm)
 
+# FSMConfig
+# Find yaml-cpp using standard CMake config (yaml-cpp::yaml-cpp target)
+find_package(yaml-cpp REQUIRED)
+add_subdirectory_checked (${CMAKE_CURRENT_SOURCE_DIR}/FSMConfig/src)
+add_dependencies (${PROJECT_NAME} fsmconfig)
+
 # imgui
 add_library (imgui
     imgui/imgui.cpp
@@ -50,7 +56,7 @@ add_dependencies (${PROJECT_NAME} EmbedResource)
 #SWOGL
 FetchContent_Declare(swogl
     GIT_REPOSITORY https://github.com/MaroonSkull/swogl.git
-    GIT_TAG        93364869639d27bb8fd75cfc1df9add1f1d4eaf8
+    GIT_TAG main
 )
 FetchContent_MakeAvailable(swogl)
 add_dependencies (${PROJECT_NAME} swogl)
