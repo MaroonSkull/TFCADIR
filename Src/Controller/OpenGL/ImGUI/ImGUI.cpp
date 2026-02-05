@@ -6,168 +6,175 @@
 
 // #include <boost/signals2.hpp>
 
+#include <algorithm>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <algorithm>
 
 using namespace std::string_literals;
 
 namespace controller {
 
-OpenglImguiController::OpenglImguiController(std::shared_ptr<model::FlatFigures> sp_model)
-	: sp_model_(sp_model) {
-	if (sp_model_ == nullptr)
-		throw std::invalid_argument{ "pModel cannot be nullptr in controller constructor!" };
+OpenglImguiController::OpenglImguiController(
+    std::shared_ptr<model::FlatFigures> sp_model)
+    : sp_model_(sp_model) {
+  if (sp_model_ == nullptr)
+    throw std::invalid_argument{
+        "pModel cannot be nullptr in controller constructor!"};
 }
 
-// Обновлять состояние текущей фигуры при ЛКМ
+/// Updates the current figure state on left mouse button click
 void OpenglImguiController::updateLeftMouseButtonState(state::Button state) {
-	if (state == prevLeftMouseButtonState_)
-		return;
+  if (state == prevLeftMouseButtonState_)
+    return;
 
-	// todo можно switch-case сменить на универсальную шаблонную функцию (с TAD?)
-	switch (prevLeftMouseButtonState_ = state) {
-	case state::Button::down:
-		spdlog::info("onLeftMouseButton pressed");
-		break;
+  // todo can replace switch-case with a generic template function (with TAD?)
+  switch (prevLeftMouseButtonState_ = state) {
+  case state::Button::down:
+    spdlog::info("onLeftMouseButton pressed");
+    break;
 
-	case state::Button::released:
-		spdlog::info("onLeftMouseButton released");
-		break;
+  case state::Button::released:
+    spdlog::info("onLeftMouseButton released");
+    break;
 
-	default:
-		using namespace std::string_literals;
-		throw std::runtime_error{"Unknown state have been recieved in "s + __PRETTY_FUNCTION__ + "!"};
-	}
+  default:
+    using namespace std::string_literals;
+    throw std::runtime_error{"Unknown state have been recieved in "s +
+                             __PRETTY_FUNCTION__ + "!"};
+  }
 
-	// Here we can emit some signal to redraw scene or update view,
-	// but it depends from IView...
-	// mustBeRedrawSignal();
+  // Here we can emit some signal to redraw scene or update view,
+  // but it depends from IView...
+  // mustBeRedrawSignal();
 }
 
-// На тачпадах возможно отсутствие функционала нажатия на СКМ
-// Можно повесить в 3д-пространстве выбор какой-то фиксированной конфигурации камеры
-// (позиция + направление взгляда, мб привязка к осям)
+/// Touchpads may lack middle mouse button functionality
+/// Can bind a fixed camera configuration in 3D space
+/// (position + view direction, possibly axis-bound)
 void OpenglImguiController::updateWheelMouseButtonState(state::Button state) {
-	if (state == prevWheelMouseButtonState_)
-		return;
-	switch (prevWheelMouseButtonState_ = state) {
-	case state::Button::down:
-		spdlog::info("onWheelMouseButton pressed");
+  if (state == prevWheelMouseButtonState_)
+    return;
+  switch (prevWheelMouseButtonState_ = state) {
+  case state::Button::down:
+    spdlog::info("onWheelMouseButton pressed");
 
-		sp_model_->camera_.position = {
-			0.0f,
-			0.0f,
-			-1.0f
-		};
+    sp_model_->camera_.position = {0.0f, 0.0f, -1.0f};
 
-		break;
+    break;
 
-	case state::Button::released:
-		spdlog::info("onWheelMouseButton released");
-		break;
+  case state::Button::released:
+    spdlog::info("onWheelMouseButton released");
+    break;
 
-	default:
-		using namespace std::string_literals;
-		throw std::runtime_error{"Unknown state have been recieved in "s + __PRETTY_FUNCTION__ + "!"};
-	}
+  default:
+    using namespace std::string_literals;
+    throw std::runtime_error{"Unknown state have been recieved in "s +
+                             __PRETTY_FUNCTION__ + "!"};
+  }
 }
 
-// ПКМ отвечает за перемещение
-// При зажатой пкм следовать за позицией указателя, (смещать на дельту?)
+/// Right mouse button handles movement
+/// Follow the pointer position when RMB is pressed (shift by delta?)
 void OpenglImguiController::updateRightMouseButtonState(state::Button state) {
-	if (state == prevRightMouseButtonState_)
-		return;
-	switch (prevRightMouseButtonState_ = state) {
-	case state::Button::down:
-		spdlog::info("onRightMouseButton pressed");
-		break;
+  if (state == prevRightMouseButtonState_)
+    return;
+  switch (prevRightMouseButtonState_ = state) {
+  case state::Button::down:
+    spdlog::info("onRightMouseButton pressed");
+    break;
 
-	case state::Button::released:
-		spdlog::info("onRightMouseButton released");
-		break;
+  case state::Button::released:
+    spdlog::info("onRightMouseButton released");
+    break;
 
-	default:
-		using namespace std::string_literals;
-		throw std::runtime_error{"Unknown state have been recieved in "s + __PRETTY_FUNCTION__ + "!"};
-	}
+  default:
+    using namespace std::string_literals;
+    throw std::runtime_error{"Unknown state have been recieved in "s +
+                             __PRETTY_FUNCTION__ + "!"};
+  }
 }
 
-// Обновляем текущие xy указателя, записываем дельты 
+/// Updates current pointer XY coordinates, records deltas
 void OpenglImguiController::updateWorkspaceHoverState(state::Workspace state) {
-	// todo тут проблема при активном перемещении мыши или при низком фпс:
-	// окно с координатами мыши перехватывает событие hover и срабатывает unhovered/hovered
-	if (state == prevWorkspaceHoverState_)
-		return;
-	switch (prevWorkspaceHoverState_ = state) {
-	case state::Workspace::hovered:
-		spdlog::info("onMouseHover hovered");
-		break;
+  // todo there's a problem during active mouse movement or low FPS:
+  // the mouse coordinate window intercepts the hover event and triggers
+  // unhovered/hovered
+  if (state == prevWorkspaceHoverState_)
+    return;
+  switch (prevWorkspaceHoverState_ = state) {
+  case state::Workspace::hovered:
+    spdlog::info("onMouseHover hovered");
+    break;
 
-	case state::Workspace::unhovered:
-		spdlog::info("onMouseHover unhovered");
-		break;
+  case state::Workspace::unhovered:
+    spdlog::info("onMouseHover unhovered");
+    break;
 
-	default:
-		using namespace std::string_literals;
-		throw std::runtime_error{"Unknown state have been recieved in "s + __PRETTY_FUNCTION__ + "!"};
-	}
+  default:
+    using namespace std::string_literals;
+    throw std::runtime_error{"Unknown state have been recieved in "s +
+                             __PRETTY_FUNCTION__ + "!"};
+  }
 }
 
-void OpenglImguiController::updateScreenspaceMousePosition(glm::vec2 screenspacePosition) {
-	if (prevScreenspaceMousePosition_ == screenspacePosition)
-			return;
-	
-	prevScreenspaceMousePosition_ = screenspacePosition;
+void OpenglImguiController::updateScreenspaceMousePosition(
+    glm::vec2 screenspacePosition) {
+  if (prevScreenspaceMousePosition_ == screenspacePosition)
+    return;
 
-	spdlog::info("{}: normalizedPosition = ({}, {})", __PRETTY_FUNCTION__, screenspacePosition.x, screenspacePosition.y);
-	
-	fsm_.process_event(fsm::events::OnMouseMove(screenspacePosition));
+  prevScreenspaceMousePosition_ = screenspacePosition;
 
+  spdlog::info("{}: normalizedPosition = ({}, {})", __PRETTY_FUNCTION__,
+               screenspacePosition.x, screenspacePosition.y);
+
+  fsm_.process_event(fsm::events::OnMouseMove(screenspacePosition));
 }
 
-// Изменение масштаба видимой области
+// Changing the scale of the visible area
 void OpenglImguiController::updateScroll(float momentWheel) {
-	if (momentWheel == 0.0f)
-		return;
-	
-	// TODO: Move reaction to fsm
-	sp_model_->camera_.position.z += 0.1f * momentWheel * std::abs(sp_model_->camera_.position.z);
-	sp_model_->camera_.position.z = std::clamp(sp_model_->camera_.position.z, -100.0f, -1e-6f);
-	
-	const auto scrollDirection = (momentWheel > 0.0f ? "up" : "down");
-	spdlog::info("onScroll {}, moment = {}, z = {}", scrollDirection, momentWheel, sp_model_->camera_.position.z);
+  if (momentWheel == 0.0f)
+    return;
+
+  // TODO: Move reaction to fsm
+  sp_model_->camera_.position.z +=
+      0.1f * momentWheel * std::abs(sp_model_->camera_.position.z);
+  sp_model_->camera_.position.z =
+      std::clamp(sp_model_->camera_.position.z, -100.0f, -1e-6f);
+
+  const auto scrollDirection = (momentWheel > 0.0f ? "up" : "down");
+  spdlog::info("onScroll {}, moment = {}, z = {}", scrollDirection, momentWheel,
+               sp_model_->camera_.position.z);
 }
 
 void OpenglImguiController::addLine() {
-	fsm_.process_event(fsm::events::OnAddLine());
+  fsm_.process_event(fsm::events::OnAddLine());
 }
 
 void OpenglImguiController::addTriangleByCenter() {
-	fsm_.process_event(fsm::events::OnAddTriangleByCenter());
+  fsm_.process_event(fsm::events::OnAddTriangleByCenter());
 }
 
 void OpenglImguiController::addTriangleByCorners() {
-	fsm_.process_event(fsm::events::OnAddTriangleByCorners());
+  fsm_.process_event(fsm::events::OnAddTriangleByCorners());
 }
 
 void OpenglImguiController::addSquareByCenter() {
-	fsm_.process_event(fsm::events::OnAddSquareByCenter());
+  fsm_.process_event(fsm::events::OnAddSquareByCenter());
 }
 
 void OpenglImguiController::addSquareByCorners() {
-	fsm_.process_event(fsm::events::OnAddSquareByCorners());
+  fsm_.process_event(fsm::events::OnAddSquareByCorners());
 }
 
 void OpenglImguiController::addNgonByCenter() {
-	fsm_.process_event(fsm::events::OnAddNgonByCenter());
+  fsm_.process_event(fsm::events::OnAddNgonByCenter());
 }
 
 void OpenglImguiController::addCircleByCenter() {
-	fsm_.process_event(fsm::events::OnAddCircleByCenter());
+  fsm_.process_event(fsm::events::OnAddCircleByCenter());
 }
 
-// на будущее, сначала надо научиться определять коллизии
+// For future, need to learn how to detect collisions first
 void OpenglImguiController::removeFigure() {}
 
 } // namespace controller
