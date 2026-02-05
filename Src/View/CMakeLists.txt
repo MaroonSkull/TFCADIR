@@ -13,7 +13,7 @@ config_lib(IView
         cxx_std_17
 )
 
-# выбор конкретного вью
+# Select specific view
 add_subdirectory ("OpenGL")
 
 add_library (View ALIAS ImGUIOpenGLView)

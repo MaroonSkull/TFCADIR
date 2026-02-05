@@ -35,7 +35,7 @@ target_compile_features (${PROJECT_NAME} PUBLIC cxx_std_23)
 #include system libraries
 find_package (OpenGL REQUIRED)
 find_package (Boost #[[COMPONENTS statechart]] REQUIRED)
-find_package (spdlog) # TODO: сделать проверку на наличие spdlog
+find_package (spdlog) # TODO: add check for spdlog availability
 
 add_subdirectory ("Dependencies")
 

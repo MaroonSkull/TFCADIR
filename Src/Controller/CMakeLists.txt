@@ -11,7 +11,7 @@ config_lib(IController
         cxx_std_17
 )
 
-# выбор конкретного контроллера
+# Select specific controller
 add_subdirectory ("OpenGL")
 
 add_library (Controller ALIAS ImGUIOpenGLController)
