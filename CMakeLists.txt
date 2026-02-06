@@ -23,6 +23,8 @@ project ("TFCADIR"
 
 include (CMake/utils.cmake)
 
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 #embed - resource
 add_subdirectory_checked (
     ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/embed-resource

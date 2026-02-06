@@ -1,9 +1,8 @@
 ﻿#pragma once
 
 #include "FSM.hpp"
+#include <Model/IModel.hpp>
 #include <glm/glm.hpp>
-// Uncomment this line when i have the IModel interface implemented :D
-// #include <Model/IModel.hpp>
 
 namespace controller {
 
