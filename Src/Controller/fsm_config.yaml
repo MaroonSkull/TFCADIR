@@ -26,6 +26,18 @@ states:
     actions:
       - log_move_first_point_state
 
+  PlaneSelection:
+    on_enter: on_plane_selection_enter
+    on_exit: on_plane_selection_exit
+    actions:
+      - log_plane_selection_state
+
+  SketchEdit:
+    on_enter: on_sketch_edit_enter
+    on_exit: on_sketch_edit_exit
+    actions:
+      - log_sketch_edit_state
+
 # Transition definitions
 transitions:
   # From Idle to DrawingProcessing on figure creation events
@@ -87,3 +99,22 @@ transitions:
     to: Idle
     event: OnFigureCancel
     on_transition: on_cancel_figure
+
+  # Sketch mode transitions
+  # From Idle to PlaneSelection when entering sketch mode
+  - from: Idle
+    to: PlaneSelection
+    event: OnEnterSketchMode
+    on_transition: on_enter_sketch_mode
+
+  # From PlaneSelection to SketchEdit when plane is selected
+  - from: PlaneSelection
+    to: SketchEdit
+    event: OnPlaneSelected
+    on_transition: on_select_plane
+
+  # From SketchEdit back to Idle when exiting sketch mode
+  - from: SketchEdit
+    to: Idle
+    event: OnExitSketchMode
+    on_transition: on_exit_sketch_mode

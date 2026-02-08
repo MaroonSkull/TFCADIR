@@ -75,12 +75,24 @@ void Machine::registerCallbacks() {
                               &Machine::on_move_first_point_enter, this);
   fsm_->registerStateCallback("MoveFirstPoint", "on_exit",
                               &Machine::on_move_first_point_exit, this);
+  fsm_->registerStateCallback("PlaneSelection", "on_enter",
+                              &Machine::on_plane_selection_enter, this);
+  fsm_->registerStateCallback("PlaneSelection", "on_exit",
+                              &Machine::on_plane_selection_exit, this);
+  fsm_->registerStateCallback("SketchEdit", "on_enter",
+                              &Machine::on_sketch_edit_enter, this);
+  fsm_->registerStateCallback("SketchEdit", "on_exit",
+                              &Machine::on_sketch_edit_exit, this);
 
   // Register action callbacks
   fsm_->registerAction("log_idle_state", &Machine::log_idle_state, this);
   fsm_->registerAction("log_drawing_state", &Machine::log_drawing_state, this);
   fsm_->registerAction("log_move_first_point_state",
                        &Machine::log_move_first_point_state, this);
+  fsm_->registerAction("log_plane_selection_state",
+                       &Machine::log_plane_selection_state, this);
+  fsm_->registerAction("log_sketch_edit_state", &Machine::log_sketch_edit_state,
+                       this);
 
   // Register transition callbacks
   fsm_->registerTransitionCallback("Idle", "DrawingProcessing",
@@ -93,6 +105,12 @@ void Machine::registerCallbacks() {
                                    &Machine::on_complete_figure, this);
   fsm_->registerTransitionCallback("MoveFirstPoint", "Idle",
                                    &Machine::on_cancel_figure, this);
+  fsm_->registerTransitionCallback("Idle", "PlaneSelection",
+                                   &Machine::on_enter_sketch_mode, this);
+  fsm_->registerTransitionCallback("PlaneSelection", "SketchEdit",
+                                   &Machine::on_select_plane, this);
+  fsm_->registerTransitionCallback("SketchEdit", "Idle",
+                                   &Machine::on_exit_sketch_mode, this);
 }
 
 // State callback implementations
@@ -253,6 +271,58 @@ Machine::createFigureCreator(const std::string &eventName) {
 
   spdlog::warn("Unknown event name for FigureCreator creation: {}", eventName);
   return nullptr;
+}
+
+/// Sketch mode state callback implementations
+
+void Machine::on_plane_selection_enter() {
+  spdlog::debug("Entering PlaneSelection state");
+}
+
+void Machine::on_plane_selection_exit() {
+  spdlog::debug("Exiting PlaneSelection state");
+}
+
+void Machine::on_sketch_edit_enter() {
+  spdlog::debug("Entering SketchEdit state");
+}
+
+void Machine::on_sketch_edit_exit() {
+  spdlog::debug("Exiting SketchEdit state");
+}
+
+/// Sketch mode action callback implementations
+
+void Machine::log_plane_selection_state() {
+  spdlog::info("Current state: PlaneSelection (Select a sketch plane)");
+}
+
+void Machine::log_sketch_edit_state() {
+  spdlog::info("Current state: SketchEdit (2D drawing on sketch plane)");
+}
+
+/// Sketch mode transition callback implementations
+
+void Machine::on_enter_sketch_mode(const fsmconfig::TransitionEvent&event) {
+  spdlog::info("Transition: {} -> {} on event {}", event.from_state,
+               event.to_state, event.event_name);
+}
+
+void Machine::on_select_plane(const fsmconfig::TransitionEvent&event) {
+  spdlog::info("Transition: {} -> {} on event {}", event.from_state,
+               event.to_state, event.event_name);
+
+  /// Extract plane index from event data
+  auto planeIndex_it = event.data.find("planeIndex");
+  if (planeIndex_it != event.data.end()) {
+    int planeIndex = planeIndex_it->second.asInt();
+    spdlog::info("Selected sketch plane: {}", planeIndex);
+  }
+}
+
+void Machine::on_exit_sketch_mode(const fsmconfig::TransitionEvent&event) {
+  spdlog::info("Transition: {} -> {} on event {}", event.from_state,
+               event.to_state, event.event_name);
 }
 
 } // namespace fsm
