@@ -2,6 +2,8 @@
 
 #include <Controller/IController.hpp>
 #include <View/CameraController.hpp>
+#include <View/Tools/ImGUI/CommandManager.hpp>
+#include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <View/UIFSMAdapter.hpp>
 #include <glfwpp/glfwpp.h>
 #include <imgui.h>
@@ -42,6 +44,12 @@ private:
 
   /// UI-FSM adapter for bridging state changes to UI updates
   std::unique_ptr<view::UIFSMAdapter> uiFSMAdapter_;
+
+  /// Phase 2: Tool options panel for tool selection and configuration
+  std::unique_ptr<view::ImGUI::ToolOptionsPanel> toolOptionsPanel_;
+
+  /// Phase 2: Command manager for undo/redo support
+  std::unique_ptr<view::ImGUI::CommandManager> commandManager_;
 
   /// Current status bar text
   std::string statusText_{"3D Mode"};
