@@ -303,12 +303,12 @@ void Machine::log_sketch_edit_state() {
 
 /// Sketch mode transition callback implementations
 
-void Machine::on_enter_sketch_mode(const fsmconfig::TransitionEvent&event) {
+void Machine::on_enter_sketch_mode(const fsmconfig::TransitionEvent &event) {
   spdlog::info("Transition: {} -> {} on event {}", event.from_state,
                event.to_state, event.event_name);
 }
 
-void Machine::on_select_plane(const fsmconfig::TransitionEvent&event) {
+void Machine::on_select_plane(const fsmconfig::TransitionEvent &event) {
   spdlog::info("Transition: {} -> {} on event {}", event.from_state,
                event.to_state, event.event_name);
 
@@ -320,7 +320,7 @@ void Machine::on_select_plane(const fsmconfig::TransitionEvent&event) {
   }
 }
 
-void Machine::on_exit_sketch_mode(const fsmconfig::TransitionEvent&event) {
+void Machine::on_exit_sketch_mode(const fsmconfig::TransitionEvent &event) {
   spdlog::info("Transition: {} -> {} on event {}", event.from_state,
                event.to_state, event.event_name);
 }

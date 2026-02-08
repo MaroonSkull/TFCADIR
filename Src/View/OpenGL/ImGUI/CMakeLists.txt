@@ -13,6 +13,8 @@ config_lib(GUI
 		imgui
 		ImGUIOpenGLController
 		IController
+		UIFSMAdapter
+		CameraController
 	COMPILE_FEATURES
 		cxx_std_17
 )

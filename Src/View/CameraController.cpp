@@ -4,11 +4,11 @@
 
 namespace view {
 
-void CameraController::saveCameraState(const glm::vec3& position,
-                                       const glm::vec3& target,
-                                       const glm::vec3& up,
-                                       const glm::mat4& projection,
-                                       const glm::mat4& model) {
+void CameraController::saveCameraState(const glm::vec3 &position,
+                                       const glm::vec3 &target,
+                                       const glm::vec3 &up,
+                                       const glm::mat4 &projection,
+                                       const glm::mat4 &model) {
   savedState_ = CameraState{position, target, up, projection, model};
 }
 
@@ -24,7 +24,7 @@ CameraController::restoreCameraState() {
 }
 
 CameraController::CameraState
-CameraController::setCameraForPlane(const model::SketchPlane& plane) {
+CameraController::setCameraForPlane(const model::SketchPlane &plane) {
   // Get the camera view matrix from the sketch plane
   glm::mat4 viewMatrix = plane.getCameraViewMatrix();
 

@@ -3,9 +3,9 @@
 #include <Controller/FSM.hpp>
 #include <Model/SketchPlane.hpp>
 #include <View/CameraController.hpp>
+#include <functional>
 #include <spdlog/spdlog.h>
 #include <string>
-#include <functional>
 
 namespace view {
 
@@ -22,13 +22,14 @@ public:
    * @brief Callback function type for showing plane selection UI
    * @param onPlaneSelected Function to call when user selects a plane
    */
-  using ShowPlaneSelectionCallback = std::function<void(std::function<void(int)>)>;
+  using ShowPlaneSelectionCallback =
+      std::function<void(std::function<void(int)>)>;
 
   /**
    * @brief Callback function type for updating status bar text
    * @param text The status text to display
    */
-  using UpdateStatusCallback = std::function<void(const std::string&)>;
+  using UpdateStatusCallback = std::function<void(const std::string &)>;
 
   /**
    * @brief Construct a UIFSMAdapter
@@ -36,7 +37,7 @@ public:
    * @param cameraController Reference to the camera controller
    * @param logger Logger for diagnostic output
    */
-  UIFSMAdapter(fsm::Machine& fsm, CameraController& cameraController,
+  UIFSMAdapter(fsm::Machine &fsm, CameraController &cameraController,
                std::shared_ptr<spdlog::logger> logger);
 
   /**
@@ -60,15 +61,17 @@ public:
    * @brief Handle FSM state change
    * @param newState The new FSM state
    *
-   * Called automatically when the FSM state changes to update the UI accordingly.
-   * Triggers plane selection UI or status updates based on the new state.
+   * Called automatically when the FSM state changes to update the UI
+   * accordingly. Triggers plane selection UI or status updates based on the new
+   * state.
    */
   void onStateChanged(fsm::State newState);
 
   /**
    * @brief Enter sketch mode from UI
    *
-   * Sends the OnEnterSketchMode event to the FSM to transition to PlaneSelection state.
+   * Sends the OnEnterSketchMode event to the FSM to transition to
+   * PlaneSelection state.
    */
   void enterSketchMode();
 
@@ -91,7 +94,7 @@ public:
    * @brief Get the currently selected sketch plane
    * @return Reference to the current sketch plane, or nullptr if none selected
    */
-  model::SketchPlane* getCurrentSketchPlane();
+  model::SketchPlane *getCurrentSketchPlane();
 
   /**
    * @brief Check if currently in sketch mode
@@ -101,10 +104,10 @@ public:
 
 private:
   /// Reference to the finite state machine
-  fsm::Machine& fsm_;
+  fsm::Machine &fsm_;
 
   /// Reference to the camera controller
-  CameraController& cameraController_;
+  CameraController &cameraController_;
 
   /// Logger for diagnostic output
   std::shared_ptr<spdlog::logger> logger_;

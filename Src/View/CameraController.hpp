@@ -14,8 +14,8 @@ namespace view {
 
 /**
  * @brief Controls camera positioning and state management for sketch mode
- * @details Implements the Memento pattern for saving and restoring camera state.
- *          Provides methods to position the camera for optimal 2D sketching on
+ * @details Implements the Memento pattern for saving and restoring camera
+ * state. Provides methods to position the camera for optimal 2D sketching on
  *          predefined planes.
  */
 class CameraController {
@@ -51,9 +51,9 @@ public:
    * @details Stores the current camera state internally for later restoration.
    *          This is called when entering sketch mode to preserve the 3D view.
    */
-  void saveCameraState(const glm::vec3& position, const glm::vec3& target,
-                       const glm::vec3& up, const glm::mat4& projection,
-                       const glm::mat4& model);
+  void saveCameraState(const glm::vec3 &position, const glm::vec3 &target,
+                       const glm::vec3 &up, const glm::mat4 &projection,
+                       const glm::mat4 &model);
 
   /**
    * @brief Restores the previously saved camera state
@@ -68,10 +68,10 @@ public:
    * @param plane The sketch plane to position the camera for
    * @return The camera state (position, target, up) for the plane
    * @details Calculates an orthographic view of the sketch plane with the
-   *          camera positioned perpendicular to the plane at a suitable distance.
-   *          The up vector is aligned with the plane's up direction.
+   *          camera positioned perpendicular to the plane at a suitable
+   * distance. The up vector is aligned with the plane's up direction.
    */
-  CameraState setCameraForPlane(const model::SketchPlane& plane);
+  CameraState setCameraForPlane(const model::SketchPlane &plane);
 
   /**
    * @brief Checks if a saved camera state exists

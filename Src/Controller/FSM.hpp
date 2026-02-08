@@ -53,7 +53,13 @@ struct OnPlaneSelected {
 } // namespace events
 
 // State enumeration (kept for backward compatibility)
-enum class State { Idle, DrawingProcessing, MoveFirstPoint, PlaneSelection, SketchEdit };
+enum class State {
+  Idle,
+  DrawingProcessing,
+  MoveFirstPoint,
+  PlaneSelection,
+  SketchEdit
+};
 
 /**
  * @brief State Machine wrapper using FSMConfig library
@@ -256,7 +262,8 @@ template <typename Event> void Machine::process_event(const Event &event) {
     fsm_->triggerEvent("OnExitSketchMode");
   } else if constexpr (std::is_same_v<Event, events::OnPlaneSelected>) {
     std::map<std::string, fsmconfig::VariableValue> data;
-    data["planeIndex"] = fsmconfig::VariableValue(static_cast<int>(event.planeIndex));
+    data["planeIndex"] =
+        fsmconfig::VariableValue(static_cast<int>(event.planeIndex));
     fsm_->triggerEvent("OnPlaneSelected", data);
   }
 }
