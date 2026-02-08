@@ -50,6 +50,15 @@ struct OnPlaneSelected {
   int planeIndex; // 0 = XY, 1 = XZ, 2 = YZ
   OnPlaneSelected(int index) : planeIndex(index) {}
 };
+
+/// Sketch-specific drawing events (prevent ambiguity with 3D mode)
+struct OnAddTriangleByCenterInSketch {};
+struct OnAddCircleByCenterInSketch {};
+struct OnAddSquareByCenterInSketch {};
+struct OnAddSquareByCornersInSketch {};
+struct OnAddNgonByCenterInSketch {};
+struct OnAddLineInSketch {};
+struct OnFigureCompleteInSketch {};
 } // namespace events
 
 // State enumeration (kept for backward compatibility)
@@ -265,6 +274,26 @@ template <typename Event> void Machine::process_event(const Event &event) {
     data["planeIndex"] =
         fsmconfig::VariableValue(static_cast<int>(event.planeIndex));
     fsm_->triggerEvent("OnPlaneSelected", data);
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddTriangleByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddTriangleByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddCircleByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddCircleByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddSquareByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddSquareByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddSquareByCornersInSketch>) {
+    fsm_->triggerEvent("OnAddSquareByCornersInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddNgonByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddNgonByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event, events::OnAddLineInSketch>) {
+    fsm_->triggerEvent("OnAddLineInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnFigureCompleteInSketch>) {
+    fsm_->triggerEvent("OnFigureCompleteInSketch");
   }
 }
 

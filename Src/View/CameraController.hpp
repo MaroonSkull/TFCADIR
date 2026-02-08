@@ -57,11 +57,24 @@ public:
 
   /**
    * @brief Restores the previously saved camera state
-   * @return The saved camera state, or std::nullopt if no state was saved
    * @details This is called when exiting sketch mode to return to the 3D view.
+   *          Applies the saved state directly to the controller's current
+   * state.
    * @note After restoring, the saved state is cleared.
    */
-  std::optional<CameraState> restoreCameraState();
+  void restoreCameraState();
+
+  /**
+   * @brief Gets the current camera state
+   * @return The current camera state
+   */
+  const CameraState &getCurrentState() const { return currentState_; }
+
+  /**
+   * @brief Sets the current camera state
+   * @param state The camera state to set
+   */
+  void setCurrentState(const CameraState &state) { currentState_ = state; }
 
   /**
    * @brief Positions the camera for optimal 2D sketching on the given plane
@@ -88,6 +101,9 @@ public:
 private:
   /// Saved camera state from before entering sketch mode
   std::optional<CameraState> savedState_;
+
+  /// Current camera state
+  CameraState currentState_;
 
   /// Default distance from camera to sketch plane (world units)
   static constexpr float DEFAULT_CAMERA_DISTANCE = 10.0f;

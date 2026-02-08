@@ -38,7 +38,11 @@ void GUI::ShowMainMenuBar() {
       }
     }
     Separator();
-    if (MenuItem("Exit Sketch Mode", nullptr, false, false)) {
+    // Check if in SketchEdit state before enabling
+    bool inSketchEdit =
+        sp_controller_ &&
+        sp_controller_->fsm_.get_current_state() == fsm::State::SketchEdit;
+    if (MenuItem("Exit Sketch Mode", nullptr, false, inSketchEdit)) {
       spdlog::info("Exiting sketch mode...");
       if (sp_controller_) {
         sp_controller_->fsm_.process_event(fsm::events::OnExitSketchMode{});
@@ -262,18 +266,18 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
         if (Begin("Select Sketch Plane", nullptr,
                   ImGuiWindowFlags_AlwaysAutoResize)) {
           Text("Select a plane for 2D sketching:");
-          if (Button("XY Plane (Top)")) {
-            callback(0); // XY plane
-            CloseCurrentPopup();
-          }
-          SameLine();
-          if (Button("XZ Plane (Front)")) {
-            callback(1); // XZ plane
-            CloseCurrentPopup();
-          }
-          SameLine();
           if (Button("YZ Plane (Right)")) {
-            callback(2); // YZ plane
+            callback(0); // Index 0 = YZ/Right
+            CloseCurrentPopup();
+          }
+          SameLine();
+          if (Button("XZ Plane (Top)")) {
+            callback(1); // Index 1 = XZ/Top
+            CloseCurrentPopup();
+          }
+          SameLine();
+          if (Button("XY Plane (Front)")) {
+            callback(2); // Index 2 = XY/Front
             CloseCurrentPopup();
           }
           End();

@@ -12,15 +12,14 @@ void CameraController::saveCameraState(const glm::vec3 &position,
   savedState_ = CameraState{position, target, up, projection, model};
 }
 
-std::optional<CameraController::CameraState>
-CameraController::restoreCameraState() {
+void CameraController::restoreCameraState() {
   if (!savedState_.has_value()) {
-    return std::nullopt;
+    return;
   }
 
-  CameraState state = savedState_.value();
+  // Apply the saved state directly to the controller's current state
+  currentState_ = savedState_.value();
   savedState_.reset();
-  return state;
 }
 
 CameraController::CameraState
