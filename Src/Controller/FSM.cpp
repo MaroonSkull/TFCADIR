@@ -1,5 +1,7 @@
 #include "FSM.hpp"
 
+#include <Controller/FigureCreator.hpp>
+
 #include <filesystem>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
@@ -41,7 +43,7 @@ std::string getConfigPath() {
 }
 } // namespace
 
-Machine::Machine() {
+Machine::Machine() : model_(nullptr) {
   try {
     // Initialize FSMConfig with the configuration file
     std::string config_path = getConfigPath();
@@ -57,6 +59,8 @@ Machine::Machine() {
     throw;
   }
 }
+
+Machine::~Machine() = default;
 
 void Machine::registerCallbacks() {
   // Register state callbacks
@@ -125,40 +129,130 @@ void Machine::log_move_first_point_state() {
   spdlog::info("Current state: MoveFirstPoint");
 }
 
-// Transition callback implementations
+/// Transition callback implementations
 
 void Machine::on_start_drawing(const fsmconfig::TransitionEvent &event) {
   spdlog::info("Transition: {} -> {} on event {}", event.from_state,
                event.to_state, event.event_name);
+
+  /// Create the appropriate FigureCreator based on the event name
+  currentCreator_ = createFigureCreator(event.event_name);
+  if (currentCreator_) {
+    collectedPoints_.clear();
+    spdlog::info("Started drawing figure: {}", currentCreator_->displayName());
+  }
 }
 
 void Machine::on_move_to_first_point(const fsmconfig::TransitionEvent &event) {
   spdlog::info("Transition: {} -> {} on event {}", event.from_state,
                event.to_state, event.event_name);
 
-  // Extract mouse position from event data if available
+  /// Extract mouse position from event data and collect the first point
   auto x_it = event.data.find("x");
   auto y_it = event.data.find("y");
   if (x_it != event.data.end() && y_it != event.data.end()) {
     float x = x_it->second.asFloat();
     float y = y_it->second.asFloat();
-    spdlog::debug("Mouse position: ({}, {})", x, y);
+    glm::vec2 point(x, y);
+
+    if (currentCreator_) {
+      if (currentCreator_->validatePoint(collectedPoints_, point)) {
+        collectedPoints_.push_back(point);
+        spdlog::info("Collected point {}/{}: ({}, {})", collectedPoints_.size(),
+                     currentCreator_->getRequiredPoints(), x, y);
+      }
+    }
   }
 }
 
 void Machine::on_update_drawing(const fsmconfig::TransitionEvent &event) {
   spdlog::info("Transition: {} -> {} on event {}", event.from_state,
                event.to_state, event.event_name);
+
+  /// Extract mouse position and add to collected points
+  auto x_it = event.data.find("x");
+  auto y_it = event.data.find("y");
+  if (x_it != event.data.end() && y_it != event.data.end() && currentCreator_) {
+    float x = x_it->second.asFloat();
+    float y = y_it->second.asFloat();
+    glm::vec2 point(x, y);
+
+    /// Validate and add point
+    if (currentCreator_->validatePoint(collectedPoints_, point)) {
+      collectedPoints_.push_back(point);
+      spdlog::info("Collected point {}/{}: ({}, {})", collectedPoints_.size(),
+                   currentCreator_->getRequiredPoints(), x, y);
+
+      /// Update preview if we have enough points
+      currentCreator_->updatePreview(collectedPoints_);
+    }
+  }
 }
 
 void Machine::on_complete_figure(const fsmconfig::TransitionEvent &event) {
   spdlog::info("Transition: {} -> {} on event {}", event.from_state,
                event.to_state, event.event_name);
+
+  /// Check if we can complete the figure and create it
+  if (currentCreator_ && currentCreator_->canComplete(collectedPoints_)) {
+    try {
+      currentCreator_->createFigure(collectedPoints_);
+      spdlog::info("Successfully created figure: {}",
+                   currentCreator_->displayName());
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to create figure: {}", e.what());
+    }
+  } else if (currentCreator_) {
+    spdlog::warn("Cannot complete figure: need {} points, have {}",
+                 currentCreator_->getRequiredPoints(), collectedPoints_.size());
+  }
+
+  /// Reset drawing state
+  currentCreator_.reset();
+  collectedPoints_.clear();
 }
 
 void Machine::on_cancel_figure(const fsmconfig::TransitionEvent &event) {
   spdlog::info("Transition: {} -> {} on event {}", event.from_state,
                event.to_state, event.event_name);
+
+  /// Clean up drawing state on cancellation
+  currentCreator_.reset();
+  collectedPoints_.clear();
+  spdlog::info("Figure drawing cancelled");
+}
+
+/**
+ * @brief Creates a FigureCreator based on the event name
+ * @param eventName The name of the event that triggered the transition
+ * @return Unique pointer to the created FigureCreator, or nullptr if unknown
+ * @throws std::runtime_error if model_ is not set
+ */
+std::unique_ptr<controller::FigureCreator>
+Machine::createFigureCreator(const std::string &eventName) {
+  if (!model_) {
+    throw std::runtime_error(
+        "Model not set. Call setModel() before drawing figures.");
+  }
+
+  if (eventName == "OnAddLine") {
+    return std::make_unique<controller::LineCreator>(model_);
+  } else if (eventName == "OnAddTriangleByCenter") {
+    return std::make_unique<controller::TriangleByCenterCreator>(model_);
+  } else if (eventName == "OnAddTriangleByCorners") {
+    return std::make_unique<controller::TriangleByCornersCreator>(model_);
+  } else if (eventName == "OnAddSquareByCenter") {
+    return std::make_unique<controller::SquareByCenterCreator>(model_);
+  } else if (eventName == "OnAddSquareByCorners") {
+    return std::make_unique<controller::SquareByCornersCreator>(model_);
+  } else if (eventName == "OnAddNgonByCenter") {
+    return std::make_unique<controller::NgonByCenterCreator>(model_, 6);
+  } else if (eventName == "OnAddCircleByCenter") {
+    return std::make_unique<controller::CircleByCenterCreator>(model_);
+  }
+
+  spdlog::warn("Unknown event name for FigureCreator creation: {}", eventName);
+  return nullptr;
 }
 
 } // namespace fsm

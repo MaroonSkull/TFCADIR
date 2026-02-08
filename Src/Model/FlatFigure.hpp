@@ -680,6 +680,21 @@ public:
   }
 
   /**
+   * @brief Adds a fully-constructed figure to the model
+   * @param figure Shared pointer to the figure to add
+   * @note This method allows adding figures with custom geometry
+   */
+  void addFigurePtr(std::shared_ptr<IFigure> figure) {
+    if (figure) {
+      spdlog::debug(
+          "[DEBUG] addFigurePtr - adding figure with id={}, size before={}",
+          figure->getId(), Figures_.size());
+      Figures_.push_back(figure);
+      spdlog::debug("[DEBUG] addFigurePtr - size after={}", Figures_.size());
+    }
+  }
+
+  /**
    * @brief Creates a memento snapshot of the current model state
    * @return Unique pointer to the created memento
    * @note Implements the Memento pattern for state persistence

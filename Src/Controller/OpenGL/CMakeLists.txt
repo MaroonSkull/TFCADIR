@@ -1,17 +1,17 @@
-﻿cmake_minimum_required (VERSION 3.23)
-project (${PROJECT_NAME})
-
-
+cmake_minimum_required(VERSION 3.23)
+project(${PROJECT_NAME})
 
 config_lib(ImGUIOpenGLController
     BASE_DIR
-        ../../
+        ../
     PRIVATE_SOURCES
         ImGUI/ImGUI.cpp
         ../FSM.cpp
+        ../FigureCreator.cpp
     PUBLIC_SOURCES
         ImGUI.hpp
         ../FSM.hpp
+        ../FigureCreator.hpp
     PUBLIC_DEPENDENCIES
         Model
         IController

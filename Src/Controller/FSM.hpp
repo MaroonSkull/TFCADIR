@@ -3,9 +3,21 @@
 #include <fsmconfig/state_machine.hpp>
 #include <glm/glm.hpp>
 #include <map>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <type_traits>
+#include <vector>
+
+// Forward declaration for model interface
+namespace model {
+class FlatFigures;
+}
+
+// Forward declaration for controller namespace
+namespace controller {
+class FigureCreator;
+}
 
 namespace fsm {
 namespace state {
@@ -47,6 +59,24 @@ private:
   std::unique_ptr<fsmconfig::StateMachine> fsm_;
 
   /**
+   * @brief Current figure creator being used for drawing
+   * @details Holds the active FigureCreator instance when in drawing state
+   */
+  std::unique_ptr<controller::FigureCreator> currentCreator_;
+
+  /**
+   * @brief Points collected during the current figure drawing operation
+   * @details Stores mouse positions as the user clicks to define figure points
+   */
+  std::vector<glm::vec2> collectedPoints_;
+
+  /**
+   * @brief Reference to the model for adding created figures
+   * @details Non-owning pointer to the FlatFigures model
+   */
+  model::FlatFigures *model_;
+
+  /**
    * @brief Converts glm::vec2 to VariableValue map
    * @param position The position to convert
    * @return Map containing x and y coordinates as VariableValue
@@ -83,6 +113,15 @@ private:
    */
   void registerCallbacks();
 
+  /**
+   * @brief Creates a FigureCreator based on the event name
+   * @param eventName The name of the event that triggered the transition
+   * @return Unique pointer to the created FigureCreator, or nullptr if unknown
+   * @throws std::runtime_error if model_ is not set
+   */
+  std::unique_ptr<controller::FigureCreator>
+  createFigureCreator(const std::string &eventName);
+
 public:
   /**
    * @brief Constructor - initializes FSMConfig with configuration file
@@ -93,7 +132,7 @@ public:
   /**
    * @brief Destructor
    */
-  ~Machine() = default;
+  ~Machine();
 
   // Copy prohibition
   Machine(const Machine &) = delete;
@@ -133,6 +172,12 @@ public:
    * @note This is a no-op in FSMConfig as state transitions are event-driven
    */
   void set_state(State new_state);
+
+  /**
+   * @brief Sets the model reference for figure creation
+   * @param model Pointer to the FlatFigures model (non-owning)
+   */
+  void setModel(model::FlatFigures *model) { model_ = model; }
 
   /**
    * @brief Gets the underlying FSMConfig StateMachine

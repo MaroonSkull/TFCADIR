@@ -20,6 +20,9 @@ OpenglImguiController::OpenglImguiController(
   if (sp_model_ == nullptr)
     throw std::invalid_argument{
         "pModel cannot be nullptr in controller constructor!"};
+
+  /// Set model reference in FSM for figure creation callbacks
+  fsm_.setModel(sp_model_.get());
 }
 
 /// Updates the current figure state on left mouse button click
@@ -135,7 +138,9 @@ void OpenglImguiController::updateScroll(float momentWheel) {
   if (momentWheel == 0.0f)
     return;
 
-  // TODO: Move reaction to fsm
+  // NOTE: Scroll handling remains outside FSM because camera manipulation
+  // is separate from figure creation workflow. This is intentional separation
+  // of concerns: FSM manages figure drawing state, scroll manages viewport.
   sp_model_->camera_.position.z +=
       0.1f * momentWheel * std::abs(sp_model_->camera_.position.z);
   sp_model_->camera_.position.z =
