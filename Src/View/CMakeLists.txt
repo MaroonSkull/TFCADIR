@@ -13,6 +13,30 @@ config_lib(IView
         cxx_std_17
 )
 
+# CameraController and UIFSMAdapter libraries for Phase 1
+config_lib(CameraController
+    PRIVATE_SOURCES
+        CameraController.cpp
+    PUBLIC_SOURCES
+        CameraController.hpp
+    PUBLIC_DEPENDENCIES
+        Model
+    COMPILE_FEATURES
+        cxx_std_17
+)
+
+config_lib(UIFSMAdapter
+    PRIVATE_SOURCES
+        UIFSMAdapter.cpp
+    PUBLIC_SOURCES
+        UIFSMAdapter.hpp
+    PUBLIC_DEPENDENCIES
+        CameraController
+        Controller
+    COMPILE_FEATURES
+        cxx_std_17
+)
+
 # Select specific view
 add_subdirectory ("OpenGL")
 

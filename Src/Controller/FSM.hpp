@@ -42,10 +42,33 @@ struct OnAddCircleByCenter {};
 struct OnAddLine {};
 struct OnFigureComplete {};
 struct OnFigureCancel {};
+
+/// Sketch mode events
+struct OnEnterSketchMode {};
+struct OnExitSketchMode {};
+struct OnPlaneSelected {
+  int planeIndex; // 0 = XY, 1 = XZ, 2 = YZ
+  OnPlaneSelected(int index) : planeIndex(index) {}
+};
+
+/// Sketch-specific drawing events (prevent ambiguity with 3D mode)
+struct OnAddTriangleByCenterInSketch {};
+struct OnAddCircleByCenterInSketch {};
+struct OnAddSquareByCenterInSketch {};
+struct OnAddSquareByCornersInSketch {};
+struct OnAddNgonByCenterInSketch {};
+struct OnAddLineInSketch {};
+struct OnFigureCompleteInSketch {};
 } // namespace events
 
 // State enumeration (kept for backward compatibility)
-enum class State { Idle, DrawingProcessing, MoveFirstPoint };
+enum class State {
+  Idle,
+  DrawingProcessing,
+  MoveFirstPoint,
+  PlaneSelection,
+  SketchEdit
+};
 
 /**
  * @brief State Machine wrapper using FSMConfig library
@@ -193,14 +216,23 @@ public:
   void on_drawing_exit();
   void on_move_first_point_enter();
   void on_move_first_point_exit();
+  void on_plane_selection_enter();
+  void on_plane_selection_exit();
+  void on_sketch_edit_enter();
+  void on_sketch_edit_exit();
   void log_idle_state();
   void log_drawing_state();
   void log_move_first_point_state();
+  void log_plane_selection_state();
+  void log_sketch_edit_state();
   void on_start_drawing(const fsmconfig::TransitionEvent &event);
   void on_move_to_first_point(const fsmconfig::TransitionEvent &event);
   void on_update_drawing(const fsmconfig::TransitionEvent &event);
   void on_complete_figure(const fsmconfig::TransitionEvent &event);
   void on_cancel_figure(const fsmconfig::TransitionEvent &event);
+  void on_enter_sketch_mode(const fsmconfig::TransitionEvent &event);
+  void on_select_plane(const fsmconfig::TransitionEvent &event);
+  void on_exit_sketch_mode(const fsmconfig::TransitionEvent &event);
 };
 
 // Event handler implementations
@@ -233,6 +265,35 @@ template <typename Event> void Machine::process_event(const Event &event) {
     fsm_->triggerEvent("OnFigureComplete");
   } else if constexpr (std::is_same_v<Event, events::OnFigureCancel>) {
     fsm_->triggerEvent("OnFigureCancel");
+  } else if constexpr (std::is_same_v<Event, events::OnEnterSketchMode>) {
+    fsm_->triggerEvent("OnEnterSketchMode");
+  } else if constexpr (std::is_same_v<Event, events::OnExitSketchMode>) {
+    fsm_->triggerEvent("OnExitSketchMode");
+  } else if constexpr (std::is_same_v<Event, events::OnPlaneSelected>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["planeIndex"] =
+        fsmconfig::VariableValue(static_cast<int>(event.planeIndex));
+    fsm_->triggerEvent("OnPlaneSelected", data);
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddTriangleByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddTriangleByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddCircleByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddCircleByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddSquareByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddSquareByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddSquareByCornersInSketch>) {
+    fsm_->triggerEvent("OnAddSquareByCornersInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddNgonByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddNgonByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event, events::OnAddLineInSketch>) {
+    fsm_->triggerEvent("OnAddLineInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnFigureCompleteInSketch>) {
+    fsm_->triggerEvent("OnFigureCompleteInSketch");
   }
 }
 
@@ -247,6 +308,10 @@ inline State Machine::get_current_state() const {
     return State::DrawingProcessing;
   } else if (state_name == "MoveFirstPoint") {
     return State::MoveFirstPoint;
+  } else if (state_name == "PlaneSelection") {
+    return State::PlaneSelection;
+  } else if (state_name == "SketchEdit") {
+    return State::SketchEdit;
   }
   return State::Idle;
 }

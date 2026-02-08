@@ -8,9 +8,11 @@ config_lib(FlatFigureModel
         ../
     PRIVATE_SOURCES
         FlatFigure.cpp
+        SketchPlane.cpp
     PUBLIC_SOURCES
         FlatFigure.hpp
         Model.hpp
+        SketchPlane.hpp
     PRIVATE_DEPENDENCIES
         spdlog::spdlog
     PUBLIC_DEPENDENCIES
