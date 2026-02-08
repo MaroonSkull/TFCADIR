@@ -3,9 +3,13 @@
 #include <Controller/FSM.hpp>
 #include <Model/SketchPlane.hpp>
 #include <View/CameraController.hpp>
+#include <any>
 #include <functional>
+#include <glm/glm.hpp>
+#include <map>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <vector>
 
 namespace view {
 
@@ -102,6 +106,73 @@ public:
    */
   bool isInSketchMode() const;
 
+  // ==========================================================================
+  // Phase 2: Tool Management Methods
+  // These methods provide access to tool state stored in the FSM
+  // ==========================================================================
+
+  /**
+   * @brief Get the currently active tool ID
+   * @return Current tool ID or empty string if no tool active
+   *
+   * Queries the FSM state data for the activeTool field.
+   * Returns the tool identifier (e.g., "Line3D", "Circle3D") or empty string
+   * if no tool is currently active.
+   */
+  std::string getActiveTool() const;
+
+  /**
+   * @brief Get options for the active tool
+   * @return Map of option names to values
+   *
+   * Queries the FSM state data for the toolOptions field.
+   * Returns a map of option names to their current values for the
+   * currently active tool. Options are tool-specific configuration
+   * parameters (e.g., radius for Circle3D, sides for Polygon3D).
+   */
+  std::map<std::string, std::any> getToolOptions() const;
+
+  /**
+   * @brief Get collected points for current drawing operation
+   * @return Vector of collected point coordinates
+   *
+   * Queries the FSM state data for the collectedPoints field.
+   * Returns the list of 3D points collected so far in the current
+   * drawing operation. The number of points depends on the tool:
+   * - Line3D: 2 points (start, end)
+   * - Circle3D: 2 points (center, edge)
+   * - Arc3D: 3 points (start, control, end)
+   * - Rectangle3D: 2 points (first corner, opposite corner)
+   * - Polygon3D: N points (vertices in order)
+   */
+  std::vector<glm::vec3> getCollectedPoints() const;
+
+  /**
+   * @brief Activate a tool
+   * @param toolId Tool identifier to activate
+   *
+   * Sends the appropriate tool activation event to the FSM:
+   * - "Line3D" → OnActivateLine3D event
+   * - "Circle3D" → OnActivateCircle3D event
+   * - "Arc3D" → OnActivateArc3D event
+   * - "Rectangle3D" → OnActivateRectangle3D event
+   * - "Polygon3D" → OnActivatePolygon3D event
+   * - "NGon3D" → OnActivateNGon3D event
+   * - "LineInSketch" → OnActivateLineInSketch event
+   * - "CircleInSketch" → OnActivateCircleInSketch event
+   *
+   * The tool remains active until deactivated or a drawing operation completes.
+   */
+  void activateTool(const std::string &toolId);
+
+  /**
+   * @brief Deactivate the current tool
+   *
+   * Sends the OnDeactivateTool event to the FSM, clearing the activeTool
+   * field in state data. This cancels any pending drawing operation.
+   */
+  void deactivateTool();
+
 private:
   /// Reference to the finite state machine
   fsm::Machine &fsm_;
@@ -123,6 +194,22 @@ private:
 
   /// Current FSM state
   fsm::State currentState_;
+
+  // ==========================================================================
+  // Phase 2: Tool State Storage
+  // These member variables store tool state that cannot be stored in FSM
+  // because FSMConfig's VariableValue only supports simple types (int, float,
+  // string, bool), not complex types like std::map or std::vector<glm::vec3>.
+  // ==========================================================================
+
+  /// Currently active tool ID (e.g., "Line3D", "Circle3D")
+  std::string activeTool_;
+
+  /// Options for the active tool (e.g., radius, sides, creation method)
+  std::map<std::string, std::any> toolOptions_;
+
+  /// Points collected during the current drawing operation
+  std::vector<glm::vec3> collectedPoints_;
 
   /**
    * @brief Get available sketch planes

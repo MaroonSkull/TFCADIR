@@ -124,4 +124,93 @@ std::vector<model::SketchPlane> UIFSMAdapter::getAvailablePlanes() const {
   return planes;
 }
 
+// ==========================================================================
+// Phase 2: Tool Management Methods
+// These methods use local member variables because FSMConfig's VariableValue
+// only supports simple types (int, float, string, bool), not complex types
+// like std::map or std::vector<glm::vec3>.
+// ==========================================================================
+
+std::string UIFSMAdapter::getActiveTool() const {
+  /// Return the currently active tool ID from local storage
+  return activeTool_;
+}
+
+std::map<std::string, std::any> UIFSMAdapter::getToolOptions() const {
+  /// Return the tool options from local storage
+  return toolOptions_;
+}
+
+std::vector<glm::vec3> UIFSMAdapter::getCollectedPoints() const {
+  /// Return the collected points from local storage
+  return collectedPoints_;
+}
+
+void UIFSMAdapter::activateTool(const std::string &toolId) {
+  /// Activate the specified tool by:
+  /// 1. Updating local state
+  /// 2. Triggering FSM event (if event is defined in FSM configuration)
+
+  // Update local state
+  activeTool_ = toolId;
+  collectedPoints_.clear();
+
+  // Map tool IDs to their corresponding FSM event names
+  std::string eventName;
+  if (toolId == "Line3D") {
+    eventName = "OnActivateLine3D";
+  } else if (toolId == "Circle3D") {
+    eventName = "OnActivateCircle3D";
+  } else if (toolId == "Arc3D") {
+    eventName = "OnActivateArc3D";
+  } else if (toolId == "Rectangle3D") {
+    eventName = "OnActivateRectangle3D";
+  } else if (toolId == "Polygon3D") {
+    eventName = "OnActivatePolygon3D";
+  } else if (toolId == "NGon3D") {
+    eventName = "OnActivateNGon3D";
+  } else if (toolId == "LineInSketch") {
+    eventName = "OnActivateLineInSketch";
+  } else if (toolId == "CircleInSketch") {
+    eventName = "OnActivateCircleInSketch";
+  } else {
+    logger_->warn("Unknown tool ID requested: {}", toolId);
+    return;
+  }
+
+  /// Trigger the FSM event via FSMConfig's string-based event system
+  /// Note: These events need to be defined in the FSM YAML configuration
+  if (fsmconfig::StateMachine *fsm = fsm_.get_fsm()) {
+    try {
+      fsm->triggerEvent(eventName);
+      logger_->info("Activated tool: {} (event: {})", toolId, eventName);
+    } catch (const fsmconfig::StateException &e) {
+      logger_->warn("Failed to trigger event {}: {}", eventName, e.what());
+      // Continue anyway - tool is still activated locally
+    }
+  }
+}
+
+void UIFSMAdapter::deactivateTool() {
+  /// Deactivate the current tool by:
+  /// 1. Clearing local state
+  /// 2. Triggering FSM event (if event is defined in FSM configuration)
+
+  activeTool_.clear();
+  toolOptions_.clear();
+  collectedPoints_.clear();
+
+  /// Trigger the OnDeactivateTool FSM event
+  /// Note: This event needs to be defined in the FSM YAML configuration
+  if (fsmconfig::StateMachine *fsm = fsm_.get_fsm()) {
+    try {
+      fsm->triggerEvent("OnDeactivateTool");
+      logger_->info("Deactivated tool");
+    } catch (const fsmconfig::StateException &e) {
+      logger_->warn("Failed to trigger event OnDeactivateTool: {}", e.what());
+      // Continue anyway - tool is still deactivated locally
+    }
+  }
+}
+
 } // namespace view

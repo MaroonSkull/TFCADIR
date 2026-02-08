@@ -1,5 +1,7 @@
 ﻿#include "imgui.h"
 #include <GUI.hpp>
+#include <View/Tools/ImGUI/CommandManager.hpp>
+#include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 using namespace ImGui;
@@ -104,22 +106,30 @@ void GUI::ShowLog() {
 
 void GUI::ShowSidePanel() {
   if (Begin("Tools")) {
-    Text("Side panel with tools");
-    // todo: add buttons for addLine, addTriangleByCorners and addCircle
-    if (Button("Add Line")) {
-      // Code to handle adding a line
-      spdlog::info("Line added!");
-      sp_controller_->addLine();
-    }
-    SameLine();
-    if (Button("Add Triangle by Corners")) {
-      // Code to handle adding a triangle by corners
-      spdlog::info("Triangle added by corners!");
-    }
-    SameLine();
-    if (Button("Add Circle")) {
-      // Code to handle adding a circle
-      spdlog::info("Circle added!");
+    // Render the Phase 2 ToolOptionsPanel
+    if (toolOptionsPanel_) {
+      ImVec2 panelSize = GetContentRegionAvail();
+      toolOptionsPanel_->render(panelSize);
+    } else {
+      // Fallback: original simple tool buttons if ToolOptionsPanel not
+      // available
+      Text("Side panel with tools");
+      // todo: add buttons for addLine, addTriangleByCorners and addCircle
+      if (Button("Add Line")) {
+        // Code to handle adding a line
+        spdlog::info("Line added!");
+        sp_controller_->addLine();
+      }
+      SameLine();
+      if (Button("Add Triangle by Corners")) {
+        // Code to handle adding a triangle by corners
+        spdlog::info("Triangle added by corners!");
+      }
+      SameLine();
+      if (Button("Add Circle")) {
+        // Code to handle adding a circle
+        spdlog::info("Circle added!");
+      }
     }
   }
   End();
@@ -255,7 +265,10 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
       uiFSMAdapter_(std::make_unique<view::UIFSMAdapter>(
           sp_controller->fsm_, *cameraController_,
           spdlog::get("logger") ? spdlog::get("logger")
-                                : spdlog::default_logger())) {
+                                : spdlog::default_logger())),
+      toolOptionsPanel_(
+          std::make_unique<view::ImGUI::ToolOptionsPanel>(*uiFSMAdapter_)),
+      commandManager_(std::make_unique<view::ImGUI::CommandManager>()) {
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -288,6 +301,20 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
 std::tuple<ImVec2, float, std::optional<ImVec2>>
 GUI::DrawGUI(ImTextureID renderTexture) {
   NewFrame();
+
+  // Handle keyboard shortcuts for undo/redo
+  ImGuiIO &io = GetIO();
+  if (io.KeyCtrl && commandManager_) {
+    if (IsKeyPressed(ImGuiKey_Z) && commandManager_->canUndo()) {
+      commandManager_->undo();
+      spdlog::info("Undo performed");
+    }
+    if (IsKeyPressed(ImGuiKey_Y) && commandManager_->canRedo()) {
+      commandManager_->redo();
+      spdlog::info("Redo performed");
+    }
+  }
+
   ShowMainMenuBar();
   ShowDockSpace();
   ShowLog();
