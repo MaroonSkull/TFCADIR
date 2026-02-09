@@ -7,7 +7,7 @@ UIFSMAdapter::UIFSMAdapter(fsm::Machine &fsm,
                            std::shared_ptr<spdlog::logger> logger)
     : fsm_(fsm), cameraController_(cameraController),
       logger_(std::move(logger)), currentState_(fsm.get_current_state()),
-      primarySelectionIndex_(-1) {
+      primarySelectionIndex_(-1), currentCommandIndex_(0) {
   logger_->info("UIFSMAdapter initialized");
 }
 
@@ -264,8 +264,8 @@ void UIFSMAdapter::selectFigure(uint32_t figureId) {
 
 void UIFSMAdapter::toggleFigureSelection(uint32_t figureId) {
   /// Toggle selection state of a figure
-  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
-                      figureId);
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
 
   if (it != selectedFigureIds_.end()) {
     /// Figure is selected - remove it
@@ -292,8 +292,8 @@ void UIFSMAdapter::toggleFigureSelection(uint32_t figureId) {
 
 void UIFSMAdapter::addToSelection(uint32_t figureId) {
   /// Add a figure to the current selection if not already selected
-  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
-                      figureId);
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
 
   if (it == selectedFigureIds_.end()) {
     selectedFigureIds_.push_back(figureId);
@@ -308,8 +308,8 @@ void UIFSMAdapter::addToSelection(uint32_t figureId) {
 
 void UIFSMAdapter::removeFromSelection(uint32_t figureId) {
   /// Remove a figure from the current selection
-  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
-                      figureId);
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
 
   if (it != selectedFigureIds_.end()) {
     size_t index = std::distance(selectedFigureIds_.begin(), it);
@@ -355,8 +355,8 @@ void UIFSMAdapter::setPrimarySelection(int index) {
 }
 
 void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
-                                       const std::string &propertyPath,
-                                       const std::any &value) {
+                                        const std::string &propertyPath,
+                                        const std::any &value) {
   /// Update a property of a specific figure
   /// Note: This method requires access to the model which is passed in through
   /// the constructor or set via a separate setter. For now, this is a
@@ -364,8 +364,7 @@ void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
   /// implemented by the PropertyInspectorPanel which has direct access to the
   /// model.
 
-  logger_->info("Updating property '{}' for figure {}", propertyPath,
-                figureId);
+  logger_->info("Updating property '{}' for figure {}", propertyPath, figureId);
 
   /// Parse property path (e.g., "center.x", "radius")
   size_t dotPos = propertyPath.find('.');
@@ -374,6 +373,41 @@ void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
   if (propertyChangedCallback_) {
     propertyChangedCallback_(figureId, propertyPath);
   }
+}
+
+// ==========================================================================
+// Phase 2: Command History Query Methods
+// These methods provide access to command history state for UI
+// ==========================================================================
+
+bool UIFSMAdapter::canUndo() const {
+  /// Undo is available if there is at least one command in history
+  /// that can be undone (current index > 0)
+  return currentCommandIndex_ > 0;
+}
+
+bool UIFSMAdapter::canRedo() const {
+  /// Redo is available if there are commands after the current index
+  /// that can be redone (current index < history size)
+  return currentCommandIndex_ < commandHistory_.size();
+}
+
+std::string UIFSMAdapter::getUndoDescription() const {
+  /// Return the description of the command that would be undone
+  /// If no undo is available, return empty string
+  if (canUndo() && currentCommandIndex_ > 0) {
+    return commandHistory_[currentCommandIndex_ - 1];
+  }
+  return "";
+}
+
+std::string UIFSMAdapter::getRedoDescription() const {
+  /// Return the description of the command that would be redone
+  /// If no redo is available, return empty string
+  if (canRedo()) {
+    return commandHistory_[currentCommandIndex_];
+  }
+  return "";
 }
 
 } // namespace view
