@@ -691,6 +691,18 @@ public:
   void setSnapSettingsPanelVisible(bool visible);
 
   /**
+   * @brief Get the coordinate input widget visibility
+   * @return true if the coordinate input widget is visible
+   */
+  bool getCoordinateInputWidgetVisible() const;
+
+  /**
+   * @brief Set the coordinate input widget visibility
+   * @param visible The new visibility state
+   */
+  void setCoordinateInputWidgetVisible(bool visible);
+
+  /**
    * @brief Get the current snap settings
    * @return Current snap settings
    */
@@ -1171,6 +1183,9 @@ private:
 
   /// Snap settings panel visibility
   bool snapSettingsPanelVisible_{true};
+
+  /// Coordinate input widget visibility
+  bool coordinateInputWidgetVisible_{false};
 
   /// Measurement settings for precision drawing
   MeasurementSettings measurementSettings_;

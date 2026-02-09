@@ -10,6 +10,7 @@
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/Precision/CoordinateInputWidget.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
 #include <View/Precision/SnapSettingsPanel.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
@@ -35,8 +36,9 @@ private:
   ImGuiID dockIdProperties_{};     // Phase 3: Property inspector dock ID
   ImGuiID dockIdCommandHistory_{}; // Phase 4: Command history panel dock ID
   ImGuiID dockIdViewPresets_{};    // Phase 5: View presets panel dock ID
-  ImGuiID dockIdGridSettings_{};   // Phase 6: Grid settings panel dock ID
-  ImGuiID dockIdSnapSettings_{};   // Phase 6: Snap settings panel dock ID
+  ImGuiID dockIdGridSettings_{};        // Phase 6: Grid settings panel dock ID
+  ImGuiID dockIdSnapSettings_{};        // Phase 6: Snap settings panel dock ID
+  ImGuiID dockIdCoordinateInput_{};      // Phase 6: Coordinate input widget dock ID
   ImVec2 mouseOverlayPosition_{};
   ImVec2 mousePositionAbsolute_{};
   ImTextureID textureId_{};
@@ -99,6 +101,9 @@ private:
   /// Phase 6: Snap settings panel for snap configuration
   std::unique_ptr<view::SnapSettingsPanel> snapSettingsPanel_;
 
+  /// Phase 6: Coordinate input widget for precise coordinate entry
+  std::unique_ptr<view::CoordinateInputWidget> coordinateInputWidget_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -113,8 +118,9 @@ private:
   void ShowPropertyInspectorPanel();
   void ShowCommandHistoryPanel(); // Phase 4: Command history panel
   void ShowViewPresetsPanel();    // Phase 5: View presets panel
-  void ShowGridSettingsPanel();   // Phase 6: Grid settings panel
-  void ShowSnapSettingsPanel();   // Phase 6: Snap settings panel
+  void ShowGridSettingsPanel();      // Phase 6: Grid settings panel
+  void ShowSnapSettingsPanel();      // Phase 6: Snap settings panel
+  void ShowCoordinateInputWidget();  // Phase 6: Coordinate input widget
   // void ShowListPanel()
   void ShowSimpleOverlay(); // let it float after the mouse and show its
                             // coordinates if within canvas

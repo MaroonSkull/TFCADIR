@@ -615,6 +615,16 @@ void UIFSMAdapter::setSnapSettingsPanelVisible(bool visible) {
   snapSettingsPanelVisible_ = visible;
 }
 
+bool UIFSMAdapter::getCoordinateInputWidgetVisible() const {
+  /// Return the coordinate input widget visibility from local storage
+  return coordinateInputWidgetVisible_;
+}
+
+void UIFSMAdapter::setCoordinateInputWidgetVisible(bool visible) {
+  /// Update coordinate input widget visibility
+  coordinateInputWidgetVisible_ = visible;
+}
+
 SnapSettings UIFSMAdapter::getSnapSettings() const {
   /// Return the current snap settings from local storage
   return snapSettings_;

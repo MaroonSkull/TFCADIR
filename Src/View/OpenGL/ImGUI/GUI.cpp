@@ -9,6 +9,7 @@
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/Precision/CoordinateInputWidget.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
 #include <View/Precision/SnapSettingsPanel.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
@@ -123,6 +124,11 @@ void GUI::ShowDockSpace() {
         DockBuilderSplitNode(dockIdGridSettings_, ImGuiDir_Down, 0.50f, nullptr,
                              &dockIdGridSettings_);
 
+    // Phase 6: Split snap settings dock to create space for coordinate input
+    dockIdCoordinateInput_ =
+        DockBuilderSplitNode(dockIdSnapSettings_, ImGuiDir_Down, 0.50f, nullptr,
+                             &dockIdSnapSettings_);
+
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
@@ -133,6 +139,7 @@ void GUI::ShowDockSpace() {
     DockBuilderDockWindow("View Presets", dockIdViewPresets_);
     DockBuilderDockWindow("Grid Settings", dockIdGridSettings_);
     DockBuilderDockWindow("Snap Settings", dockIdSnapSettings_);
+    DockBuilderDockWindow("Coordinate Input", dockIdCoordinateInput_);
 
     DockBuilderFinish(dockId_);
   }
@@ -325,6 +332,17 @@ void GUI::ShowSnapSettingsPanel() {
 }
 
 /**
+ * @brief Render the coordinate input widget
+ *
+ * Displays the coordinate input window for precise coordinate entry.
+ */
+void GUI::ShowCoordinateInputWidget() {
+  if (coordinateInputWidget_) {
+    coordinateInputWidget_->render();
+  }
+}
+
+/**
  * @brief Shows sketch plane visualization overlay when in sketch mode
  */
 void GUI::ShowSketchPlaneOverlay() {
@@ -417,6 +435,10 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   snapSettingsPanel_ =
       std::make_unique<view::SnapSettingsPanel>(uiFSMAdapter_.get());
 
+  /// Phase 6: Create coordinate input widget for precise coordinate entry
+  coordinateInputWidget_ =
+      std::make_unique<view::CoordinateInputWidget>(uiFSMAdapter_.get());
+
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -488,6 +510,9 @@ GUI::DrawGUI(ImTextureID renderTexture) {
 
   // Phase 6: Render snap settings panel
   ShowSnapSettingsPanel();
+
+  // Phase 6: Render coordinate input widget
+  ShowCoordinateInputWidget();
 
   // SshowDemoWindow();
   Render();
