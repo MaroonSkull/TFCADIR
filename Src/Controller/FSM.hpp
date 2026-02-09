@@ -59,6 +59,23 @@ struct OnAddSquareByCornersInSketch {};
 struct OnAddNgonByCenterInSketch {};
 struct OnAddLineInSketch {};
 struct OnFigureCompleteInSketch {};
+
+/// Phase 6: Cache invalidation events
+struct OnFigureAdded {
+  uint32_t figureId;
+};
+struct OnFigureRemoved {
+  uint32_t figureId;
+};
+struct OnFigureModified {
+  uint32_t figureId;
+};
+struct OnSelectionChanged {};
+struct OnCameraZoomed {};
+struct OnCameraPanned {};
+struct OnCameraOrbited {};
+struct OnGridSettingsChanged {};
+struct OnSnapSettingsChanged {};
 } // namespace events
 
 // State enumeration (kept for backward compatibility)
@@ -294,6 +311,24 @@ template <typename Event> void Machine::process_event(const Event &event) {
   } else if constexpr (std::is_same_v<Event,
                                       events::OnFigureCompleteInSketch>) {
     fsm_->triggerEvent("OnFigureCompleteInSketch");
+  } else if constexpr (std::is_same_v<Event, events::OnFigureAdded>) {
+    fsm_->triggerEvent("OnFigureAdded");
+  } else if constexpr (std::is_same_v<Event, events::OnFigureRemoved>) {
+    fsm_->triggerEvent("OnFigureRemoved");
+  } else if constexpr (std::is_same_v<Event, events::OnFigureModified>) {
+    fsm_->triggerEvent("OnFigureModified");
+  } else if constexpr (std::is_same_v<Event, events::OnSelectionChanged>) {
+    fsm_->triggerEvent("OnSelectionChanged");
+  } else if constexpr (std::is_same_v<Event, events::OnCameraZoomed>) {
+    fsm_->triggerEvent("OnCameraZoomed");
+  } else if constexpr (std::is_same_v<Event, events::OnCameraPanned>) {
+    fsm_->triggerEvent("OnCameraPanned");
+  } else if constexpr (std::is_same_v<Event, events::OnCameraOrbited>) {
+    fsm_->triggerEvent("OnCameraOrbited");
+  } else if constexpr (std::is_same_v<Event, events::OnGridSettingsChanged>) {
+    fsm_->triggerEvent("OnGridSettingsChanged");
+  } else if constexpr (std::is_same_v<Event, events::OnSnapSettingsChanged>) {
+    fsm_->triggerEvent("OnSnapSettingsChanged");
   }
 }
 

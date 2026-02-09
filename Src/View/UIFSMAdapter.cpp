@@ -564,4 +564,69 @@ void UIFSMAdapter::setOrbitCenterChangedCallback(NavigationCallback callback) {
   onOrbitCenterChanged_ = std::move(callback);
 }
 
+// ==========================================================================
+// Phase 6: Precision & Snapping Methods
+// These methods provide access to grid and snap settings
+// ==========================================================================
+
+GridSettings UIFSMAdapter::getGridSettings() const {
+  /// Return the current grid settings from local storage
+  return gridSettings_;
+}
+
+void UIFSMAdapter::setGridSettings(const GridSettings &settings) {
+  /// Update grid settings and notify listeners
+  if (gridSettings_ != settings) {
+    gridSettings_ = settings;
+    logger_->info("Grid settings updated");
+
+    /// Trigger FSM event to notify components
+    fsm_.process_event(fsm::events::OnGridSettingsChanged{});
+
+    /// Notify listeners of grid settings change
+    if (onGridSettingsChanged_) {
+      onGridSettingsChanged_();
+    }
+  }
+}
+
+SnapSettings UIFSMAdapter::getSnapSettings() const {
+  /// Return the current snap settings from local storage
+  return snapSettings_;
+}
+
+void UIFSMAdapter::setSnapSettings(const SnapSettings &settings) {
+  /// Update snap settings and notify listeners
+  if (snapSettings_ != settings) {
+    snapSettings_ = settings;
+    logger_->info("Snap settings updated");
+
+    /// Trigger FSM event to notify components
+    fsm_.process_event(fsm::events::OnSnapSettingsChanged{});
+
+    /// Notify listeners of snap settings change
+    if (onSnapSettingsChanged_) {
+      onSnapSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setGridSettingsChangedCallback(
+    GridSettingsCallback callback) {
+  onGridSettingsChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setSnapSettingsChangedCallback(
+    SnapSettingsCallback callback) {
+  onSnapSettingsChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setFigureChangedCallback(FigureChangedCallback callback) {
+  onFigureChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setCameraChangedCallback(CameraChangedCallback callback) {
+  onCameraChanged_ = std::move(callback);
+}
+
 } // namespace view

@@ -14,7 +14,130 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <unordered_set>
 #include <vector>
+
+namespace view {
+
+// ==========================================================================
+// Phase 6: Precision & Snapping - Data Structures
+// ==========================================================================
+
+/**
+ * @brief Grid settings for visualization and snapping
+ *
+ * Contains configuration for grid display, spacing, colors, and axes.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct GridSettings {
+  /// Whether the grid is visible
+  bool visible = true;
+
+  /// Whether to show minor grid lines
+  bool showMinorLines = true;
+
+  /// Whether to show X, Y, Z axes
+  bool showAxes = true;
+
+  /// Whether to show the origin point
+  bool showOrigin = true;
+
+  /// Spacing between major grid lines
+  float majorSpacing = 10.0f;
+
+  /// Number of minor divisions between major lines
+  int minorDivisions = 10;
+
+  /// Color of major grid lines (RGBA)
+  glm::vec4 color = glm::vec4(0.27f, 0.27f, 0.27f, 1.0f);
+
+  /// Color of minor grid lines (RGBA)
+  glm::vec4 minorColor = glm::vec4(0.20f, 0.20f, 0.20f, 1.0f);
+
+  /// Grid opacity (0.0 to 1.0)
+  float opacity = 1.0f;
+
+  /**
+   * @brief Equality operator for GridSettings
+   * @param other The other GridSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const GridSettings &other) const {
+    return visible == other.visible && showMinorLines == other.showMinorLines &&
+           showAxes == other.showAxes && showOrigin == other.showOrigin &&
+           majorSpacing == other.majorSpacing &&
+           minorDivisions == other.minorDivisions && color == other.color &&
+           minorColor == other.minorColor && opacity == other.opacity;
+  }
+};
+
+/**
+ * @brief Snap settings for precision drawing
+ *
+ * Contains configuration for snap modes, tolerance, and visual indicators.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct SnapSettings {
+  /// Whether grid snap is enabled
+  bool gridEnabled = true;
+
+  /// Whether endpoint snap is enabled
+  bool endpointEnabled = true;
+
+  /// Whether midpoint snap is enabled
+  bool midpointEnabled = true;
+
+  /// Whether center snap is enabled
+  bool centerEnabled = true;
+
+  /// Whether intersection snap is enabled
+  bool intersectionEnabled = true;
+
+  /// Whether nearest point snap is enabled
+  bool nearestEnabled = false;
+
+  /// Whether tangent snap is enabled
+  bool tangentEnabled = false;
+
+  /// Whether perpendicular snap is enabled
+  bool perpendicularEnabled = false;
+
+  /// Snap tolerance in pixels
+  float tolerancePixels = 10.0f;
+
+  /// Whether to show snap indicators
+  bool showIndicators = true;
+
+  /// Color of snap indicators (RGBA)
+  glm::vec4 indicatorColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+  /**
+   * @brief Equality operator for SnapSettings
+   * @param other The other SnapSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const SnapSettings &other) const {
+    return gridEnabled == other.gridEnabled &&
+           endpointEnabled == other.endpointEnabled &&
+           midpointEnabled == other.midpointEnabled &&
+           centerEnabled == other.centerEnabled &&
+           intersectionEnabled == other.intersectionEnabled &&
+           nearestEnabled == other.nearestEnabled &&
+           tangentEnabled == other.tangentEnabled &&
+           perpendicularEnabled == other.perpendicularEnabled &&
+           tolerancePixels == other.tolerancePixels &&
+           showIndicators == other.showIndicators &&
+           indicatorColor == other.indicatorColor;
+  }
+};
+
+// ==========================================================================
+// Phase 6: FSM Event Definitions
+// These events are defined in fsm::events namespace in FSM.hpp
+// and are used for cache invalidation and notifications
+// ==========================================================================
+
+} // namespace view
 
 namespace view {
 
@@ -409,6 +532,89 @@ public:
   void setOrbitCenterChangedCallback(NavigationCallback callback);
 
   // ==========================================================================
+  // Phase 6: Precision & Snapping Methods
+  // These methods provide access to grid and snap settings
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for grid settings change notifications
+   */
+  using GridSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Callback type for snap settings change notifications
+   */
+  using SnapSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Callback type for figure change notifications
+   * Used for cache invalidation in SnapManager
+   */
+  using FigureChangedCallback = std::function<void()>;
+
+  /**
+   * @brief Callback type for camera change notifications
+   * Used for cache invalidation in SnapManager
+   */
+  using CameraChangedCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current grid settings
+   * @return Current grid settings
+   */
+  GridSettings getGridSettings() const;
+
+  /**
+   * @brief Set grid settings
+   * @param settings The new grid settings
+   *
+   * Triggers OnGridSettingsChanged FSM event and notifies listeners.
+   */
+  void setGridSettings(const GridSettings &settings);
+
+  /**
+   * @brief Get the current snap settings
+   * @return Current snap settings
+   */
+  SnapSettings getSnapSettings() const;
+
+  /**
+   * @brief Set snap settings
+   * @param settings The new snap settings
+   *
+   * Triggers OnSnapSettingsChanged FSM event and notifies listeners.
+   */
+  void setSnapSettings(const SnapSettings &settings);
+
+  /**
+   * @brief Set callback for grid settings change notifications
+   * @param callback Function to invoke when grid settings change
+   */
+  void setGridSettingsChangedCallback(GridSettingsCallback callback);
+
+  /**
+   * @brief Set callback for snap settings change notifications
+   * @param callback Function to invoke when snap settings change
+   */
+  void setSnapSettingsChangedCallback(SnapSettingsCallback callback);
+
+  /**
+   * @brief Set callback for figure change notifications
+   * @param callback Function to invoke when figures are added/removed/modified
+   *
+   * Used by SnapManager for cache invalidation.
+   */
+  void setFigureChangedCallback(FigureChangedCallback callback);
+
+  /**
+   * @brief Set callback for camera change notifications
+   * @param callback Function to invoke when camera zooms/pans/orbits
+   *
+   * Used by SnapManager for cache invalidation.
+   */
+  void setCameraChangedCallback(CameraChangedCallback callback);
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -555,6 +761,30 @@ private:
 
   /// Callback for orbit center change notifications
   NavigationCallback onOrbitCenterChanged_;
+
+  // ==========================================================================
+  // Phase 6: Grid and Snap Settings Storage
+  // These member variables store grid and snap settings that cannot be stored
+  // in FSM because FSMConfig's VariableValue only supports simple types.
+  // ==========================================================================
+
+  /// Grid settings for visualization and snapping
+  GridSettings gridSettings_;
+
+  /// Snap settings for precision drawing
+  SnapSettings snapSettings_;
+
+  /// Callback for grid settings change notifications
+  GridSettingsCallback onGridSettingsChanged_;
+
+  /// Callback for snap settings change notifications
+  SnapSettingsCallback onSnapSettingsChanged_;
+
+  /// Callback for figure change notifications (used by SnapManager)
+  FigureChangedCallback onFigureChanged_;
+
+  /// Callback for camera change notifications (used by SnapManager)
+  CameraChangedCallback onCameraChanged_;
 
   /**
    * @brief Get available sketch planes
