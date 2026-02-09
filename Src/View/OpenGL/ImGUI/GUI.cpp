@@ -10,6 +10,7 @@
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
+#include <View/Precision/SnapSettingsPanel.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <spdlog/spdlog.h>
@@ -117,6 +118,11 @@ void GUI::ShowDockSpace() {
     dockIdGridSettings_ = DockBuilderSplitNode(
         dockIdViewPresets_, ImGuiDir_Down, 0.50f, nullptr, &dockIdViewPresets_);
 
+    // Phase 6: Split grid settings dock to create space for snap settings
+    dockIdSnapSettings_ =
+        DockBuilderSplitNode(dockIdGridSettings_, ImGuiDir_Down, 0.50f, nullptr,
+                             &dockIdGridSettings_);
+
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
@@ -126,6 +132,7 @@ void GUI::ShowDockSpace() {
     DockBuilderDockWindow("Command History", dockIdCommandHistory_);
     DockBuilderDockWindow("View Presets", dockIdViewPresets_);
     DockBuilderDockWindow("Grid Settings", dockIdGridSettings_);
+    DockBuilderDockWindow("Snap Settings", dockIdSnapSettings_);
 
     DockBuilderFinish(dockId_);
   }
@@ -307,6 +314,17 @@ void GUI::ShowGridSettingsPanel() {
 }
 
 /**
+ * @brief Render the snap settings panel
+ *
+ * Displays the snap settings window for configuring snap modes and settings.
+ */
+void GUI::ShowSnapSettingsPanel() {
+  if (snapSettingsPanel_) {
+    snapSettingsPanel_->render();
+  }
+}
+
+/**
  * @brief Shows sketch plane visualization overlay when in sketch mode
  */
 void GUI::ShowSketchPlaneOverlay() {
@@ -395,6 +413,10 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   gridSettingsPanel_ =
       std::make_unique<view::GridSettingsPanel>(uiFSMAdapter_.get());
 
+  /// Phase 6: Create snap settings panel for snap configuration
+  snapSettingsPanel_ =
+      std::make_unique<view::SnapSettingsPanel>(uiFSMAdapter_.get());
+
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -463,6 +485,9 @@ GUI::DrawGUI(ImTextureID renderTexture) {
 
   // Phase 6: Render grid settings panel
   ShowGridSettingsPanel();
+
+  // Phase 6: Render snap settings panel
+  ShowSnapSettingsPanel();
 
   // SshowDemoWindow();
   Render();

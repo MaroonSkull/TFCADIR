@@ -679,6 +679,18 @@ public:
   void setGridSettingsPanelVisible(bool visible);
 
   /**
+   * @brief Get the snap settings panel visibility
+   * @return true if the snap settings panel is visible
+   */
+  bool getSnapSettingsPanelVisible() const;
+
+  /**
+   * @brief Set the snap settings panel visibility
+   * @param visible The new visibility state
+   */
+  void setSnapSettingsPanelVisible(bool visible);
+
+  /**
    * @brief Get the current snap settings
    * @return Current snap settings
    */
@@ -1156,6 +1168,9 @@ private:
 
   /// Snap settings for precision drawing
   SnapSettings snapSettings_;
+
+  /// Snap settings panel visibility
+  bool snapSettingsPanelVisible_{true};
 
   /// Measurement settings for precision drawing
   MeasurementSettings measurementSettings_;

@@ -123,6 +123,30 @@ config_lib(Navigation
         cxx_std_17
 )
 
+# Phase 6: Precision & Snapping (Grid, Snap, Measurement)
+config_lib(Precision
+    PRIVATE_SOURCES
+        Precision/GridManager.cpp
+        Precision/SnapManager.cpp
+        Precision/MeasurementManager.cpp
+        Precision/CoordinateInputManager.cpp
+        Precision/GridSettingsPanel.cpp
+        Precision/SnapSettingsPanel.cpp
+    PUBLIC_SOURCES
+        Precision/GridManager.hpp
+        Precision/SnapManager.hpp
+        Precision/MeasurementManager.hpp
+        Precision/CoordinateInputManager.hpp
+        Precision/GridSettingsPanel.hpp
+        Precision/SnapSettingsPanel.hpp
+    PUBLIC_DEPENDENCIES
+        UIFSMAdapter
+        glm::glm
+        imgui
+    COMPILE_FEATURES
+        cxx_std_17
+)
+
 # Select specific view
 add_subdirectory ("OpenGL")
 

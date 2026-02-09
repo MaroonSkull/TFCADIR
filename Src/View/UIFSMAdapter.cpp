@@ -605,6 +605,16 @@ void UIFSMAdapter::setGridSettingsPanelVisible(bool visible) {
   gridSettingsPanelVisible_ = visible;
 }
 
+bool UIFSMAdapter::getSnapSettingsPanelVisible() const {
+  /// Return the snap settings panel visibility from local storage
+  return snapSettingsPanelVisible_;
+}
+
+void UIFSMAdapter::setSnapSettingsPanelVisible(bool visible) {
+  /// Update snap settings panel visibility
+  snapSettingsPanelVisible_ = visible;
+}
+
 SnapSettings UIFSMAdapter::getSnapSettings() const {
   /// Return the current snap settings from local storage
   return snapSettings_;

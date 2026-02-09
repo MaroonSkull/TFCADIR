@@ -11,6 +11,7 @@
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
+#include <View/Precision/SnapSettingsPanel.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <View/UIFSMAdapter.hpp>
@@ -35,6 +36,7 @@ private:
   ImGuiID dockIdCommandHistory_{}; // Phase 4: Command history panel dock ID
   ImGuiID dockIdViewPresets_{};    // Phase 5: View presets panel dock ID
   ImGuiID dockIdGridSettings_{};   // Phase 6: Grid settings panel dock ID
+  ImGuiID dockIdSnapSettings_{};   // Phase 6: Snap settings panel dock ID
   ImVec2 mouseOverlayPosition_{};
   ImVec2 mousePositionAbsolute_{};
   ImTextureID textureId_{};
@@ -94,6 +96,9 @@ private:
   /// Phase 6: Grid settings panel for grid configuration
   std::unique_ptr<view::GridSettingsPanel> gridSettingsPanel_;
 
+  /// Phase 6: Snap settings panel for snap configuration
+  std::unique_ptr<view::SnapSettingsPanel> snapSettingsPanel_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -109,6 +114,7 @@ private:
   void ShowCommandHistoryPanel(); // Phase 4: Command history panel
   void ShowViewPresetsPanel();    // Phase 5: View presets panel
   void ShowGridSettingsPanel();   // Phase 6: Grid settings panel
+  void ShowSnapSettingsPanel();   // Phase 6: Snap settings panel
   // void ShowListPanel()
   void ShowSimpleOverlay(); // let it float after the mouse and show its
                             // coordinates if within canvas
