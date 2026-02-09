@@ -1,5 +1,9 @@
 ﻿#include "imgui.h"
+#include <Controller/OpenGL/ImGUI.hpp>
 #include <GUI.hpp>
+#include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
+#include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
+#include <View/ObjectManagement/SelectionManager.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <spdlog/spdlog.h>
@@ -88,10 +92,19 @@ void GUI::ShowDockSpace() {
     dockIdTools_ =
         DockBuilderSplitNode(dockId_, ImGuiDir_Right, 0.25f, nullptr, &dockId_);
 
-    DockBuilderDockWindow("Canvas", dockId_);
+    // Phase 3: Split the remaining center node to create space for outliner
+    ImGuiID centerId = dockId_;
+    dockIdOutliner_ = DockBuilderSplitNode(centerId, ImGuiDir_Down, 0.25f,
+                                           nullptr, &centerId);
+    dockIdProperties_ = DockBuilderSplitNode(centerId, ImGuiDir_Right, 0.30f,
+                                             nullptr, &centerId);
+
+    DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
     DockBuilderDockWindow("Mouse coords", dockIdMouse_);
+    DockBuilderDockWindow("Outliner", dockIdOutliner_);
+    DockBuilderDockWindow("Properties", dockIdProperties_);
 
     DockBuilderFinish(dockId_);
   }
@@ -226,6 +239,24 @@ void GUI::ShowStatusBar() {
 }
 
 /**
+ * @brief Renders the Outliner panel for scene hierarchy
+ */
+void GUI::ShowOutlinerPanel() {
+  if (outlinerPanel_) {
+    outlinerPanel_->render();
+  }
+}
+
+/**
+ * @brief Renders the Property Inspector panel for object properties
+ */
+void GUI::ShowPropertyInspectorPanel() {
+  if (propertyInspectorPanel_) {
+    propertyInspectorPanel_->render();
+  }
+}
+
+/**
  * @brief Shows sketch plane visualization overlay when in sketch mode
  */
 void GUI::ShowSketchPlaneOverlay() {
@@ -269,6 +300,23 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
       toolOptionsPanel_(
           std::make_unique<view::ImGUI::ToolOptionsPanel>(*uiFSMAdapter_)),
       commandManager_(std::make_unique<view::ImGUI::CommandManager>()) {
+  // Get the model from the controller using dynamic_cast
+  auto *openglController =
+      dynamic_cast<controller::OpenglImguiController *>(sp_controller_.get());
+  if (!openglController) {
+    throw std::runtime_error(
+        "Failed to cast controller to OpenglImguiController");
+  }
+  auto model = openglController->getModel();
+
+  // Initialize Phase 3 components
+  selectionManager_ =
+      std::make_unique<view::SelectionManager>(*uiFSMAdapter_, *model);
+  outlinerPanel_ = std::make_unique<view::OutlinerPanel>(
+      *uiFSMAdapter_, *selectionManager_, *model);
+  propertyInspectorPanel_ = std::make_unique<view::PropertyInspectorPanel>(
+      *uiFSMAdapter_, *selectionManager_, *model);
+
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -324,6 +372,10 @@ GUI::DrawGUI(ImTextureID renderTexture) {
     ShowSimpleOverlay();
   ShowStatusBar();
   ShowSketchPlaneOverlay();
+
+  // Phase 3: Render object management panels
+  ShowOutlinerPanel();
+  ShowPropertyInspectorPanel();
 
   // SshowDemoWindow();
   Render();
