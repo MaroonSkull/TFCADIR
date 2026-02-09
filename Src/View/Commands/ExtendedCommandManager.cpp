@@ -1,9 +1,9 @@
 #include "ExtendedCommandManager.hpp"
 
 #include "CommandFactory.hpp"
-#include "CommandHistory.hpp"
 #include "ImGUI/CommandHistoryPanel.hpp"
 #include "Model/Model.hpp"
+#include "UIFSMAdapter.hpp"
 #include <chrono>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -12,11 +12,11 @@
 
 namespace view {
 
-ExtendedCommandManager::ExtendedCommandManager(CommandHistory &commandHistory,
+ExtendedCommandManager::ExtendedCommandManager(UIFSMAdapter &uiFSMAdapter,
                                                model::FlatFigures &model)
-    : commandHistory_(commandHistory), model_(model) {
+    : uiFSMAdapter_(uiFSMAdapter), model_(model) {
   spdlog::info(
-      "[ExtendedCommandManager] Initialized (delegates to CommandHistory)");
+      "[ExtendedCommandManager] Initialized (delegates to UIFSMAdapter)");
 }
 
 void ExtendedCommandManager::setCommandHistoryPanel(
@@ -35,40 +35,23 @@ void ExtendedCommandManager::executeCommand(std::unique_ptr<ICommand> command) {
       "[ExtendedCommandManager] executeCommand (Phase 4 typed): type={}",
       command->getType());
 
-  // Execute the command
-  if (command->execute()) {
-    spdlog::info("[ExtendedCommandManager] Command executed successfully: {}",
-                 command->getDescription());
-
-    // Add to command history
-    commandHistory_.addCommand(std::move(command));
-    notifyCommandExecuted();
-  } else {
-    spdlog::error("[ExtendedCommandManager] Command execution failed: {}",
-                  command->getType());
-  }
+  // Delegate to UIFSMAdapter for execution and history management
+  uiFSMAdapter_.executeCommand(std::move(command));
+  notifyCommandExecuted();
 }
 
 void ExtendedCommandManager::executeMacro(std::unique_ptr<ICommand> macro) {
   spdlog::debug("[ExtendedCommandManager] executeMacro (Phase 4)");
 
-  // Execute the macro
-  if (macro->execute()) {
-    spdlog::info("[ExtendedCommandManager] Macro executed successfully: {}",
-                 macro->getDescription());
-
-    // Add to command history
-    commandHistory_.addCommand(std::move(macro));
-    notifyCommandExecuted();
-  } else {
-    spdlog::error("[ExtendedCommandManager] Macro execution failed");
-  }
+  // Delegate to UIFSMAdapter for execution and history management
+  uiFSMAdapter_.executeCommand(std::move(macro));
+  notifyCommandExecuted();
 }
 
 bool ExtendedCommandManager::undo() {
   spdlog::debug("[ExtendedCommandManager] undo()");
 
-  if (commandHistory_.undo()) {
+  if (uiFSMAdapter_.undoCommand()) {
     notifyCommandUndone();
     return true;
   }
@@ -78,7 +61,7 @@ bool ExtendedCommandManager::undo() {
 bool ExtendedCommandManager::redo() {
   spdlog::debug("[ExtendedCommandManager] redo()");
 
-  if (commandHistory_.redo()) {
+  if (uiFSMAdapter_.redoCommand()) {
     notifyCommandRedone();
     return true;
   }
@@ -86,17 +69,17 @@ bool ExtendedCommandManager::redo() {
 }
 
 // ==========================================================================
-// Query Methods for UI (Delegate to CommandHistory)
+// Query Methods for UI (Delegate to UIFSMAdapter)
 // ==========================================================================
 
 std::vector<CommandInfo> ExtendedCommandManager::getCommandHistory() const {
   spdlog::debug("[ExtendedCommandManager] getCommandHistory()");
 
   std::vector<CommandInfo> result;
-  size_t historySize = commandHistory_.getHistorySize();
+  size_t historySize = uiFSMAdapter_.getHistorySize();
 
   for (size_t i = 0; i < historySize; ++i) {
-    const ICommand *cmd = commandHistory_.getCommandAt(i);
+    const ICommand *cmd = uiFSMAdapter_.getCommandAt(i);
     if (cmd) {
       CommandInfo info = commandToInfo(cmd, i);
       result.push_back(info);
@@ -109,12 +92,12 @@ std::vector<CommandInfo> ExtendedCommandManager::getCommandHistory() const {
 CommandInfo ExtendedCommandManager::getCurrentCommand() const {
   spdlog::debug("[ExtendedCommandManager] getCurrentCommand()");
 
-  size_t currentIndex = commandHistory_.getCurrentIndex();
+  size_t currentIndex = uiFSMAdapter_.getCurrentCommandIndex();
   if (currentIndex == 0) {
     return CommandInfo{};
   }
 
-  const ICommand *cmd = commandHistory_.getCommandAt(currentIndex - 1);
+  const ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex - 1);
   if (cmd) {
     return commandToInfo(cmd, currentIndex - 1);
   }
@@ -125,12 +108,12 @@ CommandInfo ExtendedCommandManager::getCurrentCommand() const {
 CommandInfo ExtendedCommandManager::getUndoCommand() const {
   spdlog::debug("[ExtendedCommandManager] getUndoCommand()");
 
-  if (!commandHistory_.canUndo()) {
+  if (!uiFSMAdapter_.canUndo()) {
     return CommandInfo{};
   }
 
-  size_t currentIndex = commandHistory_.getCurrentIndex();
-  const ICommand *cmd = commandHistory_.getCommandAt(currentIndex - 1);
+  size_t currentIndex = uiFSMAdapter_.getCurrentCommandIndex();
+  const ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex - 1);
   if (cmd) {
     return commandToInfo(cmd, currentIndex - 1);
   }
@@ -141,12 +124,12 @@ CommandInfo ExtendedCommandManager::getUndoCommand() const {
 CommandInfo ExtendedCommandManager::getRedoCommand() const {
   spdlog::debug("[ExtendedCommandManager] getRedoCommand()");
 
-  if (!commandHistory_.canRedo()) {
+  if (!uiFSMAdapter_.canRedo()) {
     return CommandInfo{};
   }
 
-  size_t currentIndex = commandHistory_.getCurrentIndex();
-  const ICommand *cmd = commandHistory_.getCommandAt(currentIndex);
+  size_t currentIndex = uiFSMAdapter_.getCurrentCommandIndex();
+  const ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex);
   if (cmd) {
     return commandToInfo(cmd, currentIndex);
   }
@@ -156,41 +139,41 @@ CommandInfo ExtendedCommandManager::getRedoCommand() const {
 
 size_t ExtendedCommandManager::getHistorySize() const {
   spdlog::debug("[ExtendedCommandManager] getHistorySize()");
-  return commandHistory_.getHistorySize();
+  return uiFSMAdapter_.getHistorySize();
 }
 
 size_t ExtendedCommandManager::getCurrentIndex() const {
   spdlog::debug("[ExtendedCommandManager] getCurrentIndex()");
-  return commandHistory_.getCurrentIndex();
+  return uiFSMAdapter_.getCurrentCommandIndex();
 }
 
 // ==========================================================================
 // Phase 2: Undo/Redo Query Methods (Backward Compatibility)
-// These methods delegate to CommandHistory for state access
+// These methods delegate to UIFSMAdapter for state access
 // ==========================================================================
 
 bool ExtendedCommandManager::canUndo() const {
-  /// Delegate to CommandHistory to check if undo is available
+  /// Delegate to UIFSMAdapter to check if undo is available
   /// Following the stateless coordinator pattern (no local state)
-  return commandHistory_.canUndo();
+  return uiFSMAdapter_.canUndo();
 }
 
 bool ExtendedCommandManager::canRedo() const {
-  /// Delegate to CommandHistory to check if redo is available
+  /// Delegate to UIFSMAdapter to check if redo is available
   /// Following the stateless coordinator pattern (no local state)
-  return commandHistory_.canRedo();
+  return uiFSMAdapter_.canRedo();
 }
 
 std::string ExtendedCommandManager::getUndoDescription() const {
-  /// Delegate to CommandHistory to get the undo command description
+  /// Delegate to UIFSMAdapter to get the undo command description
   /// Following the stateless coordinator pattern (no local state)
-  return commandHistory_.getUndoDescription();
+  return uiFSMAdapter_.getUndoDescription();
 }
 
 std::string ExtendedCommandManager::getRedoDescription() const {
-  /// Delegate to CommandHistory to get the redo command description
+  /// Delegate to UIFSMAdapter to get the redo command description
   /// Following the stateless coordinator pattern (no local state)
-  return commandHistory_.getRedoDescription();
+  return uiFSMAdapter_.getRedoDescription();
 }
 
 // ==========================================================================
@@ -203,13 +186,13 @@ void ExtendedCommandManager::saveHistory(const std::string &filepath) {
   try {
     nlohmann::json root;
     root["version"] = "1.0";
-    root["currentIndex"] = commandHistory_.getCurrentIndex();
+    root["currentIndex"] = uiFSMAdapter_.getCurrentCommandIndex();
 
     nlohmann::json commandsArray = nlohmann::json::array();
-    size_t historySize = commandHistory_.getHistorySize();
+    size_t historySize = uiFSMAdapter_.getHistorySize();
 
     for (size_t i = 0; i < historySize; ++i) {
-      const ICommand *cmd = commandHistory_.getCommandAt(i);
+      const ICommand *cmd = uiFSMAdapter_.getCommandAt(i);
       if (cmd) {
         try {
           nlohmann::json cmdJson = nlohmann::json::parse(cmd->serialize());
@@ -267,7 +250,7 @@ void ExtendedCommandManager::loadHistory(
     file.close();
 
     // Clear existing history
-    commandHistory_.clear();
+    uiFSMAdapter_.clearCommandHistory();
 
     // Load commands
     if (root.contains("commands") && root["commands"].is_array()) {
@@ -276,7 +259,7 @@ void ExtendedCommandManager::loadHistory(
         auto command = factory->deserialize(jsonStr);
         if (command) {
           // Add to history without executing (just store)
-          commandHistory_.addCommand(std::move(command));
+          uiFSMAdapter_.executeCommand(std::move(command));
         } else {
           spdlog::warn(
               "[ExtendedCommandManager] Failed to deserialize command");
@@ -287,16 +270,16 @@ void ExtendedCommandManager::loadHistory(
     // Restore current index
     if (root.contains("currentIndex")) {
       size_t targetIndex = root["currentIndex"].get<size_t>();
-      // The addCommand calls have already set currentIndex to the end
+      // The executeCommand calls have already set currentIndex to the end
       // We need to undo back to the target index
-      while (commandHistory_.getCurrentIndex() > targetIndex &&
-             commandHistory_.canUndo()) {
-        commandHistory_.undo();
+      while (uiFSMAdapter_.getCurrentCommandIndex() > targetIndex &&
+             uiFSMAdapter_.canUndo()) {
+        uiFSMAdapter_.undoCommand();
       }
     }
 
     spdlog::info("[ExtendedCommandManager] Loaded {} commands from {}",
-                 commandHistory_.getHistorySize(), filepath);
+                 uiFSMAdapter_.getHistorySize(), filepath);
   } catch (const std::exception &e) {
     spdlog::error("[ExtendedCommandManager] Failed to load history: {}",
                   e.what());

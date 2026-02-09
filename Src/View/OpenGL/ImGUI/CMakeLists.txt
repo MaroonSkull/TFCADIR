@@ -21,6 +21,7 @@ config_lib(GUI
         UIFSMAdapter
         CameraController
         ObjectManagement
+        Commands
     COMPILE_FEATURES
         cxx_std_17
 )

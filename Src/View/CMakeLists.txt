@@ -60,7 +60,6 @@ config_lib(ObjectManagement
 # Phase 4: Command System (Undo/Redo, Command History)
 config_lib(Commands
     PRIVATE_SOURCES
-        Commands/CommandHistory.cpp
         Commands/CommandFactory.cpp
         Commands/ExtendedCommandManager.cpp
         Commands/ColorChangeCommand.cpp
@@ -74,9 +73,9 @@ config_lib(Commands
         Commands/RotateFigureCommand.cpp
         Commands/ScaleFigureCommand.cpp
         Commands/UngroupFiguresCommand.cpp
+        Commands/ImGUI/CommandHistoryPanel.cpp
     PUBLIC_SOURCES
         Commands/ICommand.hpp
-        Commands/CommandHistory.hpp
         Commands/CommandFactory.hpp
         Commands/ExtendedCommandManager.hpp
         Commands/ColorChangeCommand.hpp
@@ -90,9 +89,11 @@ config_lib(Commands
         Commands/RotateFigureCommand.hpp
         Commands/ScaleFigureCommand.hpp
         Commands/UngroupFiguresCommand.hpp
+        Commands/ImGUI/CommandHistoryPanel.hpp
     PUBLIC_DEPENDENCIES
         Model
         UIFSMAdapter
+        imgui
     PRIVATE_DEPENDENCIES
         nlohmann_json::nlohmann_json
         spdlog::spdlog

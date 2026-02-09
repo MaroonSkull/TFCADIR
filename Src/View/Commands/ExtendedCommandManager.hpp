@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CommandHistory.hpp"
 #include "ICommand.hpp"
 #include <cstdint>
 #include <functional>
@@ -37,16 +36,17 @@ struct CommandInfo {
 /**
  * @brief Extended command manager supporting Phase 4 command API
  *
- * ExtendedCommandManager is a stateless coordinator that delegates to
- * CommandHistory for command storage and undo/redo operations. This follows
- * the single responsibility principle - CommandHistory owns the command state,
+ * ExtendedCommandManager is a truly stateless coordinator that delegates to
+ * UIFSMAdapter for command storage and undo/redo operations. This follows
+ * the single responsibility principle - UIFSMAdapter owns the command state,
  * while ExtendedCommandManager coordinates command execution.
  *
  * This class provides Phase 4 typed commands (ICommand interface).
  *
  * **Design Principles:**
- * - Stateless coordinator (delegates to CommandHistory for state)
- * - CommandHistory owns command storage and undo/redo state
+ * - Stateless coordinator (delegates to UIFSMAdapter for state)
+ * - UIFSMAdapter owns command storage and undo/redo state (single source of
+ * truth)
  * - Phase 4 ICommand interface
  * - Callback notifications after command operations
  */
@@ -65,11 +65,11 @@ public:
 
   /**
    * @brief Construct an ExtendedCommandManager
-   * @param commandHistory Reference to the command history for state management
+   * @param uiFSMAdapter Reference to the UIFSMAdapter for command state
+   * management
    * @param model Reference to the model for figure operations
    */
-  ExtendedCommandManager(CommandHistory &commandHistory,
-                         model::FlatFigures &model);
+  ExtendedCommandManager(UIFSMAdapter &uiFSMAdapter, model::FlatFigures &model);
 
   /**
    * @brief Destructor
@@ -228,8 +228,8 @@ public:
                    const std::string &filepath);
 
 private:
-  /// Reference to the command history for state management
-  CommandHistory &commandHistory_;
+  /// Reference to UIFSMAdapter for command state management
+  UIFSMAdapter &uiFSMAdapter_;
 
   /// Reference to the model for figure operations
   model::FlatFigures &model_;

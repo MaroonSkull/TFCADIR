@@ -2,7 +2,6 @@
 
 #include <Controller/IController.hpp>
 #include <View/CameraController.hpp>
-#include <View/Commands/CommandHistory.hpp>
 #include <View/Commands/ExtendedCommandManager.hpp>
 #include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
@@ -69,10 +68,8 @@ private:
   /// Phase 3: Property inspector panel for editing object properties
   std::unique_ptr<view::PropertyInspectorPanel> propertyInspectorPanel_;
 
-  /// Phase 4: Command history for storing command state
-  std::unique_ptr<view::CommandHistory> commandHistory_;
-
-  /// Phase 4: Extended command manager for typed commands
+  /// Phase 4: Extended command manager for typed commands (stateless, delegates
+  /// to UIFSMAdapter)
   std::unique_ptr<view::ExtendedCommandManager> extendedCommandManager_;
 
   /// Phase 4: Command history panel for undo/redo visualization

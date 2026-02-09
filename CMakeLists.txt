@@ -25,6 +25,15 @@ include (CMake/utils.cmake)
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Phase 4: nlohmann/json dependency for command serialization
+include(FetchContent)
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.2
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 #embed - resource
 add_subdirectory_checked (
     ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/embed-resource
@@ -71,6 +80,7 @@ foreach (library
     imgui
     EmbedResource
     fsmconfig
+    nlohmann_json::nlohmann_json
 #sources
     Model
     Controller

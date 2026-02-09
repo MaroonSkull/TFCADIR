@@ -399,4 +399,110 @@ std::vector<uint32_t> UIFSMAdapter::ungroupFigures(uint32_t groupId) {
                                   /// failed
 }
 
+// ==========================================================================
+// Phase 4: Command History Management Methods
+// UIFSMAdapter is the single source of truth for command history storage
+// ==========================================================================
+
+void UIFSMAdapter::executeCommand(std::unique_ptr<ICommand> command) {
+  /// Execute the command
+  if (command->execute()) {
+    /// Remove any commands after the current index (clear redo chain)
+    if (currentCommandIndex_ < commandHistory_.size()) {
+      commandHistory_.resize(currentCommandIndex_);
+    }
+
+    /// Add the command to history
+    commandHistory_.push_back(std::move(command));
+    currentCommandIndex_ = commandHistory_.size();
+
+    /// Enforce maximum history size
+    if (commandHistory_.size() > MAX_HISTORY_SIZE) {
+      commandHistory_.erase(commandHistory_.begin());
+      currentCommandIndex_ = commandHistory_.size();
+    }
+
+    logger_->info("Executed command, history size: {}, index: {}",
+                  commandHistory_.size(), currentCommandIndex_);
+  } else {
+    logger_->warn("Command execution failed");
+  }
+}
+
+bool UIFSMAdapter::undoCommand() {
+  if (!canUndo()) {
+    logger_->warn("Cannot undo: no command to undo");
+    return false;
+  }
+
+  /// Decrement index and undo the command
+  currentCommandIndex_--;
+  if (commandHistory_[currentCommandIndex_]->undo()) {
+    logger_->info("Undone command, new index: {}", currentCommandIndex_);
+    return true;
+  } else {
+    logger_->error("Undo failed for command at index: {}",
+                   currentCommandIndex_);
+    currentCommandIndex_++; /// Restore index on failure
+    return false;
+  }
+}
+
+bool UIFSMAdapter::redoCommand() {
+  if (!canRedo()) {
+    logger_->warn("Cannot redo: no command to redo");
+    return false;
+  }
+
+  /// Redo the command at current index (execute again) and increment
+  if (commandHistory_[currentCommandIndex_]->execute()) {
+    currentCommandIndex_++;
+    logger_->info("Redone command, new index: {}", currentCommandIndex_);
+    return true;
+  } else {
+    logger_->error("Redo failed for command at index: {}",
+                   currentCommandIndex_);
+    return false;
+  }
+}
+
+void UIFSMAdapter::clearCommandHistory() {
+  commandHistory_.clear();
+  currentCommandIndex_ = 0;
+  logger_->info("Command history cleared");
+}
+
+bool UIFSMAdapter::canUndo() const { return currentCommandIndex_ > 0; }
+
+bool UIFSMAdapter::canRedo() const {
+  return currentCommandIndex_ < commandHistory_.size();
+}
+
+std::string UIFSMAdapter::getUndoDescription() const {
+  if (canUndo()) {
+    return commandHistory_[currentCommandIndex_ - 1]->getDescription();
+  }
+  return "";
+}
+
+std::string UIFSMAdapter::getRedoDescription() const {
+  if (canRedo()) {
+    return commandHistory_[currentCommandIndex_]->getDescription();
+  }
+  return "";
+}
+
+size_t UIFSMAdapter::getHistorySize() const { return commandHistory_.size(); }
+
+size_t UIFSMAdapter::getCurrentCommandIndex() const {
+  return currentCommandIndex_;
+}
+
+const ICommand *UIFSMAdapter::getCommandAt(size_t index) const {
+  if (index < commandHistory_.size()) {
+    return commandHistory_[index].get();
+  }
+  return nullptr;
+}
+
 } // namespace view

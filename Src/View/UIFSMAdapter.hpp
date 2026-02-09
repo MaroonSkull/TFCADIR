@@ -4,11 +4,13 @@
 #include <Model/IModel.hpp>
 #include <Model/SketchPlane.hpp>
 #include <View/CameraController.hpp>
+#include <View/Commands/ICommand.hpp>
 #include <any>
 #include <cstdint>
 #include <functional>
 #include <glm/glm.hpp>
 #include <map>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
@@ -245,6 +247,97 @@ public:
                             const std::any &value);
 
   // ==========================================================================
+  // Phase 4: Command History Management Methods
+  // UIFSMAdapter is the single source of truth for command history storage
+  // ==========================================================================
+
+  /**
+   * @brief Execute a command and add it to history
+   * @param command Unique pointer to the command to execute
+   *
+   * Executes the command and adds it to the command history if successful.
+   * Any commands after the current position are removed (redo chain cleared).
+   */
+  void executeCommand(std::unique_ptr<ICommand> command);
+
+  /**
+   * @brief Undo the last command
+   * @return true if successful, false otherwise
+   *
+   * Executes undo on the command at the current index and decrements
+   * the current index. Returns false if undo is not available.
+   */
+  bool undoCommand();
+
+  /**
+   * @brief Redo the next command
+   * @return true if successful, false otherwise
+   *
+   * Increments the current index and executes redo on the command at
+   * the new position. Returns false if redo is not available.
+   */
+  bool redoCommand();
+
+  /**
+   * @brief Clear the command history
+   *
+   * Removes all commands from the history and resets the current index to 0.
+   */
+  void clearCommandHistory();
+
+  /**
+   * @brief Check if undo is available
+   * @return true if there is a command to undo
+   *
+   * Returns true if the current index is greater than 0,
+   * indicating that there is at least one command that can be undone.
+   */
+  bool canUndo() const;
+
+  /**
+   * @brief Check if redo is available
+   * @return true if there is a command to redo
+   *
+   * Returns true if the current index is less than the history size,
+   * indicating that there is at least one command that can be redone.
+   */
+  bool canRedo() const;
+
+  /**
+   * @brief Get description of the command that would be undone
+   * @return Description of the next undo command, or empty string if none
+   */
+  std::string getUndoDescription() const;
+
+  /**
+   * @brief Get description of the command that would be redone
+   * @return Description of the next redo command, or empty string if none
+   */
+  std::string getRedoDescription() const;
+
+  /**
+   * @brief Get the total number of commands in history
+   * @return Size of command history
+   */
+  size_t getHistorySize() const;
+
+  /**
+   * @brief Get the current command index
+   * @return Current index in command history
+   */
+  size_t getCurrentCommandIndex() const;
+
+  /**
+   * @brief Get command at specific index
+   * @param index The index of the command to retrieve
+   * @return Pointer to the command, or nullptr if index is invalid
+   *
+   * Returns a raw pointer to the command at the specified index.
+   * The command remains owned by UIFSMAdapter.
+   */
+  const ICommand *getCommandAt(size_t index) const;
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -352,6 +445,20 @@ private:
 
   /// Callback for property change notifications
   PropertyChangedCallback propertyChangedCallback_;
+
+  // ==========================================================================
+  // Phase 4: Command History Storage
+  // UIFSMAdapter is the single source of truth for command history
+  // ==========================================================================
+
+  /// Vector of command objects (actual commands, not just descriptions)
+  std::vector<std::unique_ptr<ICommand>> commandHistory_;
+
+  /// Current position in command history (index of last executed command)
+  size_t currentCommandIndex_{0};
+
+  /// Maximum history size (for memory management)
+  static constexpr size_t MAX_HISTORY_SIZE = 1000;
 
   /**
    * @brief Get available sketch planes

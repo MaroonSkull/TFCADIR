@@ -1,7 +1,6 @@
 ﻿#include "imgui.h"
 #include <Controller/OpenGL/ImGUI.hpp>
 #include <GUI.hpp>
-#include <View/Commands/CommandHistory.hpp>
 #include <View/Commands/ExtendedCommandManager.hpp>
 #include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
@@ -335,11 +334,10 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
       *uiFSMAdapter_, *selectionManager_, *model);
 
   // Initialize Phase 4: Command system
-  /// Create command history for storing command state
-  commandHistory_ = std::make_unique<view::CommandHistory>();
-  /// Create extended command manager with command history and model
+  /// Create extended command manager with UIFSMAdapter (stateless, delegates to
+  /// UIFSMAdapter)
   extendedCommandManager_ =
-      std::make_unique<view::ExtendedCommandManager>(*commandHistory_, *model);
+      std::make_unique<view::ExtendedCommandManager>(*uiFSMAdapter_, *model);
   /// Create command history panel and link to command manager for cache
   /// invalidation
   commandHistoryPanel_ =
