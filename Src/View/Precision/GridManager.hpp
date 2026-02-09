@@ -197,9 +197,81 @@ public:
    */
   glm::vec3 snapToGrid(const glm::vec3 &worldPos) const;
 
+  // ==========================================================================
+  // State Query Methods (for GridSettingsPanel)
+  // These methods delegate to UIFSMAdapter for state queries
+  // ==========================================================================
+
+  /**
+   * @brief Get the major grid spacing
+   * @return float Spacing between major grid lines
+   * @note Queries UIFSMAdapter for the grid settings
+   */
+  float getMajorSpacing() const;
+
+  /**
+   * @brief Get the minor grid spacing
+   * @return float Spacing between minor grid lines
+   * @note Queries UIFSMAdapter for the grid settings
+   */
+  float getMinorSpacing() const;
+
+  /**
+   * @brief Get the number of minor divisions
+   * @return int Number of minor divisions between major lines
+   * @note Queries UIFSMAdapter for the grid settings
+   */
+  int getMinorDivisions() const;
+
+  /**
+   * @brief Check if minor lines are shown
+   * @return true if minor grid lines are visible
+   * @note Queries UIFSMAdapter for the grid settings
+   */
+  bool getShowMinorLines() const;
+
+  // ==========================================================================
+  // Dirty Flag Mechanism (for caching grid geometry)
+  // ==========================================================================
+
+  /**
+   * @brief Check if grid geometry is dirty (needs regeneration)
+   * @return true if grid geometry needs to be regenerated
+   *
+   * Grid geometry is marked dirty when grid settings change.
+   * This allows efficient caching of grid rendering data.
+   */
+  bool isGridGeometryDirty() const;
+
+  /**
+   * @brief Clear the grid geometry dirty flag
+   *
+   * Call this after regenerating grid geometry to indicate
+   * that the cached data is up to date.
+   */
+  void clearGridGeometryDirty();
+
 private:
+  /**
+   * @name State Caching
+   * @brief GridManager maintains caching state for performance optimization
+   * @details
+   * GridManager is NOT purely stateless - it maintains a dirty flag for
+   * caching. This is an intentional architectural decision for performance:
+   * - Regenerating grid geometry is expensive (vertex buffer updates)
+   * - Grid settings change infrequently compared to frame rate
+   * - Caching avoids regenerating grid every frame
+   *
+   * The dirty flag is set via callback from UIFSMAdapter when settings change.
+   * This pattern is similar to NavigationManager's view state caching.
+   */
+  ///@{
   /// Reference to UIFSMAdapter (non-owning)
   UIFSMAdapter &uiFSMAdapter_;
+
+  /// Flag to track if grid geometry needs regeneration
+  mutable bool gridGeometryDirty_;
+  ///@}
 
   /**
    * @brief Calculate 2D grid geometry

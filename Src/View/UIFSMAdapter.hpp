@@ -559,6 +559,13 @@ public:
   using CameraChangedCallback = std::function<void()>;
 
   /**
+   * @brief Callback type for grid geometry dirty notifications
+   * @details Called when grid settings change that require grid geometry
+   * regeneration
+   */
+  using GridGeometryDirtyCallback = std::function<void()>;
+
+  /**
    * @brief Get the current grid settings
    * @return Current grid settings
    */
@@ -613,6 +620,79 @@ public:
    * Used by SnapManager for cache invalidation.
    */
   void setCameraChangedCallback(CameraChangedCallback callback);
+
+  // ==========================================================================
+  // Grid State Query Methods (for GridManager)
+  // These methods provide access to individual grid settings properties
+  // ==========================================================================
+
+  /**
+   * @brief Check if grid is enabled
+   * @return true if grid is visible
+   */
+  bool isGridEnabled() const;
+
+  /**
+   * @brief Get the major grid spacing
+   * @return Spacing between major grid lines
+   */
+  float getGridMajorSpacing() const;
+
+  /**
+   * @brief Get the minor grid spacing
+   * @return Spacing between minor grid lines
+   */
+  float getGridMinorSpacing() const;
+
+  /**
+   * @brief Get the major grid color
+   * @return Color of major grid lines (RGBA)
+   */
+  glm::vec4 getGridMajorColor() const;
+
+  /**
+   * @brief Get the minor grid color
+   * @return Color of minor grid lines (RGBA)
+   */
+  glm::vec4 getGridMinorColor() const;
+
+  /**
+   * @brief Get the grid opacity
+   * @return Grid opacity (0.0 to 1.0)
+   */
+  float getGridOpacity() const;
+
+  /**
+   * @brief Check if axes are shown
+   * @return true if X, Y, Z axes are visible
+   */
+  bool getGridShowAxes() const;
+
+  /**
+   * @brief Check if origin is shown
+   * @return true if origin point is visible
+   */
+  bool getGridShowOrigin() const;
+
+  /**
+   * @brief Check if minor lines are shown
+   * @return true if minor grid lines are visible
+   */
+  bool getGridShowMinorLines() const;
+
+  /**
+   * @brief Get the number of minor divisions
+   * @return Number of minor divisions between major lines
+   */
+  int getGridMinorDivisions() const;
+
+  /**
+   * @brief Sets callback for grid geometry dirty notifications
+   * @param callback Function to call when grid geometry becomes dirty
+   * @details GridManager registers this callback to know when to regenerate
+   * grid geometry
+   */
+  void setGridGeometryDirtyCallback(GridGeometryDirtyCallback callback);
 
   // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
@@ -785,6 +865,10 @@ private:
 
   /// Callback for camera change notifications (used by SnapManager)
   CameraChangedCallback onCameraChanged_;
+
+  /// Callback to notify when grid geometry becomes dirty
+  /// Triggered when grid settings change (spacing, divisions, etc.)
+  GridGeometryDirtyCallback onGridGeometryDirty_;
 
   /**
    * @brief Get available sketch planes

@@ -20,7 +20,13 @@ constexpr glm::vec4 Z_AXIS_COLOR{0.0f, 0.5f, 1.0f, 1.0f}; // Blue
 } // namespace
 
 GridManager::GridManager(UIFSMAdapter &uiFSMAdapter)
-    : uiFSMAdapter_(uiFSMAdapter) {}
+    : uiFSMAdapter_(uiFSMAdapter), gridGeometryDirty_(true) {
+
+  // Register callback to mark grid geometry dirty when settings change
+  uiFSMAdapter_.setGridGeometryDirtyCallback([this]() {
+    gridGeometryDirty_ = true; // THIS is the missing piece
+  });
+}
 
 GridGeometry GridManager::getGridGeometry(WorkMode mode) const {
   GridGeometry geometry;
@@ -245,5 +251,41 @@ glm::vec3 GridManager::snapToGrid(const glm::vec3 &worldPos) const {
   const float snappedY = std::round(worldPos.y / spacing) * spacing;
   return glm::vec3(snappedX, snappedY, 0.0f);
 }
+
+// ==========================================================================
+// State Query Methods (for GridSettingsPanel)
+// These methods delegate to UIFSMAdapter for state queries
+// ==========================================================================
+
+float GridManager::getMajorSpacing() const {
+  const GridSettings settings = uiFSMAdapter_.getGridSettings();
+  return settings.majorSpacing;
+}
+
+float GridManager::getMinorSpacing() const {
+  const GridSettings settings = uiFSMAdapter_.getGridSettings();
+  if (settings.showMinorLines && settings.minorDivisions > 0) {
+    return settings.majorSpacing / settings.minorDivisions;
+  }
+  return settings.majorSpacing;
+}
+
+int GridManager::getMinorDivisions() const {
+  const GridSettings settings = uiFSMAdapter_.getGridSettings();
+  return settings.minorDivisions;
+}
+
+bool GridManager::getShowMinorLines() const {
+  const GridSettings settings = uiFSMAdapter_.getGridSettings();
+  return settings.showMinorLines;
+}
+
+// ==========================================================================
+// Dirty Flag Mechanism (for caching grid geometry)
+// ==========================================================================
+
+bool GridManager::isGridGeometryDirty() const { return gridGeometryDirty_; }
+
+void GridManager::clearGridGeometryDirty() { gridGeometryDirty_ = false; }
 
 } // namespace view

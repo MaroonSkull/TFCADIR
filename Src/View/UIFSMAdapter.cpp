@@ -580,6 +580,11 @@ void UIFSMAdapter::setGridSettings(const GridSettings &settings) {
     gridSettings_ = settings;
     logger_->info("Grid settings updated");
 
+    /// Notify listeners that grid geometry needs regeneration
+    if (onGridGeometryDirty_) {
+      onGridGeometryDirty_();
+    }
+
     /// Trigger FSM event to notify components
     fsm_.process_event(fsm::events::OnGridSettingsChanged{});
 
@@ -627,6 +632,69 @@ void UIFSMAdapter::setFigureChangedCallback(FigureChangedCallback callback) {
 
 void UIFSMAdapter::setCameraChangedCallback(CameraChangedCallback callback) {
   onCameraChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setGridGeometryDirtyCallback(
+    GridGeometryDirtyCallback callback) {
+  onGridGeometryDirty_ = std::move(callback);
+}
+
+// ==========================================================================
+// Grid State Query Methods (for GridManager)
+// These methods provide access to individual grid settings properties
+// ==========================================================================
+
+bool UIFSMAdapter::isGridEnabled() const {
+  /// Return the grid visibility from local storage
+  return gridSettings_.visible;
+}
+
+float UIFSMAdapter::getGridMajorSpacing() const {
+  /// Return the major grid spacing from local storage
+  return gridSettings_.majorSpacing;
+}
+
+float UIFSMAdapter::getGridMinorSpacing() const {
+  /// Calculate and return the minor grid spacing
+  if (gridSettings_.showMinorLines && gridSettings_.minorDivisions > 0) {
+    return gridSettings_.majorSpacing / gridSettings_.minorDivisions;
+  }
+  return gridSettings_.majorSpacing;
+}
+
+glm::vec4 UIFSMAdapter::getGridMajorColor() const {
+  /// Return the major grid color from local storage
+  return gridSettings_.color;
+}
+
+glm::vec4 UIFSMAdapter::getGridMinorColor() const {
+  /// Return the minor grid color from local storage
+  return gridSettings_.minorColor;
+}
+
+float UIFSMAdapter::getGridOpacity() const {
+  /// Return the grid opacity from local storage
+  return gridSettings_.opacity;
+}
+
+bool UIFSMAdapter::getGridShowAxes() const {
+  /// Return the axes visibility from local storage
+  return gridSettings_.showAxes;
+}
+
+bool UIFSMAdapter::getGridShowOrigin() const {
+  /// Return the origin visibility from local storage
+  return gridSettings_.showOrigin;
+}
+
+bool UIFSMAdapter::getGridShowMinorLines() const {
+  /// Return the minor lines visibility from local storage
+  return gridSettings_.showMinorLines;
+}
+
+int UIFSMAdapter::getGridMinorDivisions() const {
+  /// Return the minor divisions from local storage
+  return gridSettings_.minorDivisions;
 }
 
 } // namespace view
