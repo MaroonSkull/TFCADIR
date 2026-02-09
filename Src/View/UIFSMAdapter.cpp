@@ -757,4 +757,72 @@ glm::vec4 UIFSMAdapter::getSnapIndicatorColor() const {
   return snapSettings_.indicatorColor;
 }
 
+// ==========================================================================
+// Measurement Settings Methods
+// These methods provide access to measurement settings
+// ==========================================================================
+
+MeasurementSettings UIFSMAdapter::getMeasurementSettings() const {
+  /// Return the current measurement settings from local storage
+  return measurementSettings_;
+}
+
+void UIFSMAdapter::setMeasurementSettings(const MeasurementSettings &settings) {
+  /// Update measurement settings and notify listeners
+  if (measurementSettings_ != settings) {
+    measurementSettings_ = settings;
+    logger_->info("Measurement settings updated");
+
+    /// Notify listeners of measurement settings change
+    if (onMeasurementSettingsChanged_) {
+      onMeasurementSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setMeasurementSettingsChangedCallback(
+    MeasurementSettingsCallback callback) {
+  onMeasurementSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Measurement State Query Methods (for MeasurementManager)
+// These methods provide access to individual measurement settings properties
+// ==========================================================================
+
+bool UIFSMAdapter::isShowMeasurementsEnabled() const {
+  /// Return the show measurements flag from local storage
+  return measurementSettings_.showMeasurements;
+}
+
+bool UIFSMAdapter::isRealTimeMeasurementEnabled() const {
+  /// Return the real-time measurement flag from local storage
+  return measurementSettings_.realTimeMeasurement;
+}
+
+bool UIFSMAdapter::isShowDistanceEnabled() const {
+  /// Return the show distance flag from local storage
+  return measurementSettings_.showDistance;
+}
+
+bool UIFSMAdapter::isShowAngleEnabled() const {
+  /// Return the show angle flag from local storage
+  return measurementSettings_.showAngle;
+}
+
+bool UIFSMAdapter::isShowAreaEnabled() const {
+  /// Return the show area flag from local storage
+  return measurementSettings_.showArea;
+}
+
+bool UIFSMAdapter::isShowPerimeterEnabled() const {
+  /// Return the show perimeter flag from local storage
+  return measurementSettings_.showPerimeter;
+}
+
+int UIFSMAdapter::getMeasurementPrecision() const {
+  /// Return the measurement precision from local storage
+  return measurementSettings_.precision;
+}
+
 } // namespace view

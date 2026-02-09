@@ -1,206 +1,346 @@
+#include <Model/FlatFigure.hpp>
 #include <View/Precision/MeasurementManager.hpp>
+#include <View/UIFSMAdapter.hpp>
 #include <cmath>
-#include <iomanip>
-#include <limits>
-#include <sstream>
-#include <vector>
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 namespace view {
 
-// Constants for measurement calculations
-namespace {
-constexpr float PI = 3.14159265358979323846f;
-constexpr float DEGREES_PER_RADIAN = 180.0f / PI;
-} // namespace
+// ==========================================================================
+// Architecture Documentation
+// ==========================================================================
 
-// ============================================================================
-// Constructor / Destructor
-// ============================================================================
+/**
+ * @class MeasurementManager
+ * @brief Coordinates measurement calculations for precision drawing
+ *
+ * DESIGN RATIONALE:
+ *
+ * 1. Stateless Coordinator Pattern:
+ *    - MeasurementManager maintains no measurement state itself
+ *    - All measurement settings are stored in UIFSMAdapter
+ *    - This follows the same pattern as GridManager and SnapManager
+ *
+ * 2. Caching with Dirty Flag:
+ *    - measurementsDirty_ flag tracks when cached calculations need refresh
+ *    - Set to true when measurement settings change
+ *    - Cleared after UI panels query the current state
+ *    - This prevents expensive recalculations on every frame
+ *
+ * 3. Callback Registration:
+ *    - Constructor registers callback with UIFSMAdapter
+ *    - Callback sets measurementsDirty_ = true when settings change
+ *    - This ensures UI panels always know when to refresh measurements
+ *
+ * 4. State Query Delegation:
+ *    - All state query methods delegate to UIFSMAdapter
+ *    - UIFSMAdapter is the single source of truth for measurement settings
+ *    - This maintains consistency across the application
+ *
+ * USAGE:
+ *
+ * UI panels should:
+ * 1. Check isMeasurementsDirty() to see if refresh is needed
+ * 2. Call getMeasurementSettings() and other query methods
+ * 3. Call clearMeasurementsDirty() after updating display
+ * 4. Use calculateDistance(), calculateAngle(), etc. for calculations
+ */
 
-MeasurementManager::MeasurementManager(UIFSMAdapter &fsmAdapter,
-                                       GridManager &gridManager)
-    : fsmAdapter_(fsmAdapter), gridManager_(gridManager) {}
-
-// ============================================================================
-// Distance Measurements
-// ============================================================================
-
-float MeasurementManager::measureDistance(const glm::vec3 &p1,
-                                          const glm::vec3 &p2) const {
-  return distance(p1, p2);
+MeasurementManager::MeasurementManager(UIFSMAdapter &uiFSMAdapter)
+    : uiFSMAdapter_(uiFSMAdapter), measurementsDirty_(true) {
+  // Register callback for measurement settings changes
+  uiFSMAdapter_.setMeasurementSettingsChangedCallback(
+      [this]() { measurementsDirty_ = true; });
 }
 
-// ============================================================================
-// Angle Measurements
-// ============================================================================
+// ==========================================================================
+// State Query Methods (delegate to UIFSMAdapter)
+// ==========================================================================
 
-float MeasurementManager::measureAngle(const glm::vec3 &p1, const glm::vec3 &p2,
-                                       const glm::vec3 &p3) const {
-  // Calculate vectors from p2 (vertex) to p1 and p3
-  glm::vec3 v1 = p1 - p2;
-  glm::vec3 v2 = p3 - p2;
+MeasurementSettings MeasurementManager::getMeasurementSettings() const {
+  return uiFSMAdapter_.getMeasurementSettings();
+}
 
-  // Calculate magnitudes
-  float len1 = glm::length(v1);
-  float len2 = glm::length(v2);
+bool MeasurementManager::isShowMeasurementsEnabled() const {
+  return uiFSMAdapter_.isShowMeasurementsEnabled();
+}
 
-  // Check for zero-length vectors
-  if (len1 < std::numeric_limits<float>::epsilon() ||
-      len2 < std::numeric_limits<float>::epsilon()) {
-    return 0.0f;
-  }
+bool MeasurementManager::isRealTimeMeasurementEnabled() const {
+  return uiFSMAdapter_.isRealTimeMeasurementEnabled();
+}
 
-  // Normalize vectors
-  v1 /= len1;
-  v2 /= len2;
+// ==========================================================================
+// Dirty Flag Management
+// ==========================================================================
+
+bool MeasurementManager::isMeasurementsDirty() const {
+  return measurementsDirty_;
+}
+
+void MeasurementManager::clearMeasurementsDirty() {
+  measurementsDirty_ = false;
+}
+
+// ==========================================================================
+// Distance Calculation
+// ==========================================================================
+
+float MeasurementManager::calculateDistance(const glm::vec2 &from,
+                                            const glm::vec2 &to) const {
+  return glm::distance(from, to);
+}
+
+// ==========================================================================
+// Angle Calculation
+// ==========================================================================
+
+float MeasurementManager::calculateAngle(const glm::vec2 &line1Start,
+                                         const glm::vec2 &line1End,
+                                         const glm::vec2 &line2Start,
+                                         const glm::vec2 &line2End) const {
+  // Calculate direction vectors
+  glm::vec2 dir1 = glm::normalize(line1End - line1Start);
+  glm::vec2 dir2 = glm::normalize(line2End - line2Start);
 
   // Calculate dot product
-  float dotProduct = glm::dot(v1, v2);
+  float dot = glm::dot(dir1, dir2);
 
   // Clamp to [-1, 1] to avoid numerical errors
-  dotProduct = glm::clamp(dotProduct, -1.0f, 1.0f);
+  dot = glm::clamp(dot, -1.0f, 1.0f);
 
-  // Calculate angle in radians
-  float angleRadians = std::acos(dotProduct);
-
-  // Convert to degrees
-  return toDegrees(angleRadians);
+  // Calculate angle in radians and convert to degrees
+  float angleRadians = glm::acos(dot);
+  return angleRadians * 180.0f / glm::pi<float>();
 }
 
-// ============================================================================
-// Area Measurements
-// ============================================================================
+// ==========================================================================
+// Area Calculation
+// ==========================================================================
 
-float MeasurementManager::measureArea(
-    const std::vector<glm::vec3> &points) const {
-  return calculatePolygonArea(points);
-}
-
-// ============================================================================
-// Real-time Measurement Feedback
-// ============================================================================
-
-MeasurementResult MeasurementManager::getRealtimeMeasurement(
-    const std::vector<glm::vec3> &collectedPoints,
-    const glm::vec3 &currentCursorPos, const std::string &toolId) const {
-
-  // Check if cache is valid
-  if (measurementCache_.valid &&
-      measurementCache_.lastPoints == collectedPoints) {
-    return measurementCache_.result;
-  }
-
-  MeasurementResult result;
-  result.isValid = false;
-
-  // Determine measurement type based on tool and collected points
-  if (toolId == "Line3D" || toolId == "Rectangle3D") {
-    if (collectedPoints.size() >= 1) {
-      result.type = Type::Distance;
-      result.value = measureDistance(collectedPoints[0], currentCursorPos);
-      result.unit = getUnitForType(Type::Distance);
-      result.points = {collectedPoints[0], currentCursorPos};
-      result.isValid = true;
-    }
-  } else if (toolId == "Circle3D") {
-    if (collectedPoints.size() >= 1) {
-      result.type = Type::Distance;
-      result.value = measureDistance(collectedPoints[0], currentCursorPos);
-      result.unit = getUnitForType(Type::Distance);
-      result.points = {collectedPoints[0], currentCursorPos};
-      result.isValid = true;
-    }
-  } else if (toolId == "Arc3D") {
-    if (collectedPoints.size() >= 2) {
-      result.type = Type::Angle;
-      result.value = measureAngle(collectedPoints[0], currentCursorPos,
-                                  collectedPoints[1]);
-      result.unit = getUnitForType(Type::Angle);
-      result.points = {collectedPoints[0], currentCursorPos,
-                       collectedPoints[1]};
-      result.isValid = true;
-    }
-  } else if (toolId == "Polygon3D") {
-    if (collectedPoints.size() >= 2) {
-      std::vector<glm::vec3> allPoints = collectedPoints;
-      allPoints.push_back(currentCursorPos);
-      result.type = Type::Area;
-      result.value = measureArea(allPoints);
-      result.unit = getUnitForType(Type::Area);
-      result.points = allPoints;
-      result.isValid = true;
-    }
-  }
-
-  // Format the measurement
-  if (result.isValid) {
-    result.formattedString = formatMeasurement(result.value, result.unit);
-  }
-
-  // Update cache (mutable allows modification in const method for performance)
-  MeasurementCache &cache = measurementCache_;
-  cache.result = result;
-  cache.lastPoints = collectedPoints;
-  cache.valid = true;
-
-  return result;
-}
-
-std::string
-MeasurementManager::formatMeasurement(float value,
-                                      const std::string &unit) const {
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(2) << value << " " << unit;
-  return oss.str();
-}
-
-// ============================================================================
-// Private Helper Methods
-// ============================================================================
-
-float MeasurementManager::distance(const glm::vec3 &a, const glm::vec3 &b) {
-  return glm::length(b - a);
-}
-
-float MeasurementManager::toDegrees(float radians) {
-  return radians * DEGREES_PER_RADIAN;
-}
-
-float MeasurementManager::calculatePolygonArea(
-    const std::vector<glm::vec3> &points) const {
-  if (points.size() < 3) {
+float MeasurementManager::calculateArea(
+    const std::shared_ptr<model::IFigure> &figure) const {
+  if (!figure) {
     return 0.0f;
   }
 
-  // Use Shoelace formula on XY plane
-  float area = 0.0f;
-  const size_t n = points.size();
-
-  for (size_t i = 0; i < n; ++i) {
-    size_t j = (i + 1) % n;
-    area += points[i].x * points[j].y;
-    area -= points[j].x * points[i].y;
+  // Check Triangle
+  if (auto tri =
+          std::dynamic_pointer_cast<model::Figure<model::Triangle>>(figure)) {
+    // Area of triangle using cross product formula
+    // Area = 0.5 * |(B - A) x (C - A)|
+    glm::vec2 v1(tri->second.x - tri->first.x, tri->second.y - tri->first.y);
+    glm::vec2 v2(tri->third.x - tri->first.x, tri->third.y - tri->first.y);
+    float cross = v1.x * v2.y - v1.y * v2.x;
+    return 0.5f * std::abs(cross);
   }
 
-  return std::abs(area) * 0.5f;
+  // Check Quad
+  if (auto quad =
+          std::dynamic_pointer_cast<model::Figure<model::Quad>>(figure)) {
+    // Split quad into two triangles and sum their areas
+    // Triangle 1: vertices 0, 1, 2
+    // Triangle 2: vertices 0, 2, 3
+    glm::vec2 v1a(quad->second.x - quad->first.x,
+                  quad->second.y - quad->first.y);
+    glm::vec2 v2a(quad->third.x - quad->first.x, quad->third.y - quad->first.y);
+    float cross1 = v1a.x * v2a.y - v1a.y * v2a.x;
+
+    glm::vec2 v1b(quad->third.x - quad->first.x, quad->third.y - quad->first.y);
+    glm::vec2 v2b(quad->fourth.x - quad->first.x,
+                  quad->fourth.y - quad->first.y);
+    float cross2 = v1b.x * v2b.y - v1b.y * v2b.x;
+
+    return 0.5f * (std::abs(cross1) + std::abs(cross2));
+  }
+
+  // Check Circle
+  if (auto circle =
+          std::dynamic_pointer_cast<model::Figure<model::Circle>>(figure)) {
+    // Area = PI * r^2
+    return glm::pi<float>() * circle->radius * circle->radius;
+  }
+
+  // Check Ngon
+  if (auto ngon =
+          std::dynamic_pointer_cast<model::Figure<model::Ngon>>(figure)) {
+    // Area of regular polygon: (n * s^2) / (4 * tan(PI/n))
+    // where n = number of sides, s = side length
+    float n = ngon->n;
+    if (n < 3.0f) {
+      return 0.0f;
+    }
+
+    // Calculate side length from radius
+    // For a regular polygon: s = 2 * r * sin(PI/n)
+    float sideLength = 2.0f * ngon->radius * glm::sin(glm::pi<float>() / n);
+
+    // Calculate area using regular polygon formula
+    float angle = glm::pi<float>() / n;
+    float area = (n * sideLength * sideLength) / (4.0f * glm::tan(angle));
+
+    return area;
+  }
+
+  return 0.0f;
 }
 
-std::string MeasurementManager::getUnitForType(Type type) {
+// ==========================================================================
+// Perimeter Calculation
+// ==========================================================================
+
+float MeasurementManager::calculatePerimeter(
+    const std::shared_ptr<model::IFigure> &figure) const {
+  if (!figure) {
+    return 0.0f;
+  }
+
+  // Check Circle
+  if (auto circle =
+          std::dynamic_pointer_cast<model::Figure<model::Circle>>(figure)) {
+    // Perimeter (circumference) = 2 * PI * r
+    return 2.0f * glm::pi<float>() * circle->radius;
+  }
+
+  // Check Ngon
+  if (auto ngon =
+          std::dynamic_pointer_cast<model::Figure<model::Ngon>>(figure)) {
+    // Perimeter = n * s (number of sides * side length)
+    float n = ngon->n;
+    // Calculate side length from radius
+    float sideLength = 2.0f * ngon->radius * glm::sin(glm::pi<float>() / n);
+    return n * sideLength;
+  }
+
+  // Check Triangle
+  if (auto tri =
+          std::dynamic_pointer_cast<model::Figure<model::Triangle>>(figure)) {
+    // Sum of all edge lengths
+    float perimeter = 0.0f;
+    perimeter += glm::distance(glm::vec2(tri->first.x, tri->first.y),
+                               glm::vec2(tri->second.x, tri->second.y));
+    perimeter += glm::distance(glm::vec2(tri->second.x, tri->second.y),
+                               glm::vec2(tri->third.x, tri->third.y));
+    perimeter += glm::distance(glm::vec2(tri->third.x, tri->third.y),
+                               glm::vec2(tri->first.x, tri->first.y));
+    return perimeter;
+  }
+
+  // Check Quad
+  if (auto quad =
+          std::dynamic_pointer_cast<model::Figure<model::Quad>>(figure)) {
+    // Sum of all edge lengths
+    float perimeter = 0.0f;
+    perimeter += glm::distance(glm::vec2(quad->first.x, quad->first.y),
+                               glm::vec2(quad->second.x, quad->second.y));
+    perimeter += glm::distance(glm::vec2(quad->second.x, quad->second.y),
+                               glm::vec2(quad->third.x, quad->third.y));
+    perimeter += glm::distance(glm::vec2(quad->third.x, quad->third.y),
+                               glm::vec2(quad->fourth.x, quad->fourth.y));
+    perimeter += glm::distance(glm::vec2(quad->fourth.x, quad->fourth.y),
+                               glm::vec2(quad->first.x, quad->first.y));
+    return perimeter;
+  }
+
+  return 0.0f;
+}
+
+// ==========================================================================
+// Real-time Measurement During Drawing
+// ==========================================================================
+
+MeasurementResult MeasurementManager::calculateRealTimeMeasurement(
+    const std::vector<glm::vec2> &points, FigureType type) const {
+  MeasurementResult result;
+
+  if (points.empty()) {
+    result.isValid = false;
+    return result;
+  }
+
+  result.isValid = true;
+
+  // Calculate distance if we have at least 2 points
+  if (points.size() >= 2) {
+    result.distance = calculateDistance(points[0], points[1]);
+  }
+
+  // Calculate angle if we have at least 4 points (2 lines)
+  if (points.size() >= 4) {
+    result.angle = calculateAngle(points[0], points[1], points[2], points[3]);
+  }
+
+  // Calculate area and perimeter based on figure type
   switch (type) {
-  case Type::Distance:
-    return "mm";
-  case Type::Angle:
-    return "deg";
-  case Type::Area:
-    return "mm²";
-  default:
-    return "";
-  }
-}
+  case FigureType::Triangle:
+    if (points.size() >= 3) {
+      // Calculate triangle area and perimeter
+      glm::vec2 v1 = points[1] - points[0];
+      glm::vec2 v2 = points[2] - points[0];
+      float cross = v1.x * v2.y - v1.y * v2.x;
+      result.area = 0.5f * std::abs(cross);
 
-void MeasurementManager::invalidateCache() {
-  measurementCache_.valid = false;
-  measurementCache_.lastPoints.clear();
+      float perimeter = glm::distance(points[0], points[1]) +
+                        glm::distance(points[1], points[2]) +
+                        glm::distance(points[2], points[0]);
+      result.perimeter = perimeter;
+    }
+    break;
+
+  case FigureType::Quad:
+    if (points.size() >= 4) {
+      // Calculate quad area (split into 2 triangles)
+      glm::vec2 v1a = points[1] - points[0];
+      glm::vec2 v2a = points[2] - points[0];
+      float cross1 = v1a.x * v2a.y - v1a.y * v2a.x;
+
+      glm::vec2 v1b = points[2] - points[0];
+      glm::vec2 v2b = points[3] - points[0];
+      float cross2 = v1b.x * v2b.y - v1b.y * v2b.x;
+
+      result.area = 0.5f * (std::abs(cross1) + std::abs(cross2));
+
+      // Calculate perimeter
+      float perimeter = glm::distance(points[0], points[1]) +
+                        glm::distance(points[1], points[2]) +
+                        glm::distance(points[2], points[3]) +
+                        glm::distance(points[3], points[0]);
+      result.perimeter = perimeter;
+    }
+    break;
+
+  case FigureType::Circle:
+    if (points.size() >= 2) {
+      // Calculate circle area and perimeter
+      float radius = glm::distance(points[0], points[1]);
+      result.area = glm::pi<float>() * radius * radius;
+      result.perimeter = 2.0f * glm::pi<float>() * radius;
+    }
+    break;
+
+  case FigureType::Ngon:
+    if (points.size() >= 3) {
+      size_t n = points.size();
+      float sideLength = glm::distance(points[0], points[1]);
+
+      // Area of regular polygon
+      float angle = glm::pi<float>() / static_cast<float>(n);
+      result.area = (static_cast<float>(n) * sideLength * sideLength) /
+                    (4.0f * glm::tan(angle));
+
+      // Perimeter
+      result.perimeter = static_cast<float>(n) * sideLength;
+    }
+    break;
+
+  case FigureType::Line:
+  case FigureType::Unknown:
+  default:
+    // For lines and unknown types, only distance is relevant
+    break;
+  }
+
+  return result;
 }
 
 } // namespace view

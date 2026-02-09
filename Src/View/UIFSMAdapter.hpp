@@ -131,6 +131,42 @@ struct SnapSettings {
   }
 };
 
+/**
+ * @brief Measurement settings for precision drawing
+ *
+ * Contains configuration for measurement display and calculations.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct MeasurementSettings {
+  /// Whether measurements are displayed
+  bool showMeasurements = true;
+
+  /// Whether real-time measurement feedback is shown during drawing
+  bool realTimeMeasurement = true;
+
+  /// Whether to show distance measurements
+  bool showDistance = true;
+
+  /// Whether to show angle measurements
+  bool showAngle = true;
+
+  /// Whether to show area measurements
+  bool showArea = true;
+
+  /// Whether to show perimeter measurements
+  bool showPerimeter = true;
+
+  /// Number of decimal places for measurement display
+  int precision = 2;
+
+  /**
+   * @brief Equality operator for MeasurementSettings
+   * @param other The other MeasurementSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const MeasurementSettings &other) const = default;
+};
+
 // ==========================================================================
 // Phase 6: FSM Event Definitions
 // These events are defined in fsm::events namespace in FSM.hpp
@@ -547,6 +583,11 @@ public:
   using SnapSettingsCallback = std::function<void()>;
 
   /**
+   * @brief Callback type for measurement settings change notifications
+   */
+  using MeasurementSettingsCallback = std::function<void()>;
+
+  /**
    * @brief Callback type for figure change notifications
    * Used for cache invalidation in SnapManager
    */
@@ -604,6 +645,32 @@ public:
    * @param callback Function to invoke when snap settings change
    */
   void setSnapSettingsChangedCallback(SnapSettingsCallback callback);
+
+  // ==========================================================================
+  // Measurement Settings Methods
+  // These methods provide access to measurement settings
+  // ==========================================================================
+
+  /**
+   * @brief Get the current measurement settings
+   * @return Current measurement settings
+   */
+  MeasurementSettings getMeasurementSettings() const;
+
+  /**
+   * @brief Set measurement settings
+   * @param settings The new measurement settings
+   *
+   * Triggers OnMeasurementSettingsChanged FSM event and notifies listeners.
+   */
+  void setMeasurementSettings(const MeasurementSettings &settings);
+
+  /**
+   * @brief Set callback for measurement settings change notifications
+   * @param callback Function to invoke when measurement settings change
+   */
+  void
+  setMeasurementSettingsChangedCallback(MeasurementSettingsCallback callback);
 
   /**
    * @brief Set callback for figure change notifications
@@ -766,6 +833,53 @@ public:
   glm::vec4 getSnapIndicatorColor() const;
 
   // ==========================================================================
+  // Measurement State Query Methods (for MeasurementManager)
+  // These methods provide access to individual measurement settings properties
+  // ==========================================================================
+
+  /**
+   * @brief Check if show measurements is enabled
+   * @return true if measurements should be displayed
+   */
+  bool isShowMeasurementsEnabled() const;
+
+  /**
+   * @brief Check if real-time measurement is enabled
+   * @return true if real-time measurement feedback should be shown
+   */
+  bool isRealTimeMeasurementEnabled() const;
+
+  /**
+   * @brief Check if distance measurement is enabled
+   * @return true if distance measurements should be shown
+   */
+  bool isShowDistanceEnabled() const;
+
+  /**
+   * @brief Check if angle measurement is enabled
+   * @return true if angle measurements should be shown
+   */
+  bool isShowAngleEnabled() const;
+
+  /**
+   * @brief Check if area measurement is enabled
+   * @return true if area measurements should be shown
+   */
+  bool isShowAreaEnabled() const;
+
+  /**
+   * @brief Check if perimeter measurement is enabled
+   * @return true if perimeter measurements should be shown
+   */
+  bool isShowPerimeterEnabled() const;
+
+  /**
+   * @brief Get measurement precision
+   * @return Number of decimal places for measurement display
+   */
+  int getMeasurementPrecision() const;
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -914,9 +1028,10 @@ private:
   NavigationCallback onOrbitCenterChanged_;
 
   // ==========================================================================
-  // Phase 6: Grid and Snap Settings Storage
-  // These member variables store grid and snap settings that cannot be stored
-  // in FSM because FSMConfig's VariableValue only supports simple types.
+  // Phase 6: Grid, Snap, and Measurement Settings Storage
+  // These member variables store grid, snap, and measurement settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
   // ==========================================================================
 
   /// Grid settings for visualization and snapping
@@ -925,11 +1040,17 @@ private:
   /// Snap settings for precision drawing
   SnapSettings snapSettings_;
 
+  /// Measurement settings for precision drawing
+  MeasurementSettings measurementSettings_;
+
   /// Callback for grid settings change notifications
   GridSettingsCallback onGridSettingsChanged_;
 
   /// Callback for snap settings change notifications
   SnapSettingsCallback onSnapSettingsChanged_;
+
+  /// Callback for measurement settings change notifications
+  MeasurementSettingsCallback onMeasurementSettingsChanged_;
 
   /// Callback for figure change notifications (used by SnapManager)
   FigureChangedCallback onFigureChanged_;
