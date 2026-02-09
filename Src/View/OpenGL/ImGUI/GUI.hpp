@@ -12,6 +12,8 @@
 #include <View/ObjectManagement/SelectionManager.hpp>
 #include <View/Precision/CoordinateInputWidget.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
+#include <View/Precision/MeasurementDisplay.hpp>
+#include <View/Precision/MeasurementManager.hpp>
 #include <View/Precision/SnapSettingsPanel.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
@@ -32,13 +34,13 @@ private:
   ImGuiID dockIdTools_{};
   ImGuiID dockIdLog_{};
   ImGuiID dockIdMouse_{};
-  ImGuiID dockIdOutliner_{};       // Phase 3: Outliner panel dock ID
-  ImGuiID dockIdProperties_{};     // Phase 3: Property inspector dock ID
-  ImGuiID dockIdCommandHistory_{}; // Phase 4: Command history panel dock ID
-  ImGuiID dockIdViewPresets_{};    // Phase 5: View presets panel dock ID
-  ImGuiID dockIdGridSettings_{};        // Phase 6: Grid settings panel dock ID
-  ImGuiID dockIdSnapSettings_{};        // Phase 6: Snap settings panel dock ID
-  ImGuiID dockIdCoordinateInput_{};      // Phase 6: Coordinate input widget dock ID
+  ImGuiID dockIdOutliner_{};        // Phase 3: Outliner panel dock ID
+  ImGuiID dockIdProperties_{};      // Phase 3: Property inspector dock ID
+  ImGuiID dockIdCommandHistory_{};  // Phase 4: Command history panel dock ID
+  ImGuiID dockIdViewPresets_{};     // Phase 5: View presets panel dock ID
+  ImGuiID dockIdGridSettings_{};    // Phase 6: Grid settings panel dock ID
+  ImGuiID dockIdSnapSettings_{};    // Phase 6: Snap settings panel dock ID
+  ImGuiID dockIdCoordinateInput_{}; // Phase 6: Coordinate input widget dock ID
   ImVec2 mouseOverlayPosition_{};
   ImVec2 mousePositionAbsolute_{};
   ImTextureID textureId_{};
@@ -104,6 +106,12 @@ private:
   /// Phase 6: Coordinate input widget for precise coordinate entry
   std::unique_ptr<view::CoordinateInputWidget> coordinateInputWidget_;
 
+  /// Phase 6: Measurement manager for measurement calculations
+  std::unique_ptr<view::MeasurementManager> measurementManager_;
+
+  /// Phase 6: Measurement display for measurement overlay
+  std::unique_ptr<view::MeasurementDisplay> measurementDisplay_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -116,11 +124,12 @@ private:
   void ShowSketchPlaneOverlay();
   void ShowOutlinerPanel();
   void ShowPropertyInspectorPanel();
-  void ShowCommandHistoryPanel(); // Phase 4: Command history panel
-  void ShowViewPresetsPanel();    // Phase 5: View presets panel
-  void ShowGridSettingsPanel();      // Phase 6: Grid settings panel
-  void ShowSnapSettingsPanel();      // Phase 6: Snap settings panel
-  void ShowCoordinateInputWidget();  // Phase 6: Coordinate input widget
+  void ShowCommandHistoryPanel();   // Phase 4: Command history panel
+  void ShowViewPresetsPanel();      // Phase 5: View presets panel
+  void ShowGridSettingsPanel();     // Phase 6: Grid settings panel
+  void ShowSnapSettingsPanel();     // Phase 6: Snap settings panel
+  void ShowCoordinateInputWidget(); // Phase 6: Coordinate input widget
+  void ShowMeasurementDisplay();    // Phase 6: Measurement display
   // void ShowListPanel()
   void ShowSimpleOverlay(); // let it float after the mouse and show its
                             // coordinates if within canvas

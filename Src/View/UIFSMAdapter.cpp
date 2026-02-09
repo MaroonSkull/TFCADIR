@@ -625,6 +625,16 @@ void UIFSMAdapter::setCoordinateInputWidgetVisible(bool visible) {
   coordinateInputWidgetVisible_ = visible;
 }
 
+bool UIFSMAdapter::getMeasurementDisplayVisible() const {
+  /// Return the measurement display visibility from local storage
+  return measurementDisplayVisible_;
+}
+
+void UIFSMAdapter::setMeasurementDisplayVisible(bool visible) {
+  /// Update measurement display visibility
+  measurementDisplayVisible_ = visible;
+}
+
 SnapSettings UIFSMAdapter::getSnapSettings() const {
   /// Return the current snap settings from local storage
   return snapSettings_;

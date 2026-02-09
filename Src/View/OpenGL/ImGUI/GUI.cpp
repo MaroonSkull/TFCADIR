@@ -11,6 +11,8 @@
 #include <View/ObjectManagement/SelectionManager.hpp>
 #include <View/Precision/CoordinateInputWidget.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
+#include <View/Precision/MeasurementDisplay.hpp>
+#include <View/Precision/MeasurementManager.hpp>
 #include <View/Precision/SnapSettingsPanel.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
@@ -343,6 +345,27 @@ void GUI::ShowCoordinateInputWidget() {
 }
 
 /**
+ * @brief Render the measurement display
+ *
+ * Displays the measurement overlay for real-time measurement feedback.
+ */
+void GUI::ShowMeasurementDisplay() {
+  if (measurementDisplay_ && measurementManager_) {
+    // Update measurement data from manager
+    const view::MeasurementResult &result =
+        measurementManager_->getLastMeasurement();
+    view::MeasurementData data;
+    data.isValid = result.isValid;
+    data.distance = result.distance;
+    data.angle = result.angle;
+    data.area = result.area;
+    data.perimeter = result.perimeter;
+    measurementDisplay_->setMeasurementData(data);
+    measurementDisplay_->render();
+  }
+}
+
+/**
  * @brief Shows sketch plane visualization overlay when in sketch mode
  */
 void GUI::ShowSketchPlaneOverlay() {
@@ -439,6 +462,14 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   coordinateInputWidget_ =
       std::make_unique<view::CoordinateInputWidget>(uiFSMAdapter_.get());
 
+  /// Phase 6: Create measurement manager for measurement calculations
+  measurementManager_ =
+      std::make_unique<view::MeasurementManager>(*uiFSMAdapter_);
+
+  /// Phase 6: Create measurement display for measurement overlay
+  measurementDisplay_ = std::make_unique<view::MeasurementDisplay>(
+      uiFSMAdapter_.get(), measurementManager_.get());
+
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -513,6 +544,9 @@ GUI::DrawGUI(ImTextureID renderTexture) {
 
   // Phase 6: Render coordinate input widget
   ShowCoordinateInputWidget();
+
+  // Phase 6: Render measurement display
+  ShowMeasurementDisplay();
 
   // SshowDemoWindow();
   Render();

@@ -133,6 +133,7 @@ config_lib(Precision
         Precision/GridSettingsPanel.cpp
         Precision/SnapSettingsPanel.cpp
         Precision/CoordinateInputWidget.cpp
+        Precision/MeasurementDisplay.cpp
     PUBLIC_SOURCES
         Precision/GridManager.hpp
         Precision/SnapManager.hpp
@@ -141,6 +142,7 @@ config_lib(Precision
         Precision/GridSettingsPanel.hpp
         Precision/SnapSettingsPanel.hpp
         Precision/CoordinateInputWidget.hpp
+        Precision/MeasurementDisplay.hpp
     PUBLIC_DEPENDENCIES
         UIFSMAdapter
         glm::glm

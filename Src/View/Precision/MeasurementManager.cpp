@@ -343,4 +343,16 @@ MeasurementResult MeasurementManager::calculateRealTimeMeasurement(
   return result;
 }
 
+// ==========================================================================
+// Last Measurement Storage (for MeasurementDisplay)
+// ==========================================================================
+
+void MeasurementManager::setLastMeasurement(const MeasurementResult &result) {
+  lastMeasurement_ = result;
+}
+
+const MeasurementResult &MeasurementManager::getLastMeasurement() const {
+  return lastMeasurement_;
+}
+
 } // namespace view
