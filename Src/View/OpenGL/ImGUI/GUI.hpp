@@ -2,6 +2,9 @@
 
 #include <Controller/IController.hpp>
 #include <View/CameraController.hpp>
+#include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
+#include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
+#include <View/ObjectManagement/SelectionManager.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <View/UIFSMAdapter.hpp>
@@ -21,6 +24,8 @@ private:
   ImGuiID dockIdTools_{};
   ImGuiID dockIdLog_{};
   ImGuiID dockIdMouse_{};
+  ImGuiID dockIdOutliner_{};   // Phase 3: Outliner panel dock ID
+  ImGuiID dockIdProperties_{}; // Phase 3: Property inspector dock ID
   ImVec2 mouseOverlayPosition_{};
   ImVec2 mousePositionAbsolute_{};
   ImTextureID textureId_{};
@@ -51,6 +56,15 @@ private:
   /// Phase 2: Command manager for undo/redo support
   std::unique_ptr<view::ImGUI::CommandManager> commandManager_;
 
+  /// Phase 3: Selection manager for object selection operations
+  std::unique_ptr<view::SelectionManager> selectionManager_;
+
+  /// Phase 3: Outliner panel for scene hierarchy view
+  std::unique_ptr<view::OutlinerPanel> outlinerPanel_;
+
+  /// Phase 3: Property inspector panel for editing object properties
+  std::unique_ptr<view::PropertyInspectorPanel> propertyInspectorPanel_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -61,6 +75,8 @@ private:
   ImVec2 ShowCanvas(ImTextureID renderTexture);
   void ShowStatusBar();
   void ShowSketchPlaneOverlay();
+  void ShowOutlinerPanel();
+  void ShowPropertyInspectorPanel();
   // void ShowListPanel()
   void ShowSimpleOverlay(); // let it float after the mouse and show its
                             // coordinates if within canvas

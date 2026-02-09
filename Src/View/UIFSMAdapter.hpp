@@ -1,9 +1,11 @@
 #pragma once
 
 #include <Controller/FSM.hpp>
+#include <Model/IModel.hpp>
 #include <Model/SketchPlane.hpp>
 #include <View/CameraController.hpp>
 #include <any>
+#include <cstdint>
 #include <functional>
 #include <glm/glm.hpp>
 #include <map>
@@ -173,6 +175,101 @@ public:
    */
   void deactivateTool();
 
+  // ==========================================================================
+  // Phase 3: Object Management Methods
+  // These methods provide selection state management for figures
+  // ==========================================================================
+
+  /**
+   * @brief Get the list of selected figure IDs
+   * @return Vector of selected figure IDs
+   */
+  std::vector<uint32_t> getSelectedFigureIds() const;
+
+  /**
+   * @brief Get the primary selection index
+   * @return Index of primary selection in the selected figures list, or -1
+   */
+  int getPrimarySelectionIndex() const;
+
+  /**
+   * @brief Select a single figure (replaces current selection)
+   * @param figureId The figure to select
+   */
+  void selectFigure(uint32_t figureId);
+
+  /**
+   * @brief Toggle selection state of a figure
+   * @param figureId The figure to toggle
+   */
+  void toggleFigureSelection(uint32_t figureId);
+
+  /**
+   * @brief Add a figure to the current selection
+   * @param figureId The figure to add
+   */
+  void addToSelection(uint32_t figureId);
+
+  /**
+   * @brief Remove a figure from the current selection
+   * @param figureId The figure to remove
+   */
+  void removeFromSelection(uint32_t figureId);
+
+  /**
+   * @brief Clear all selections
+   */
+  void clearSelection();
+
+  /**
+   * @brief Set the primary selection by index
+   * @param index The index in the selected figures list to set as primary
+   */
+  void setPrimarySelection(int index);
+
+  /**
+   * @brief Get the primary selection figure ID
+   * @return Primary selection ID or 0 if no selection
+   */
+  uint32_t getPrimarySelectionId() const;
+
+  /**
+   * @brief Update a property of a specific figure
+   * @param figureId The figure to update
+   * @param propertyPath The property path (e.g., "center.x", "radius")
+   * @param value The new value
+   * @note This method implements the property path format from architecture v1.3
+   */
+  void updateFigureProperty(uint32_t figureId, const std::string &propertyPath,
+                            const std::any &value);
+
+  // ==========================================================================
+  // Phase 3: Notification Callbacks
+  // These callbacks notify panels of state changes
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for selection change notifications
+   */
+  using SelectionChangedCallback = std::function<void(const std::vector<uint32_t> &)>;
+
+  /**
+   * @brief Callback type for property change notifications
+   */
+  using PropertyChangedCallback = std::function<void(uint32_t, const std::string &)>;
+
+  /**
+   * @brief Set callback for selection change notifications
+   * @param callback Function to invoke when selection changes
+   */
+  void setSelectionChangedCallback(SelectionChangedCallback callback);
+
+  /**
+   * @brief Set callback for property change notifications
+   * @param callback Function to invoke when a property changes
+   */
+  void setPropertyChangedCallback(PropertyChangedCallback callback);
+
 private:
   /// Reference to the finite state machine
   fsm::Machine &fsm_;
@@ -210,6 +307,25 @@ private:
 
   /// Points collected during the current drawing operation
   std::vector<glm::vec3> collectedPoints_;
+
+  // ==========================================================================
+  // Phase 3: Selection State Storage
+  // These member variables store selection state that cannot be stored in FSM
+  // because FSMConfig's VariableValue only supports simple types (int, float,
+  // string, bool), not complex types like std::vector<uint32_t>.
+  // ==========================================================================
+
+  /// IDs of selected figures
+  std::vector<uint32_t> selectedFigureIds_;
+
+  /// Index of primary selection in selectedFigureIds_ (-1 if no selection)
+  int primarySelectionIndex_;
+
+  /// Callback for selection change notifications
+  SelectionChangedCallback selectionChangedCallback_;
+
+  /// Callback for property change notifications
+  PropertyChangedCallback propertyChangedCallback_;
 
   /**
    * @brief Get available sketch planes

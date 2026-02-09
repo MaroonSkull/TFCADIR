@@ -6,7 +6,8 @@ UIFSMAdapter::UIFSMAdapter(fsm::Machine &fsm,
                            CameraController &cameraController,
                            std::shared_ptr<spdlog::logger> logger)
     : fsm_(fsm), cameraController_(cameraController),
-      logger_(std::move(logger)), currentState_(fsm.get_current_state()) {
+      logger_(std::move(logger)), currentState_(fsm.get_current_state()),
+      primarySelectionIndex_(-1) {
   logger_->info("UIFSMAdapter initialized");
 }
 
@@ -19,6 +20,16 @@ void UIFSMAdapter::setShowPlaneSelectionCallback(
 
 void UIFSMAdapter::setUpdateStatusCallback(UpdateStatusCallback callback) {
   updateStatusCallback_ = std::move(callback);
+}
+
+void UIFSMAdapter::setSelectionChangedCallback(
+    SelectionChangedCallback callback) {
+  selectionChangedCallback_ = std::move(callback);
+}
+
+void UIFSMAdapter::setPropertyChangedCallback(
+    PropertyChangedCallback callback) {
+  propertyChangedCallback_ = std::move(callback);
 }
 
 void UIFSMAdapter::onStateChanged(fsm::State newState) {
@@ -210,6 +221,158 @@ void UIFSMAdapter::deactivateTool() {
       logger_->warn("Failed to trigger event OnDeactivateTool: {}", e.what());
       // Continue anyway - tool is still deactivated locally
     }
+  }
+}
+
+// ==========================================================================
+// Phase 3: Object Management Methods
+// These methods manage selection state for figures
+// ==========================================================================
+
+std::vector<uint32_t> UIFSMAdapter::getSelectedFigureIds() const {
+  /// Return the selected figure IDs from local storage
+  return selectedFigureIds_;
+}
+
+int UIFSMAdapter::getPrimarySelectionIndex() const {
+  /// Return the primary selection index
+  return primarySelectionIndex_;
+}
+
+uint32_t UIFSMAdapter::getPrimarySelectionId() const {
+  /// Return the primary selection ID or 0 if no selection
+  if (primarySelectionIndex_ >= 0 &&
+      primarySelectionIndex_ < static_cast<int>(selectedFigureIds_.size())) {
+    return selectedFigureIds_[primarySelectionIndex_];
+  }
+  return 0;
+}
+
+void UIFSMAdapter::selectFigure(uint32_t figureId) {
+  /// Select a single figure (replaces current selection)
+  selectedFigureIds_.clear();
+  selectedFigureIds_.push_back(figureId);
+  primarySelectionIndex_ = 0;
+
+  logger_->info("Selected figure: {}", figureId);
+
+  /// Notify listeners of selection change
+  if (selectionChangedCallback_) {
+    selectionChangedCallback_(selectedFigureIds_);
+  }
+}
+
+void UIFSMAdapter::toggleFigureSelection(uint32_t figureId) {
+  /// Toggle selection state of a figure
+  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
+                      figureId);
+
+  if (it != selectedFigureIds_.end()) {
+    /// Figure is selected - remove it
+    size_t index = std::distance(selectedFigureIds_.begin(), it);
+    selectedFigureIds_.erase(it);
+
+    /// Adjust primary selection index if needed
+    if (primarySelectionIndex_ >= static_cast<int>(selectedFigureIds_.size())) {
+      primarySelectionIndex_ = static_cast<int>(selectedFigureIds_.size()) - 1;
+    }
+
+    logger_->info("Deselected figure: {}", figureId);
+  } else {
+    /// Figure is not selected - add it
+    selectedFigureIds_.push_back(figureId);
+    logger_->info("Added to selection: {}", figureId);
+  }
+
+  /// Notify listeners of selection change
+  if (selectionChangedCallback_) {
+    selectionChangedCallback_(selectedFigureIds_);
+  }
+}
+
+void UIFSMAdapter::addToSelection(uint32_t figureId) {
+  /// Add a figure to the current selection if not already selected
+  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
+                      figureId);
+
+  if (it == selectedFigureIds_.end()) {
+    selectedFigureIds_.push_back(figureId);
+    logger_->info("Added to selection: {}", figureId);
+
+    /// Notify listeners of selection change
+    if (selectionChangedCallback_) {
+      selectionChangedCallback_(selectedFigureIds_);
+    }
+  }
+}
+
+void UIFSMAdapter::removeFromSelection(uint32_t figureId) {
+  /// Remove a figure from the current selection
+  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
+                      figureId);
+
+  if (it != selectedFigureIds_.end()) {
+    size_t index = std::distance(selectedFigureIds_.begin(), it);
+    selectedFigureIds_.erase(it);
+
+    /// Adjust primary selection index if needed
+    if (primarySelectionIndex_ >= static_cast<int>(selectedFigureIds_.size())) {
+      primarySelectionIndex_ = static_cast<int>(selectedFigureIds_.size()) - 1;
+    }
+
+    logger_->info("Removed from selection: {}", figureId);
+
+    /// Notify listeners of selection change
+    if (selectionChangedCallback_) {
+      selectionChangedCallback_(selectedFigureIds_);
+    }
+  }
+}
+
+void UIFSMAdapter::clearSelection() {
+  /// Clear all selections
+  if (!selectedFigureIds_.empty()) {
+    selectedFigureIds_.clear();
+    primarySelectionIndex_ = -1;
+
+    logger_->info("Cleared selection");
+
+    /// Notify listeners of selection change
+    if (selectionChangedCallback_) {
+      selectionChangedCallback_(selectedFigureIds_);
+    }
+  }
+}
+
+void UIFSMAdapter::setPrimarySelection(int index) {
+  /// Set the primary selection by index
+  if (index >= 0 && index < static_cast<int>(selectedFigureIds_.size())) {
+    primarySelectionIndex_ = index;
+    logger_->info("Primary selection set to index: {}", index);
+  } else {
+    logger_->warn("Invalid primary selection index: {}", index);
+  }
+}
+
+void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
+                                       const std::string &propertyPath,
+                                       const std::any &value) {
+  /// Update a property of a specific figure
+  /// Note: This method requires access to the model which is passed in through
+  /// the constructor or set via a separate setter. For now, this is a
+  /// placeholder that logs the update. The actual property update will be
+  /// implemented by the PropertyInspectorPanel which has direct access to the
+  /// model.
+
+  logger_->info("Updating property '{}' for figure {}", propertyPath,
+                figureId);
+
+  /// Parse property path (e.g., "center.x", "radius")
+  size_t dotPos = propertyPath.find('.');
+
+  /// Notify listeners of property change
+  if (propertyChangedCallback_) {
+    propertyChangedCallback_(figureId, propertyPath);
   }
 }
 

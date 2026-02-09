@@ -37,6 +37,26 @@ config_lib(UIFSMAdapter
         cxx_std_17
 )
 
+# Phase 3: Object Management UI components
+config_lib(ObjectManagement
+    PRIVATE_SOURCES
+        ObjectManagement/SelectionManager.cpp
+        ObjectManagement/CanvasHitTester.cpp
+        ObjectManagement/ImGUI/OutlinerPanel.cpp
+        ObjectManagement/ImGUI/PropertyInspectorPanel.cpp
+    PUBLIC_SOURCES
+        ObjectManagement/SelectionManager.hpp
+        ObjectManagement/CanvasHitTester.hpp
+        ObjectManagement/ImGUI/OutlinerPanel.hpp
+        ObjectManagement/ImGUI/PropertyInspectorPanel.hpp
+    PUBLIC_DEPENDENCIES
+        UIFSMAdapter
+        Model
+        imgui
+    COMPILE_FEATURES
+        cxx_std_17
+)
+
 # Select specific view
 add_subdirectory ("OpenGL")
 
