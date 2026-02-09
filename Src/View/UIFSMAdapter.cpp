@@ -825,4 +825,62 @@ int UIFSMAdapter::getMeasurementPrecision() const {
   return measurementSettings_.precision;
 }
 
+// ==========================================================================
+// Coordinate Input Settings Methods
+// These methods provide access to coordinate input settings
+// ==========================================================================
+
+CoordinateInputSettings UIFSMAdapter::getCoordinateInputSettings() const {
+  /// Return the current coordinate input settings from local storage
+  return coordinateInputSettings_;
+}
+
+void UIFSMAdapter::setCoordinateInputSettings(
+    const CoordinateInputSettings &settings) {
+  /// Update coordinate input settings and notify listeners
+  if (coordinateInputSettings_ != settings) {
+    coordinateInputSettings_ = settings;
+    logger_->info("Coordinate input settings updated");
+
+    /// Trigger FSM event to notify components
+    fsm_.process_event(fsm::events::OnCoordinateInputSettingsChanged{});
+
+    /// Notify listeners of coordinate input settings change
+    if (onCoordinateInputSettingsChanged_) {
+      onCoordinateInputSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setCoordinateInputSettingsChangedCallback(
+    CoordinateInputSettingsCallback callback) {
+  onCoordinateInputSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Coordinate Input State Query Methods (for CoordinateInputManager)
+// These methods provide access to individual coordinate input settings
+// properties
+// ==========================================================================
+
+bool UIFSMAdapter::isExpressionParsingEnabled() const {
+  /// Return the expression parsing enabled flag from local storage
+  return coordinateInputSettings_.expressionParsingEnabled;
+}
+
+int UIFSMAdapter::getCoordinatePrecision() const {
+  /// Return the coordinate precision from local storage
+  return coordinateInputSettings_.precision;
+}
+
+int UIFSMAdapter::getAngularPrecision() const {
+  /// Return the angular precision from local storage
+  return coordinateInputSettings_.angularPrecision;
+}
+
+CoordinateInputMode UIFSMAdapter::getCoordinateInputMode() const {
+  /// Return the coordinate input mode from local storage
+  return coordinateInputSettings_.inputMode;
+}
+
 } // namespace view
