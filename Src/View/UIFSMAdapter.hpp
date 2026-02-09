@@ -5,6 +5,7 @@
 #include <Model/SketchPlane.hpp>
 #include <View/CameraController.hpp>
 #include <View/Commands/ICommand.hpp>
+#include <View/Navigation/NavigationTypes.hpp>
 #include <any>
 #include <cstdint>
 #include <functional>
@@ -338,6 +339,76 @@ public:
   const ICommand *getCommandAt(size_t index) const;
 
   // ==========================================================================
+  // Phase 5: Navigation State Management Methods
+  // UIFSMAdapter is the single source of truth for navigation domain state
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for navigation state change notifications
+   */
+  using NavigationCallback = std::function<void()>;
+
+  /**
+   * @brief Set the orbit center for 3D navigation
+   * @param center The orbit center type
+   */
+  void setOrbitCenter(OrbitCenter center);
+
+  /**
+   * @brief Get the current orbit center
+   * @return The current orbit center type
+   */
+  OrbitCenter getOrbitCenter() const;
+
+  /**
+   * @brief Set a custom orbit center point
+   * @param center The custom orbit center coordinates
+   */
+  void setCustomOrbitCenter(const glm::vec3 &center);
+
+  /**
+   * @brief Get the custom orbit center point
+   * @return The custom orbit center coordinates
+   */
+  glm::vec3 getCustomOrbitCenter() const;
+
+  /**
+   * @brief Set the current view preset
+   * @param preset The view preset to set
+   */
+  void setCurrentViewPreset(ViewPreset preset);
+
+  /**
+   * @brief Get the current view preset
+   * @return The current view preset
+   */
+  ViewPreset getCurrentViewPreset() const;
+
+  /**
+   * @brief Set whether a view transition is in progress
+   * @param transitioning true if a transition is in progress
+   */
+  void setIsTransitioning(bool transitioning);
+
+  /**
+   * @brief Check if a view transition is in progress
+   * @return true if a transition is in progress
+   */
+  bool isTransitioning() const;
+
+  /**
+   * @brief Set callback for view preset change notifications
+   * @param callback Function to invoke when view preset changes
+   */
+  void setViewPresetChangedCallback(NavigationCallback callback);
+
+  /**
+   * @brief Set callback for orbit center change notifications
+   * @param callback Function to invoke when orbit center changes
+   */
+  void setOrbitCenterChangedCallback(NavigationCallback callback);
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -459,6 +530,31 @@ private:
 
   /// Maximum history size (for memory management)
   static constexpr size_t MAX_HISTORY_SIZE = 1000;
+
+  // ==========================================================================
+  // Phase 5: Navigation State Storage
+  // These member variables store navigation state that cannot be stored in FSM
+  // because FSMConfig's VariableValue only supports simple types (int, float,
+  // string, bool), not complex types like glm::vec3 or enum classes.
+  // ==========================================================================
+
+  /// Current orbit center for 3D navigation
+  OrbitCenter orbitCenter_ = OrbitCenter::Origin;
+
+  /// Custom orbit center point (used when orbitCenter_ is Custom)
+  glm::vec3 customOrbitCenter_{0.0f, 0.0f, 0.0f};
+
+  /// Current view preset
+  ViewPreset currentViewPreset_ = ViewPreset::Top2D;
+
+  /// Whether a view transition is currently in progress
+  bool isTransitioning_ = false;
+
+  /// Callback for view preset change notifications
+  NavigationCallback onViewPresetChanged_;
+
+  /// Callback for orbit center change notifications
+  NavigationCallback onOrbitCenterChanged_;
 
   /**
    * @brief Get available sketch planes

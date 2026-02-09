@@ -101,6 +101,28 @@ config_lib(Commands
         cxx_std_17
 )
 
+# Phase 5: Navigation & Views System (Zoom, Pan, View Presets)
+config_lib(Navigation
+    PRIVATE_SOURCES
+        Navigation/NavigationManager.cpp
+        Navigation/NavigationEventHandler.cpp
+        ImGUI/ViewPresetsPanel.cpp
+    PUBLIC_SOURCES
+        Navigation/NavigationTypes.hpp
+        Navigation/NavigationManager.hpp
+        Navigation/NavigationEventHandler.hpp
+        ImGUI/ViewPresetsPanel.hpp
+    PUBLIC_DEPENDENCIES
+        UIFSMAdapter
+        CameraController
+        ObjectManagement
+        imgui
+    PRIVATE_DEPENDENCIES
+        spdlog::spdlog
+    COMPILE_FEATURES
+        cxx_std_17
+)
+
 # Select specific view
 add_subdirectory ("OpenGL")
 

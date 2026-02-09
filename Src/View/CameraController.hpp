@@ -98,12 +98,51 @@ public:
    */
   void clearSavedState() { savedState_.reset(); }
 
+  // ==========================================================================
+  // Phase 5: Navigation Support Methods
+  // ==========================================================================
+
+  /**
+   * @brief Set camera state with individual parameters
+   * @param position Camera position in world space
+   * @param target Camera target/look-at point in world space
+   * @param up Camera up vector
+   * @param zoom Zoom level
+   */
+  void setCameraState(const glm::vec3 &position, const glm::vec3 &target,
+                      const glm::vec3 &up, float zoom);
+
+  /**
+   * @brief Get camera state as individual parameters
+   * @param position Output camera position
+   * @param target Output camera target
+   * @param up Output camera up vector
+   * @param zoom Output zoom level
+   */
+  void getCameraState(glm::vec3 &position, glm::vec3 &target, glm::vec3 &up,
+                      float &zoom) const;
+
+  /**
+   * @brief Check if camera is in 2D mode
+   * @return true if camera is in 2D mode
+   */
+  bool is2DMode() const;
+
+  /**
+   * @brief Check if camera is in 3D mode
+   * @return true if camera is in 3D mode
+   */
+  bool is3DMode() const;
+
 private:
   /// Saved camera state from before entering sketch mode
   std::optional<CameraState> savedState_;
 
   /// Current camera state
   CameraState currentState_;
+
+  /// Flag to track if camera is in 2D mode
+  bool is2DMode_ = true;
 
   /// Default distance from camera to sketch plane (world units)
   static constexpr float DEFAULT_CAMERA_DISTANCE = 10.0f;

@@ -22,6 +22,7 @@ config_lib(GUI
         CameraController
         ObjectManagement
         Commands
+        Navigation
     COMPILE_FEATURES
         cxx_std_17
 )

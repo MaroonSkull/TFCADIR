@@ -3,11 +3,14 @@
 #include <GUI.hpp>
 #include <View/Commands/ExtendedCommandManager.hpp>
 #include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
+#include <View/Navigation/NavigationManager.hpp>
+#include <View/Navigation/NavigationEventHandler.hpp>
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
+#include <View/ImGUI/ViewPresetsPanel.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 using namespace ImGui;
@@ -105,6 +108,10 @@ void GUI::ShowDockSpace() {
     dockIdCommandHistory_ = DockBuilderSplitNode(dockIdTools_, ImGuiDir_Down,
                                                  0.3f, nullptr, &dockIdTools_);
 
+    // Phase 5: Split tools dock to create space for view presets
+    dockIdViewPresets_ = DockBuilderSplitNode(dockIdTools_, ImGuiDir_Down,
+                                              0.25f, nullptr, &dockIdTools_);
+
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
@@ -112,6 +119,7 @@ void GUI::ShowDockSpace() {
     DockBuilderDockWindow("Outliner", dockIdOutliner_);
     DockBuilderDockWindow("Properties", dockIdProperties_);
     DockBuilderDockWindow("Command History", dockIdCommandHistory_);
+    DockBuilderDockWindow("View Presets", dockIdViewPresets_);
 
     DockBuilderFinish(dockId_);
   }
@@ -273,6 +281,15 @@ void GUI::ShowCommandHistoryPanel() {
 }
 
 /**
+ * @brief Renders the View Presets panel for view preset selection
+ */
+void GUI::ShowViewPresetsPanel() {
+  if (viewPresetsPanel_) {
+    viewPresetsPanel_->render();
+  }
+}
+
+/**
  * @brief Shows sketch plane visualization overlay when in sketch mode
  */
 void GUI::ShowSketchPlaneOverlay() {
@@ -344,6 +361,18 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
       std::make_unique<view::CommandHistoryPanel>(*extendedCommandManager_);
   extendedCommandManager_->setCommandHistoryPanel(commandHistoryPanel_.get());
 
+  // Initialize Phase 5: Navigation and Views system
+  /// Create navigation manager (stateless coordinator, delegates to UIFSMAdapter)
+  navigationManager_ = std::make_unique<view::NavigationManager>(
+      *uiFSMAdapter_, *cameraController_,
+      selectionManager_.get() /* optional for orbit center */);
+  /// Create navigation event handler for mouse/keyboard events
+  navigationEventHandler_ =
+      std::make_unique<view::NavigationEventHandler>(*navigationManager_);
+  /// Create view presets panel for view preset selection
+  viewPresetsPanel_ =
+      std::make_unique<view::ViewPresetsPanel>(*navigationManager_);
+
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -406,6 +435,9 @@ GUI::DrawGUI(ImTextureID renderTexture) {
 
   // Phase 4: Render command history panel
   ShowCommandHistoryPanel();
+
+  // Phase 5: Render view presets panel
+  ShowViewPresetsPanel();
 
   // SshowDemoWindow();
   Render();

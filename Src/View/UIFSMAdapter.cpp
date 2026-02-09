@@ -505,4 +505,63 @@ const ICommand *UIFSMAdapter::getCommandAt(size_t index) const {
   return nullptr;
 }
 
+// ==========================================================================
+// Phase 5: Navigation State Management Methods
+// UIFSMAdapter is the single source of truth for navigation domain state
+// ==========================================================================
+
+void UIFSMAdapter::setOrbitCenter(OrbitCenter center) {
+  if (orbitCenter_ != center) {
+    orbitCenter_ = center;
+    logger_->info("Orbit center changed to: {}", static_cast<int>(center));
+
+    /// Notify listeners of orbit center change
+    if (onOrbitCenterChanged_) {
+      onOrbitCenterChanged_();
+    }
+  }
+}
+
+OrbitCenter UIFSMAdapter::getOrbitCenter() const { return orbitCenter_; }
+
+void UIFSMAdapter::setCustomOrbitCenter(const glm::vec3 &center) {
+  customOrbitCenter_ = center;
+  logger_->info("Custom orbit center set to: ({}, {}, {})", center.x, center.y,
+                center.z);
+}
+
+glm::vec3 UIFSMAdapter::getCustomOrbitCenter() const {
+  return customOrbitCenter_;
+}
+
+void UIFSMAdapter::setCurrentViewPreset(ViewPreset preset) {
+  if (currentViewPreset_ != preset) {
+    currentViewPreset_ = preset;
+    logger_->info("View preset changed to: {}", static_cast<int>(preset));
+
+    /// Notify listeners of view preset change
+    if (onViewPresetChanged_) {
+      onViewPresetChanged_();
+    }
+  }
+}
+
+ViewPreset UIFSMAdapter::getCurrentViewPreset() const {
+  return currentViewPreset_;
+}
+
+void UIFSMAdapter::setIsTransitioning(bool transitioning) {
+  isTransitioning_ = transitioning;
+}
+
+bool UIFSMAdapter::isTransitioning() const { return isTransitioning_; }
+
+void UIFSMAdapter::setViewPresetChangedCallback(NavigationCallback callback) {
+  onViewPresetChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setOrbitCenterChangedCallback(NavigationCallback callback) {
+  onOrbitCenterChanged_ = std::move(callback);
+}
+
 } // namespace view

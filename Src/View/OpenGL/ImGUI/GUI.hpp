@@ -10,6 +10,9 @@
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <View/UIFSMAdapter.hpp>
+#include <View/Navigation/NavigationManager.hpp>
+#include <View/Navigation/NavigationEventHandler.hpp>
+#include <View/ImGUI/ViewPresetsPanel.hpp>
 #include <glfwpp/glfwpp.h>
 #include <imgui.h>
 #include <imgui_internal.h> // for docking
@@ -29,6 +32,7 @@ private:
   ImGuiID dockIdOutliner_{};       // Phase 3: Outliner panel dock ID
   ImGuiID dockIdProperties_{};     // Phase 3: Property inspector dock ID
   ImGuiID dockIdCommandHistory_{}; // Phase 4: Command history panel dock ID
+  ImGuiID dockIdViewPresets_{};    // Phase 5: View presets panel dock ID
   ImVec2 mouseOverlayPosition_{};
   ImVec2 mousePositionAbsolute_{};
   ImTextureID textureId_{};
@@ -75,6 +79,15 @@ private:
   /// Phase 4: Command history panel for undo/redo visualization
   std::unique_ptr<view::CommandHistoryPanel> commandHistoryPanel_;
 
+  /// Phase 5: Navigation manager for zoom, pan, orbit operations (stateless coordinator)
+  std::unique_ptr<view::NavigationManager> navigationManager_;
+
+  /// Phase 5: Navigation event handler for mouse and keyboard events
+  std::unique_ptr<view::NavigationEventHandler> navigationEventHandler_;
+
+  /// Phase 5: View presets panel for view preset selection
+  std::unique_ptr<view::ViewPresetsPanel> viewPresetsPanel_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -88,6 +101,7 @@ private:
   void ShowOutlinerPanel();
   void ShowPropertyInspectorPanel();
   void ShowCommandHistoryPanel(); // Phase 4: Command history panel
+  void ShowViewPresetsPanel();     // Phase 5: View presets panel
   // void ShowListPanel()
   void ShowSimpleOverlay(); // let it float after the mouse and show its
                             // coordinates if within canvas
