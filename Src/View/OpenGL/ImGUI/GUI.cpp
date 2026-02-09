@@ -3,14 +3,15 @@
 #include <GUI.hpp>
 #include <View/Commands/ExtendedCommandManager.hpp>
 #include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
-#include <View/Navigation/NavigationManager.hpp>
+#include <View/ImGUI/ViewPresetsPanel.hpp>
 #include <View/Navigation/NavigationEventHandler.hpp>
+#include <View/Navigation/NavigationManager.hpp>
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/Precision/GridSettingsPanel.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
-#include <View/ImGUI/ViewPresetsPanel.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 using namespace ImGui;
@@ -112,6 +113,10 @@ void GUI::ShowDockSpace() {
     dockIdViewPresets_ = DockBuilderSplitNode(dockIdTools_, ImGuiDir_Down,
                                               0.25f, nullptr, &dockIdTools_);
 
+    // Phase 6: Split view presets dock to create space for grid settings
+    dockIdGridSettings_ = DockBuilderSplitNode(
+        dockIdViewPresets_, ImGuiDir_Down, 0.50f, nullptr, &dockIdViewPresets_);
+
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
@@ -120,6 +125,7 @@ void GUI::ShowDockSpace() {
     DockBuilderDockWindow("Properties", dockIdProperties_);
     DockBuilderDockWindow("Command History", dockIdCommandHistory_);
     DockBuilderDockWindow("View Presets", dockIdViewPresets_);
+    DockBuilderDockWindow("Grid Settings", dockIdGridSettings_);
 
     DockBuilderFinish(dockId_);
   }
@@ -290,6 +296,17 @@ void GUI::ShowViewPresetsPanel() {
 }
 
 /**
+ * @brief Render the grid settings panel
+ *
+ * Displays the grid settings window for configuring grid visualization.
+ */
+void GUI::ShowGridSettingsPanel() {
+  if (gridSettingsPanel_) {
+    gridSettingsPanel_->render();
+  }
+}
+
+/**
  * @brief Shows sketch plane visualization overlay when in sketch mode
  */
 void GUI::ShowSketchPlaneOverlay() {
@@ -362,7 +379,8 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   extendedCommandManager_->setCommandHistoryPanel(commandHistoryPanel_.get());
 
   // Initialize Phase 5: Navigation and Views system
-  /// Create navigation manager (stateless coordinator, delegates to UIFSMAdapter)
+  /// Create navigation manager (stateless coordinator, delegates to
+  /// UIFSMAdapter)
   navigationManager_ = std::make_unique<view::NavigationManager>(
       *uiFSMAdapter_, *cameraController_,
       selectionManager_.get() /* optional for orbit center */);
@@ -372,6 +390,10 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   /// Create view presets panel for view preset selection
   viewPresetsPanel_ =
       std::make_unique<view::ViewPresetsPanel>(*navigationManager_);
+
+  /// Phase 6: Create grid settings panel for grid configuration
+  gridSettingsPanel_ =
+      std::make_unique<view::GridSettingsPanel>(uiFSMAdapter_.get());
 
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
@@ -438,6 +460,9 @@ GUI::DrawGUI(ImTextureID renderTexture) {
 
   // Phase 5: Render view presets panel
   ShowViewPresetsPanel();
+
+  // Phase 6: Render grid settings panel
+  ShowGridSettingsPanel();
 
   // SshowDemoWindow();
   Render();

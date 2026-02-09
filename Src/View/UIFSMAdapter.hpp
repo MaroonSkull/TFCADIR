@@ -167,6 +167,47 @@ struct MeasurementSettings {
   bool operator==(const MeasurementSettings &other) const = default;
 };
 
+/**
+ * @brief Coordinate input mode enumeration
+ *
+ * Defines the available coordinate input modes for precise drawing operations.
+ */
+enum class CoordinateInputMode {
+  Absolute, ///< Absolute coordinates (X: 100.5, Y: 50.0)
+  Relative  ///< Relative coordinates (@X: 25.0, @Y: 10.0)
+};
+
+/**
+ * @brief Coordinate input settings for precise coordinate entry
+ *
+ * Contains configuration for coordinate input behavior, including
+ * input mode, precision settings, and expression parsing options.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct CoordinateInputSettings {
+  /// Current coordinate input mode
+  CoordinateInputMode inputMode = CoordinateInputMode::Absolute;
+
+  /// Number of decimal places for coordinate display (0-6)
+  int precision = 2;
+
+  /// Number of decimal places for angular display (0-4)
+  int angularPrecision = 2;
+
+  /// Whether expression parsing is enabled
+  bool expressionParsingEnabled = true;
+
+  /// Whether to snap to precision grid
+  bool snapToPrecisionGrid = false;
+
+  /**
+   * @brief Equality operator for CoordinateInputSettings
+   * @param other The other CoordinateInputSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const CoordinateInputSettings &other) const = default;
+};
+
 // ==========================================================================
 // Phase 6: FSM Event Definitions
 // These events are defined in fsm::events namespace in FSM.hpp
@@ -607,6 +648,11 @@ public:
   using GridGeometryDirtyCallback = std::function<void()>;
 
   /**
+   * @brief Callback type for coordinate input settings change notifications
+   */
+  using CoordinateInputSettingsCallback = std::function<void()>;
+
+  /**
    * @brief Get the current grid settings
    * @return Current grid settings
    */
@@ -619,6 +665,18 @@ public:
    * Triggers OnGridSettingsChanged FSM event and notifies listeners.
    */
   void setGridSettings(const GridSettings &settings);
+
+  /**
+   * @brief Get the grid settings panel visibility
+   * @return true if the grid settings panel is visible
+   */
+  bool getGridSettingsPanelVisible() const;
+
+  /**
+   * @brief Set the grid settings panel visibility
+   * @param visible The new visibility state
+   */
+  void setGridSettingsPanelVisible(bool visible);
 
   /**
    * @brief Get the current snap settings
@@ -880,6 +938,62 @@ public:
   int getMeasurementPrecision() const;
 
   // ==========================================================================
+  // Coordinate Input Settings Methods
+  // These methods provide access to coordinate input settings
+  // ==========================================================================
+
+  /**
+   * @brief Get the current coordinate input settings
+   * @return Current coordinate input settings
+   */
+  CoordinateInputSettings getCoordinateInputSettings() const;
+
+  /**
+   * @brief Set coordinate input settings
+   * @param settings The new coordinate input settings
+   *
+   * Triggers OnCoordinateInputSettingsChanged FSM event and notifies listeners.
+   */
+  void setCoordinateInputSettings(const CoordinateInputSettings &settings);
+
+  /**
+   * @brief Set callback for coordinate input settings change notifications
+   * @param callback Function to invoke when coordinate input settings change
+   */
+  void setCoordinateInputSettingsChangedCallback(
+      CoordinateInputSettingsCallback callback);
+
+  // ==========================================================================
+  // Coordinate Input State Query Methods (for CoordinateInputManager)
+  // These methods provide access to individual coordinate input settings
+  // properties
+  // ==========================================================================
+
+  /**
+   * @brief Check if expression parsing is enabled
+   * @return true if expression parsing is enabled
+   */
+  bool isExpressionParsingEnabled() const;
+
+  /**
+   * @brief Get the coordinate precision
+   * @return Number of decimal places for coordinate display
+   */
+  int getCoordinatePrecision() const;
+
+  /**
+   * @brief Get the angular precision
+   * @return Number of decimal places for angular display
+   */
+  int getAngularPrecision() const;
+
+  /**
+   * @brief Get the coordinate input mode
+   * @return Current coordinate input mode
+   */
+  CoordinateInputMode getCoordinateInputMode() const;
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -1037,6 +1151,9 @@ private:
   /// Grid settings for visualization and snapping
   GridSettings gridSettings_;
 
+  /// Grid settings panel visibility
+  bool gridSettingsPanelVisible_{true};
+
   /// Snap settings for precision drawing
   SnapSettings snapSettings_;
 
@@ -1061,6 +1178,19 @@ private:
   /// Callback to notify when grid geometry becomes dirty
   /// Triggered when grid settings change (spacing, divisions, etc.)
   GridGeometryDirtyCallback onGridGeometryDirty_;
+
+  // ==========================================================================
+  // Coordinate Input Settings Storage
+  // These member variables store coordinate input settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Coordinate input settings for precise coordinate entry
+  CoordinateInputSettings coordinateInputSettings_;
+
+  /// Callback for coordinate input settings change notifications
+  CoordinateInputSettingsCallback onCoordinateInputSettingsChanged_;
 
   /**
    * @brief Get available sketch planes

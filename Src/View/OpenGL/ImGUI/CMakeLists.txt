@@ -23,6 +23,7 @@ config_lib(GUI
         ObjectManagement
         Commands
         Navigation
+        Precision
     COMPILE_FEATURES
         cxx_std_17
 )
