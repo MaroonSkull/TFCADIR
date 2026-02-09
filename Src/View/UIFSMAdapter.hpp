@@ -245,6 +245,29 @@ public:
                             const std::any &value);
 
   // ==========================================================================
+  // Figure Grouping Methods (STUB - Not fully implemented)
+  // These methods are stubs to allow compilation of GroupFiguresCommand
+  // and UngroupFiguresCommand. Full implementation is pending.
+  // ==========================================================================
+
+  /**
+   * @brief Group multiple figures together
+   * @param figureIds The IDs of the figures to group
+   * @return The ID of the created group, or 0 if grouping failed
+   * @note This is a stub method that returns 0. Full implementation pending.
+   */
+  uint32_t groupFigures(const std::vector<uint32_t> &figureIds);
+
+  /**
+   * @brief Ungroup a group of figures
+   * @param groupId The ID of the group to ungroup
+   * @return Vector of released figure IDs, or empty if ungrouping failed
+   * @note This is a stub method that returns empty vector. Full implementation
+   * pending.
+   */
+  std::vector<uint32_t> ungroupFigures(uint32_t groupId);
+
+  // ==========================================================================
   // Phase 3: Notification Callbacks
   // These callbacks notify panels of state changes
   // ==========================================================================
@@ -330,66 +353,11 @@ private:
   /// Callback for property change notifications
   PropertyChangedCallback propertyChangedCallback_;
 
-  // ==========================================================================
-  // Phase 2: Command History State Storage
-  // These member variables store command history state that cannot be stored
-  // in FSM because FSMConfig's VariableValue only supports simple types.
-  // ==========================================================================
-
-  /// Command history storage (vector of command descriptions)
-  std::vector<std::string> commandHistory_;
-
-  /// Current position in command history (index of last executed command)
-  size_t currentCommandIndex_;
-
   /**
    * @brief Get available sketch planes
    * @return Vector of preset sketch planes
    */
   std::vector<model::SketchPlane> getAvailablePlanes() const;
-
-public:
-  // ==========================================================================
-  // Phase 2: Command History Query Methods
-  // These methods provide access to command history state for UI
-  // ==========================================================================
-
-  /**
-   * @brief Check if undo is available
-   * @return true if there is a command to undo
-   *
-   * Returns true if the current command index is greater than 0,
-   * indicating that there is at least one command that can be undone.
-   */
-  bool canUndo() const;
-
-  /**
-   * @brief Check if redo is available
-   * @return true if there is a command to redo
-   *
-   * Returns true if the current command index is less than the
-   * command history size, indicating that there is at least one
-   * command that can be redone.
-   */
-  bool canRedo() const;
-
-  /**
-   * @brief Get description of the command that would be undone
-   * @return Description of the next undo command, or empty string if none
-   *
-   * Returns the description of the command at the current index.
-   * If no undo is available, returns an empty string.
-   */
-  std::string getUndoDescription() const;
-
-  /**
-   * @brief Get description of the command that would be redone
-   * @return Description of the next redo command, or empty string if none
-   *
-   * Returns the description of the command after the current index.
-   * If no redo is available, returns an empty string.
-   */
-  std::string getRedoDescription() const;
 };
 
 } // namespace view

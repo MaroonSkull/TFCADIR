@@ -7,7 +7,7 @@ UIFSMAdapter::UIFSMAdapter(fsm::Machine &fsm,
                            std::shared_ptr<spdlog::logger> logger)
     : fsm_(fsm), cameraController_(cameraController),
       logger_(std::move(logger)), currentState_(fsm.get_current_state()),
-      primarySelectionIndex_(-1), currentCommandIndex_(0) {
+      primarySelectionIndex_(-1) {
   logger_->info("UIFSMAdapter initialized");
 }
 
@@ -376,38 +376,27 @@ void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
 }
 
 // ==========================================================================
-// Phase 2: Command History Query Methods
-// These methods provide access to command history state for UI
+// Figure Grouping Methods (STUB - Not fully implemented)
+// These methods are stubs to allow compilation of GroupFiguresCommand
+// and UngroupFiguresCommand. Full implementation is pending.
 // ==========================================================================
 
-bool UIFSMAdapter::canUndo() const {
-  /// Undo is available if there is at least one command in history
-  /// that can be undone (current index > 0)
-  return currentCommandIndex_ > 0;
+uint32_t UIFSMAdapter::groupFigures(const std::vector<uint32_t> &figureIds) {
+  /// Stub implementation - returns 0 to indicate failure
+  /// Full implementation requires access to the model's grouping functionality
+  logger_->warn("groupFigures called with {} figures - STUB (not implemented)",
+                figureIds.size());
+  return 0; /// Return 0 to indicate grouping failed
 }
 
-bool UIFSMAdapter::canRedo() const {
-  /// Redo is available if there are commands after the current index
-  /// that can be redone (current index < history size)
-  return currentCommandIndex_ < commandHistory_.size();
-}
-
-std::string UIFSMAdapter::getUndoDescription() const {
-  /// Return the description of the command that would be undone
-  /// If no undo is available, return empty string
-  if (canUndo() && currentCommandIndex_ > 0) {
-    return commandHistory_[currentCommandIndex_ - 1];
-  }
-  return "";
-}
-
-std::string UIFSMAdapter::getRedoDescription() const {
-  /// Return the description of the command that would be redone
-  /// If no redo is available, return empty string
-  if (canRedo()) {
-    return commandHistory_[currentCommandIndex_];
-  }
-  return "";
+std::vector<uint32_t> UIFSMAdapter::ungroupFigures(uint32_t groupId) {
+  /// Stub implementation - returns empty vector to indicate failure
+  /// Full implementation requires access to the model's ungrouping
+  /// functionality
+  logger_->warn("ungroupFigures called for group {} - STUB (not implemented)",
+                groupId);
+  return std::vector<uint32_t>(); /// Return empty vector to indicate ungrouping
+                                  /// failed
 }
 
 } // namespace view

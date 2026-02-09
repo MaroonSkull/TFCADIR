@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CommandHistory.hpp"
 #include "ICommand.hpp"
 #include <cstdint>
 #include <functional>
@@ -13,6 +14,9 @@ class FlatFigures;
 namespace view {
 
 class UIFSMAdapter;
+
+// Forward declaration
+class CommandFactory;
 
 /**
  * @brief Information structure for command history display
@@ -32,15 +36,16 @@ struct CommandInfo {
 /**
  * @brief Extended command manager supporting Phase 4 command API
  *
- * ExtendedCommandManager is a stateless coordinator that follows the Phase 3
- * SelectionManager pattern. It does NOT store command history locally - all
- * command state is queried from UIFSMAdapter (the single source of truth).
+ * ExtendedCommandManager is a stateless coordinator that delegates to
+ * CommandHistory for command storage and undo/redo operations. This follows
+ * the single responsibility principle - CommandHistory owns the command state,
+ * while ExtendedCommandManager coordinates command execution.
  *
  * This class provides Phase 4 typed commands (ICommand interface).
  *
  * **Design Principles:**
- * - Stateless coordinator (no local command history storage)
- * - Query-based (delegates to UIFSMAdapter for command state)
+ * - Stateless coordinator (delegates to CommandHistory for state)
+ * - CommandHistory owns command storage and undo/redo state
  * - Phase 4 ICommand interface
  * - Callback notifications after command operations
  */
@@ -59,10 +64,11 @@ public:
 
   /**
    * @brief Construct an ExtendedCommandManager
-   * @param fsmAdapter Reference to the UIFSMAdapter for command state queries
+   * @param commandHistory Reference to the command history for state management
    * @param model Reference to the model for figure operations
    */
-  ExtendedCommandManager(UIFSMAdapter &fsmAdapter, model::FlatFigures &model);
+  ExtendedCommandManager(CommandHistory &commandHistory,
+                         model::FlatFigures &model);
 
   /**
    * @brief Destructor
@@ -79,10 +85,6 @@ public:
    *
    * Executes the command and adds it to the command history if successful.
    * The command must implement the ICommand interface.
-   *
-   * @note Command history management requires UIFSMAdapter extension with
-   *       command state storage. This method executes the command directly
-   *       without history storage until that extension is complete.
    */
   void executeCommand(std::unique_ptr<ICommand> command);
 
@@ -92,84 +94,75 @@ public:
    *
    * Executes all sub-commands in the macro atomically.
    * If any sub-command fails, all executed commands are rolled back.
-   *
-   * @note Command history management requires UIFSMAdapter extension with
-   *       command state storage. This method executes the macro directly
-   *       without history storage until that extension is complete.
    */
   void executeMacro(std::unique_ptr<ICommand> macro);
 
+  /**
+   * @brief Undo the last command
+   * @return true if successful, false otherwise
+   *
+   * Delegates to CommandHistory to undo the current command.
+   */
+  bool undo();
+
+  /**
+   * @brief Redo the next command
+   * @return true if successful, false otherwise
+   *
+   * Delegates to CommandHistory to redo the next command.
+   */
+  bool redo();
+
   // ==========================================================================
-  // Query Methods for UI (Delegate to UIFSMAdapter)
+  // Query Methods for UI (Delegate to CommandHistory)
   // ==========================================================================
 
   /**
    * @brief Get the complete command history
    * @return Vector of command info structures
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       state management. Returns empty vector until extension is complete.
    */
   std::vector<CommandInfo> getCommandHistory() const;
 
   /**
    * @brief Get the current command (last executed)
    * @return Command info structure
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       state management. Returns empty CommandInfo until extension is
-   * complete.
    */
   CommandInfo getCurrentCommand() const;
 
   /**
    * @brief Get the command that would be undone
    * @return Command info structure
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       state management. Returns empty CommandInfo until extension is
-   * complete.
    */
   CommandInfo getUndoCommand() const;
 
   /**
    * @brief Get the command that would be redone
    * @return Command info structure
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       state management. Returns empty CommandInfo until extension is
-   * complete.
    */
   CommandInfo getRedoCommand() const;
 
   /**
    * @brief Get the total number of commands in history
    * @return Size of command history
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       state management. Returns 0 until extension is complete.
    */
   size_t getHistorySize() const;
 
   /**
    * @brief Get the current command index
    * @return Current index in command history
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       state management. Returns 0 until extension is complete.
    */
   size_t getCurrentIndex() const;
 
   // ==========================================================================
   // Phase 2: Undo/Redo Query Methods (Backward Compatibility)
-  // These methods delegate to UIFSMAdapter for state access
+  // These methods delegate to CommandHistory for state access
   // ==========================================================================
 
   /**
    * @brief Check if undo is available
    * @return true if there is a command to undo
    *
-   * Delegates to UIFSMAdapter to check if undo is available.
+   * Delegates to CommandHistory to check if undo is available.
    * This method maintains backward compatibility with Phase 2 tools.
    */
   bool canUndo() const;
@@ -178,7 +171,7 @@ public:
    * @brief Check if redo is available
    * @return true if there is a command to redo
    *
-   * Delegates to UIFSMAdapter to check if redo is available.
+   * Delegates to CommandHistory to check if redo is available.
    * This method maintains backward compatibility with Phase 2 tools.
    */
   bool canRedo() const;
@@ -187,7 +180,7 @@ public:
    * @brief Get description of the command that would be undone
    * @return Description of the next undo command, or empty string if none
    *
-   * Delegates to UIFSMAdapter to get the undo command description.
+   * Delegates to CommandHistory to get the undo command description.
    * This method maintains backward compatibility with Phase 2 tools.
    */
   std::string getUndoDescription() const;
@@ -196,7 +189,7 @@ public:
    * @brief Get description of the command that would be redone
    * @return Description of the next redo command, or empty string if none
    *
-   * Delegates to UIFSMAdapter to get the redo command description.
+   * Delegates to CommandHistory to get the redo command description.
    * This method maintains backward compatibility with Phase 2 tools.
    */
   std::string getRedoDescription() const;
@@ -210,9 +203,6 @@ public:
    * @param filepath Path to the file where history should be saved
    *
    * Serializes the command history to JSON format for persistence.
-   *
-   * @note This method requires UIFSMAdapter extension with command history
-   *       storage. Logs a warning until extension is complete.
    */
   void saveHistory(const std::string &filepath);
 
@@ -222,51 +212,44 @@ public:
    * @param filepath Path to the file containing saved history
    *
    * Deserializes commands from JSON and restores the command history.
-   *
-   * @note This method requires UIFSMAdapter extension with command history
-   *       storage. Logs a warning until extension is complete.
    */
-  void loadHistory(const std::shared_ptr<class CommandFactory> &factory,
+  void loadHistory(const std::shared_ptr<CommandFactory> &factory,
                    const std::string &filepath);
 
 private:
-  /// Reference to the UIFSMAdapter (stateless coordinator queries this)
-  UIFSMAdapter &fsmAdapter_;
+  /// Reference to the command history for state management
+  CommandHistory &commandHistory_;
 
   /// Reference to the model for figure operations
   model::FlatFigures &model_;
 
   /**
    * @brief Notify listeners that a command was executed
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       notification callbacks.
    */
   void notifyCommandExecuted();
 
   /**
    * @brief Notify listeners that a command was undone
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       notification callbacks.
    */
   void notifyCommandUndone();
 
   /**
    * @brief Notify listeners that a command was redone
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       notification callbacks.
    */
   void notifyCommandRedone();
 
   /**
    * @brief Notify listeners that command history was cleared
-   *
-   * @note This method requires UIFSMAdapter extension with Phase 4 command
-   *       notification callbacks.
    */
   void notifyHistoryCleared();
+
+  /**
+   * @brief Convert command to CommandInfo structure
+   * @param command The command to convert
+   * @param index The index of the command in history
+   * @return CommandInfo structure with command metadata
+   */
+  CommandInfo commandToInfo(const ICommand *command, size_t index) const;
 };
 
 } // namespace view
