@@ -264,8 +264,8 @@ void UIFSMAdapter::selectFigure(uint32_t figureId) {
 
 void UIFSMAdapter::toggleFigureSelection(uint32_t figureId) {
   /// Toggle selection state of a figure
-  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
-                      figureId);
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
 
   if (it != selectedFigureIds_.end()) {
     /// Figure is selected - remove it
@@ -292,8 +292,8 @@ void UIFSMAdapter::toggleFigureSelection(uint32_t figureId) {
 
 void UIFSMAdapter::addToSelection(uint32_t figureId) {
   /// Add a figure to the current selection if not already selected
-  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
-                      figureId);
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
 
   if (it == selectedFigureIds_.end()) {
     selectedFigureIds_.push_back(figureId);
@@ -308,8 +308,8 @@ void UIFSMAdapter::addToSelection(uint32_t figureId) {
 
 void UIFSMAdapter::removeFromSelection(uint32_t figureId) {
   /// Remove a figure from the current selection
-  auto it = std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(),
-                      figureId);
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
 
   if (it != selectedFigureIds_.end()) {
     size_t index = std::distance(selectedFigureIds_.begin(), it);
@@ -355,8 +355,8 @@ void UIFSMAdapter::setPrimarySelection(int index) {
 }
 
 void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
-                                       const std::string &propertyPath,
-                                       const std::any &value) {
+                                        const std::string &propertyPath,
+                                        const std::any &value) {
   /// Update a property of a specific figure
   /// Note: This method requires access to the model which is passed in through
   /// the constructor or set via a separate setter. For now, this is a
@@ -364,8 +364,7 @@ void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
   /// implemented by the PropertyInspectorPanel which has direct access to the
   /// model.
 
-  logger_->info("Updating property '{}' for figure {}", propertyPath,
-                figureId);
+  logger_->info("Updating property '{}' for figure {}", propertyPath, figureId);
 
   /// Parse property path (e.g., "center.x", "radius")
   size_t dotPos = propertyPath.find('.');
@@ -374,6 +373,195 @@ void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
   if (propertyChangedCallback_) {
     propertyChangedCallback_(figureId, propertyPath);
   }
+}
+
+// ==========================================================================
+// Figure Grouping Methods (STUB - Not fully implemented)
+// These methods are stubs to allow compilation of GroupFiguresCommand
+// and UngroupFiguresCommand. Full implementation is pending.
+// ==========================================================================
+
+uint32_t UIFSMAdapter::groupFigures(const std::vector<uint32_t> &figureIds) {
+  /// Stub implementation - returns 0 to indicate failure
+  /// Full implementation requires access to the model's grouping functionality
+  logger_->warn("groupFigures called with {} figures - STUB (not implemented)",
+                figureIds.size());
+  return 0; /// Return 0 to indicate grouping failed
+}
+
+std::vector<uint32_t> UIFSMAdapter::ungroupFigures(uint32_t groupId) {
+  /// Stub implementation - returns empty vector to indicate failure
+  /// Full implementation requires access to the model's ungrouping
+  /// functionality
+  logger_->warn("ungroupFigures called for group {} - STUB (not implemented)",
+                groupId);
+  return std::vector<uint32_t>(); /// Return empty vector to indicate ungrouping
+                                  /// failed
+}
+
+// ==========================================================================
+// Phase 4: Command History Management Methods
+// UIFSMAdapter is the single source of truth for command history storage
+// ==========================================================================
+
+void UIFSMAdapter::executeCommand(std::unique_ptr<ICommand> command) {
+  /// Execute the command
+  if (command->execute()) {
+    /// Remove any commands after the current index (clear redo chain)
+    if (currentCommandIndex_ < commandHistory_.size()) {
+      commandHistory_.resize(currentCommandIndex_);
+    }
+
+    /// Add the command to history
+    commandHistory_.push_back(std::move(command));
+    currentCommandIndex_ = commandHistory_.size();
+
+    /// Enforce maximum history size
+    if (commandHistory_.size() > MAX_HISTORY_SIZE) {
+      commandHistory_.erase(commandHistory_.begin());
+      currentCommandIndex_ = commandHistory_.size();
+    }
+
+    logger_->info("Executed command, history size: {}, index: {}",
+                  commandHistory_.size(), currentCommandIndex_);
+  } else {
+    logger_->warn("Command execution failed");
+  }
+}
+
+bool UIFSMAdapter::undoCommand() {
+  if (!canUndo()) {
+    logger_->warn("Cannot undo: no command to undo");
+    return false;
+  }
+
+  /// Decrement index and undo the command
+  currentCommandIndex_--;
+  if (commandHistory_[currentCommandIndex_]->undo()) {
+    logger_->info("Undone command, new index: {}", currentCommandIndex_);
+    return true;
+  } else {
+    logger_->error("Undo failed for command at index: {}",
+                   currentCommandIndex_);
+    currentCommandIndex_++; /// Restore index on failure
+    return false;
+  }
+}
+
+bool UIFSMAdapter::redoCommand() {
+  if (!canRedo()) {
+    logger_->warn("Cannot redo: no command to redo");
+    return false;
+  }
+
+  /// Redo the command at current index (execute again) and increment
+  if (commandHistory_[currentCommandIndex_]->execute()) {
+    currentCommandIndex_++;
+    logger_->info("Redone command, new index: {}", currentCommandIndex_);
+    return true;
+  } else {
+    logger_->error("Redo failed for command at index: {}",
+                   currentCommandIndex_);
+    return false;
+  }
+}
+
+void UIFSMAdapter::clearCommandHistory() {
+  commandHistory_.clear();
+  currentCommandIndex_ = 0;
+  logger_->info("Command history cleared");
+}
+
+bool UIFSMAdapter::canUndo() const { return currentCommandIndex_ > 0; }
+
+bool UIFSMAdapter::canRedo() const {
+  return currentCommandIndex_ < commandHistory_.size();
+}
+
+std::string UIFSMAdapter::getUndoDescription() const {
+  if (canUndo()) {
+    return commandHistory_[currentCommandIndex_ - 1]->getDescription();
+  }
+  return "";
+}
+
+std::string UIFSMAdapter::getRedoDescription() const {
+  if (canRedo()) {
+    return commandHistory_[currentCommandIndex_]->getDescription();
+  }
+  return "";
+}
+
+size_t UIFSMAdapter::getHistorySize() const { return commandHistory_.size(); }
+
+size_t UIFSMAdapter::getCurrentCommandIndex() const {
+  return currentCommandIndex_;
+}
+
+const ICommand *UIFSMAdapter::getCommandAt(size_t index) const {
+  if (index < commandHistory_.size()) {
+    return commandHistory_[index].get();
+  }
+  return nullptr;
+}
+
+// ==========================================================================
+// Phase 5: Navigation State Management Methods
+// UIFSMAdapter is the single source of truth for navigation domain state
+// ==========================================================================
+
+void UIFSMAdapter::setOrbitCenter(OrbitCenter center) {
+  if (orbitCenter_ != center) {
+    orbitCenter_ = center;
+    logger_->info("Orbit center changed to: {}", static_cast<int>(center));
+
+    /// Notify listeners of orbit center change
+    if (onOrbitCenterChanged_) {
+      onOrbitCenterChanged_();
+    }
+  }
+}
+
+OrbitCenter UIFSMAdapter::getOrbitCenter() const { return orbitCenter_; }
+
+void UIFSMAdapter::setCustomOrbitCenter(const glm::vec3 &center) {
+  customOrbitCenter_ = center;
+  logger_->info("Custom orbit center set to: ({}, {}, {})", center.x, center.y,
+                center.z);
+}
+
+glm::vec3 UIFSMAdapter::getCustomOrbitCenter() const {
+  return customOrbitCenter_;
+}
+
+void UIFSMAdapter::setCurrentViewPreset(ViewPreset preset) {
+  if (currentViewPreset_ != preset) {
+    currentViewPreset_ = preset;
+    logger_->info("View preset changed to: {}", static_cast<int>(preset));
+
+    /// Notify listeners of view preset change
+    if (onViewPresetChanged_) {
+      onViewPresetChanged_();
+    }
+  }
+}
+
+ViewPreset UIFSMAdapter::getCurrentViewPreset() const {
+  return currentViewPreset_;
+}
+
+void UIFSMAdapter::setIsTransitioning(bool transitioning) {
+  isTransitioning_ = transitioning;
+}
+
+bool UIFSMAdapter::isTransitioning() const { return isTransitioning_; }
+
+void UIFSMAdapter::setViewPresetChangedCallback(NavigationCallback callback) {
+  onViewPresetChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setOrbitCenterChangedCallback(NavigationCallback callback) {
+  onOrbitCenterChanged_ = std::move(callback);
 }
 
 } // namespace view

@@ -4,11 +4,14 @@
 #include <Model/IModel.hpp>
 #include <Model/SketchPlane.hpp>
 #include <View/CameraController.hpp>
+#include <View/Commands/ICommand.hpp>
+#include <View/Navigation/NavigationTypes.hpp>
 #include <any>
 #include <cstdint>
 #include <functional>
 #include <glm/glm.hpp>
 #include <map>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
@@ -238,10 +241,195 @@ public:
    * @param figureId The figure to update
    * @param propertyPath The property path (e.g., "center.x", "radius")
    * @param value The new value
-   * @note This method implements the property path format from architecture v1.3
+   * @note This method implements the property path format from architecture
+   * v1.3
    */
   void updateFigureProperty(uint32_t figureId, const std::string &propertyPath,
                             const std::any &value);
+
+  // ==========================================================================
+  // Phase 4: Command History Management Methods
+  // UIFSMAdapter is the single source of truth for command history storage
+  // ==========================================================================
+
+  /**
+   * @brief Execute a command and add it to history
+   * @param command Unique pointer to the command to execute
+   *
+   * Executes the command and adds it to the command history if successful.
+   * Any commands after the current position are removed (redo chain cleared).
+   */
+  void executeCommand(std::unique_ptr<ICommand> command);
+
+  /**
+   * @brief Undo the last command
+   * @return true if successful, false otherwise
+   *
+   * Executes undo on the command at the current index and decrements
+   * the current index. Returns false if undo is not available.
+   */
+  bool undoCommand();
+
+  /**
+   * @brief Redo the next command
+   * @return true if successful, false otherwise
+   *
+   * Increments the current index and executes redo on the command at
+   * the new position. Returns false if redo is not available.
+   */
+  bool redoCommand();
+
+  /**
+   * @brief Clear the command history
+   *
+   * Removes all commands from the history and resets the current index to 0.
+   */
+  void clearCommandHistory();
+
+  /**
+   * @brief Check if undo is available
+   * @return true if there is a command to undo
+   *
+   * Returns true if the current index is greater than 0,
+   * indicating that there is at least one command that can be undone.
+   */
+  bool canUndo() const;
+
+  /**
+   * @brief Check if redo is available
+   * @return true if there is a command to redo
+   *
+   * Returns true if the current index is less than the history size,
+   * indicating that there is at least one command that can be redone.
+   */
+  bool canRedo() const;
+
+  /**
+   * @brief Get description of the command that would be undone
+   * @return Description of the next undo command, or empty string if none
+   */
+  std::string getUndoDescription() const;
+
+  /**
+   * @brief Get description of the command that would be redone
+   * @return Description of the next redo command, or empty string if none
+   */
+  std::string getRedoDescription() const;
+
+  /**
+   * @brief Get the total number of commands in history
+   * @return Size of command history
+   */
+  size_t getHistorySize() const;
+
+  /**
+   * @brief Get the current command index
+   * @return Current index in command history
+   */
+  size_t getCurrentCommandIndex() const;
+
+  /**
+   * @brief Get command at specific index
+   * @param index The index of the command to retrieve
+   * @return Pointer to the command, or nullptr if index is invalid
+   *
+   * Returns a raw pointer to the command at the specified index.
+   * The command remains owned by UIFSMAdapter.
+   */
+  const ICommand *getCommandAt(size_t index) const;
+
+  // ==========================================================================
+  // Phase 5: Navigation State Management Methods
+  // UIFSMAdapter is the single source of truth for navigation domain state
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for navigation state change notifications
+   */
+  using NavigationCallback = std::function<void()>;
+
+  /**
+   * @brief Set the orbit center for 3D navigation
+   * @param center The orbit center type
+   */
+  void setOrbitCenter(OrbitCenter center);
+
+  /**
+   * @brief Get the current orbit center
+   * @return The current orbit center type
+   */
+  OrbitCenter getOrbitCenter() const;
+
+  /**
+   * @brief Set a custom orbit center point
+   * @param center The custom orbit center coordinates
+   */
+  void setCustomOrbitCenter(const glm::vec3 &center);
+
+  /**
+   * @brief Get the custom orbit center point
+   * @return The custom orbit center coordinates
+   */
+  glm::vec3 getCustomOrbitCenter() const;
+
+  /**
+   * @brief Set the current view preset
+   * @param preset The view preset to set
+   */
+  void setCurrentViewPreset(ViewPreset preset);
+
+  /**
+   * @brief Get the current view preset
+   * @return The current view preset
+   */
+  ViewPreset getCurrentViewPreset() const;
+
+  /**
+   * @brief Set whether a view transition is in progress
+   * @param transitioning true if a transition is in progress
+   */
+  void setIsTransitioning(bool transitioning);
+
+  /**
+   * @brief Check if a view transition is in progress
+   * @return true if a transition is in progress
+   */
+  bool isTransitioning() const;
+
+  /**
+   * @brief Set callback for view preset change notifications
+   * @param callback Function to invoke when view preset changes
+   */
+  void setViewPresetChangedCallback(NavigationCallback callback);
+
+  /**
+   * @brief Set callback for orbit center change notifications
+   * @param callback Function to invoke when orbit center changes
+   */
+  void setOrbitCenterChangedCallback(NavigationCallback callback);
+
+  // ==========================================================================
+  // Figure Grouping Methods (STUB - Not fully implemented)
+  // These methods are stubs to allow compilation of GroupFiguresCommand
+  // and UngroupFiguresCommand. Full implementation is pending.
+  // ==========================================================================
+
+  /**
+   * @brief Group multiple figures together
+   * @param figureIds The IDs of the figures to group
+   * @return The ID of the created group, or 0 if grouping failed
+   * @note This is a stub method that returns 0. Full implementation pending.
+   */
+  uint32_t groupFigures(const std::vector<uint32_t> &figureIds);
+
+  /**
+   * @brief Ungroup a group of figures
+   * @param groupId The ID of the group to ungroup
+   * @return Vector of released figure IDs, or empty if ungrouping failed
+   * @note This is a stub method that returns empty vector. Full implementation
+   * pending.
+   */
+  std::vector<uint32_t> ungroupFigures(uint32_t groupId);
 
   // ==========================================================================
   // Phase 3: Notification Callbacks
@@ -251,12 +439,14 @@ public:
   /**
    * @brief Callback type for selection change notifications
    */
-  using SelectionChangedCallback = std::function<void(const std::vector<uint32_t> &)>;
+  using SelectionChangedCallback =
+      std::function<void(const std::vector<uint32_t> &)>;
 
   /**
    * @brief Callback type for property change notifications
    */
-  using PropertyChangedCallback = std::function<void(uint32_t, const std::string &)>;
+  using PropertyChangedCallback =
+      std::function<void(uint32_t, const std::string &)>;
 
   /**
    * @brief Set callback for selection change notifications
@@ -326,6 +516,45 @@ private:
 
   /// Callback for property change notifications
   PropertyChangedCallback propertyChangedCallback_;
+
+  // ==========================================================================
+  // Phase 4: Command History Storage
+  // UIFSMAdapter is the single source of truth for command history
+  // ==========================================================================
+
+  /// Vector of command objects (actual commands, not just descriptions)
+  std::vector<std::unique_ptr<ICommand>> commandHistory_;
+
+  /// Current position in command history (index of last executed command)
+  size_t currentCommandIndex_{0};
+
+  /// Maximum history size (for memory management)
+  static constexpr size_t MAX_HISTORY_SIZE = 1000;
+
+  // ==========================================================================
+  // Phase 5: Navigation State Storage
+  // These member variables store navigation state that cannot be stored in FSM
+  // because FSMConfig's VariableValue only supports simple types (int, float,
+  // string, bool), not complex types like glm::vec3 or enum classes.
+  // ==========================================================================
+
+  /// Current orbit center for 3D navigation
+  OrbitCenter orbitCenter_ = OrbitCenter::Origin;
+
+  /// Custom orbit center point (used when orbitCenter_ is Custom)
+  glm::vec3 customOrbitCenter_{0.0f, 0.0f, 0.0f};
+
+  /// Current view preset
+  ViewPreset currentViewPreset_ = ViewPreset::Top2D;
+
+  /// Whether a view transition is currently in progress
+  bool isTransitioning_ = false;
+
+  /// Callback for view preset change notifications
+  NavigationCallback onViewPresetChanged_;
+
+  /// Callback for orbit center change notifications
+  NavigationCallback onOrbitCenterChanged_;
 
   /**
    * @brief Get available sketch planes

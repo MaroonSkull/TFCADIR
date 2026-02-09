@@ -55,4 +55,32 @@ CameraController::setCameraForPlane(const model::SketchPlane &plane) {
   return CameraState{cameraPosition, cameraTarget, cameraUp, projection, model};
 }
 
+// ==========================================================================
+// Phase 5: Navigation Support Methods
+// ==========================================================================
+
+void CameraController::setCameraState(const glm::vec3 &position,
+                                      const glm::vec3 &target,
+                                      const glm::vec3 &up, float zoom) {
+  currentState_.position = position;
+  currentState_.target = target;
+  currentState_.up = up;
+  /// Note: zoom parameter is not currently used in CameraState
+  /// but could be stored for future use
+}
+
+void CameraController::getCameraState(glm::vec3 &position, glm::vec3 &target,
+                                      glm::vec3 &up, float &zoom) const {
+  position = currentState_.position;
+  target = currentState_.target;
+  up = currentState_.up;
+  /// Note: zoom is not currently stored in CameraState
+  /// Return a default value for now
+  zoom = 1.0f;
+}
+
+bool CameraController::is2DMode() const { return is2DMode_; }
+
+bool CameraController::is3DMode() const { return !is2DMode_; }
+
 } // namespace view

@@ -57,6 +57,72 @@ config_lib(ObjectManagement
         cxx_std_17
 )
 
+# Phase 4: Command System (Undo/Redo, Command History)
+config_lib(Commands
+    PRIVATE_SOURCES
+        Commands/CommandFactory.cpp
+        Commands/ExtendedCommandManager.cpp
+        Commands/ColorChangeCommand.cpp
+        Commands/CreateFigureCommand.cpp
+        Commands/DeleteFiguresCommand.cpp
+        Commands/DuplicateFigureCommand.cpp
+        Commands/GroupFiguresCommand.cpp
+        Commands/MacroCommand.cpp
+        Commands/MoveFigureCommand.cpp
+        Commands/PropertyChangeCommand.cpp
+        Commands/RotateFigureCommand.cpp
+        Commands/ScaleFigureCommand.cpp
+        Commands/UngroupFiguresCommand.cpp
+        Commands/ImGUI/CommandHistoryPanel.cpp
+    PUBLIC_SOURCES
+        Commands/ICommand.hpp
+        Commands/CommandFactory.hpp
+        Commands/ExtendedCommandManager.hpp
+        Commands/ColorChangeCommand.hpp
+        Commands/CreateFigureCommand.hpp
+        Commands/DeleteFiguresCommand.hpp
+        Commands/DuplicateFigureCommand.hpp
+        Commands/GroupFiguresCommand.hpp
+        Commands/MacroCommand.hpp
+        Commands/MoveFigureCommand.hpp
+        Commands/PropertyChangeCommand.hpp
+        Commands/RotateFigureCommand.hpp
+        Commands/ScaleFigureCommand.hpp
+        Commands/UngroupFiguresCommand.hpp
+        Commands/ImGUI/CommandHistoryPanel.hpp
+    PUBLIC_DEPENDENCIES
+        Model
+        UIFSMAdapter
+        imgui
+    PRIVATE_DEPENDENCIES
+        nlohmann_json::nlohmann_json
+        spdlog::spdlog
+    COMPILE_FEATURES
+        cxx_std_17
+)
+
+# Phase 5: Navigation & Views System (Zoom, Pan, View Presets)
+config_lib(Navigation
+    PRIVATE_SOURCES
+        Navigation/NavigationManager.cpp
+        Navigation/NavigationEventHandler.cpp
+        ImGUI/ViewPresetsPanel.cpp
+    PUBLIC_SOURCES
+        Navigation/NavigationTypes.hpp
+        Navigation/NavigationManager.hpp
+        Navigation/NavigationEventHandler.hpp
+        ImGUI/ViewPresetsPanel.hpp
+    PUBLIC_DEPENDENCIES
+        UIFSMAdapter
+        CameraController
+        ObjectManagement
+        imgui
+    PRIVATE_DEPENDENCIES
+        spdlog::spdlog
+    COMPILE_FEATURES
+        cxx_std_17
+)
+
 # Select specific view
 add_subdirectory ("OpenGL")
 
