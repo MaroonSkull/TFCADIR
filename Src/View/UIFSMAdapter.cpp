@@ -697,4 +697,64 @@ int UIFSMAdapter::getGridMinorDivisions() const {
   return gridSettings_.minorDivisions;
 }
 
+// ==========================================================================
+// Snap State Query Methods (for SnapManager)
+// These methods provide access to individual snap settings properties
+// ==========================================================================
+
+bool UIFSMAdapter::isSnapGridEnabled() const {
+  /// Return the grid snap enabled flag from local storage
+  return snapSettings_.gridEnabled;
+}
+
+bool UIFSMAdapter::isSnapEndpointEnabled() const {
+  /// Return the endpoint snap enabled flag from local storage
+  return snapSettings_.endpointEnabled;
+}
+
+bool UIFSMAdapter::isSnapMidpointEnabled() const {
+  /// Return the midpoint snap enabled flag from local storage
+  return snapSettings_.midpointEnabled;
+}
+
+bool UIFSMAdapter::isSnapCenterEnabled() const {
+  /// Return the center snap enabled flag from local storage
+  return snapSettings_.centerEnabled;
+}
+
+bool UIFSMAdapter::isSnapIntersectionEnabled() const {
+  /// Return the intersection snap enabled flag from local storage
+  return snapSettings_.intersectionEnabled;
+}
+
+bool UIFSMAdapter::isSnapNearestEnabled() const {
+  /// Return the nearest point snap enabled flag from local storage
+  return snapSettings_.nearestEnabled;
+}
+
+bool UIFSMAdapter::isSnapTangentEnabled() const {
+  /// Return the tangent snap enabled flag from local storage
+  return snapSettings_.tangentEnabled;
+}
+
+bool UIFSMAdapter::isSnapPerpendicularEnabled() const {
+  /// Return the perpendicular snap enabled flag from local storage
+  return snapSettings_.perpendicularEnabled;
+}
+
+float UIFSMAdapter::getSnapTolerance() const {
+  /// Return the snap tolerance from local storage
+  return snapSettings_.tolerancePixels;
+}
+
+bool UIFSMAdapter::getSnapShowIndicators() const {
+  /// Return the snap indicators visibility from local storage
+  return snapSettings_.showIndicators;
+}
+
+glm::vec4 UIFSMAdapter::getSnapIndicatorColor() const {
+  /// Return the snap indicator color from local storage
+  return snapSettings_.indicatorColor;
+}
+
 } // namespace view

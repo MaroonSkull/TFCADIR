@@ -695,6 +695,77 @@ public:
   void setGridGeometryDirtyCallback(GridGeometryDirtyCallback callback);
 
   // ==========================================================================
+  // Snap State Query Methods (for SnapManager)
+  // These methods provide access to individual snap settings properties
+  // ==========================================================================
+
+  /**
+   * @brief Check if grid snap is enabled
+   * @return true if grid snap is enabled
+   */
+  bool isSnapGridEnabled() const;
+
+  /**
+   * @brief Check if endpoint snap is enabled
+   * @return true if endpoint snap is enabled
+   */
+  bool isSnapEndpointEnabled() const;
+
+  /**
+   * @brief Check if midpoint snap is enabled
+   * @return true if midpoint snap is enabled
+   */
+  bool isSnapMidpointEnabled() const;
+
+  /**
+   * @brief Check if center snap is enabled
+   * @return true if center snap is enabled
+   */
+  bool isSnapCenterEnabled() const;
+
+  /**
+   * @brief Check if intersection snap is enabled
+   * @return true if intersection snap is enabled
+   */
+  bool isSnapIntersectionEnabled() const;
+
+  /**
+   * @brief Check if nearest point snap is enabled
+   * @return true if nearest point snap is enabled
+   */
+  bool isSnapNearestEnabled() const;
+
+  /**
+   * @brief Check if tangent snap is enabled
+   * @return true if tangent snap is enabled
+   */
+  bool isSnapTangentEnabled() const;
+
+  /**
+   * @brief Check if perpendicular snap is enabled
+   * @return true if perpendicular snap is enabled
+   */
+  bool isSnapPerpendicularEnabled() const;
+
+  /**
+   * @brief Get snap tolerance
+   * @return Snap tolerance in pixels
+   */
+  float getSnapTolerance() const;
+
+  /**
+   * @brief Check if snap indicators should be shown
+   * @return true if snap indicators should be shown
+   */
+  bool getSnapShowIndicators() const;
+
+  /**
+   * @brief Get snap indicator color
+   * @return Snap indicator color (RGBA)
+   */
+  glm::vec4 getSnapIndicatorColor() const;
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.

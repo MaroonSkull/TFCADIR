@@ -7,74 +7,69 @@
 
 namespace view {
 
-// ============================================================================
-// SnapPoint Structure Implementation
-// ============================================================================
+SnapManager::SnapManager(UIFSMAdapter &uiFSMAdapter)
+    : uiFSMAdapter_(uiFSMAdapter), snapSettingsDirty_(true),
+      logger_(spdlog::get("TFCADIR")) {
 
-SnapPoint::SnapPoint()
-    : position(0.0f), mode(SnapMode::Grid), description(""), figureId(0),
-      distance(0.0f) {}
-
-SnapPoint::SnapPoint(const glm::vec3 &pos, SnapMode m, const std::string &desc,
-                     uint32_t id, float dist)
-    : position(pos), mode(m), description(desc), figureId(id), distance(dist) {}
-
-// ============================================================================
-// SnapManager Constructor/Destructor
-// ============================================================================
-
-SnapManager::SnapManager(UIFSMAdapter &uiFSMAdapter, GridManager &gridManager,
-                         SelectionManager &selectionManager,
-                         model::IModel &model)
-    : uiFSMAdapter_(uiFSMAdapter), gridManager_(gridManager),
-      selectionManager_(selectionManager), model_(model) {
-
-  // Register for figure modification events via UIFSMAdapter
-  figureEventCallback_ = [this]() { onFigureModified(); };
-  uiFSMAdapter_.setFigureChangedCallback(figureEventCallback_);
-
-  // Register for camera change events via UIFSMAdapter
-  cameraEventCallback_ = [this]() { onCameraChanged(); };
-  uiFSMAdapter_.setCameraChangedCallback(cameraEventCallback_);
-
-  // Register for settings change events via UIFSMAdapter
-  settingsEventCallback_ = [this]() { onSettingsChanged(); };
-  uiFSMAdapter_.setSnapSettingsChangedCallback(settingsEventCallback_);
-}
-
-SnapManager::~SnapManager() {
-  // Callbacks are automatically cleared when SnapManager is destroyed
-  // std::function is RAII and will clean up automatically
-  // No manual cleanup needed
-}
-
-// ============================================================================
-// Query Methods (Stateless)
-// ============================================================================
-
-bool SnapManager::isSnapEnabled(SnapMode snapMode) const {
-  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
-
-  switch (snapMode) {
-  case SnapMode::Grid:
-    return settings.gridEnabled;
-  case SnapMode::Endpoint:
-    return settings.endpointEnabled;
-  case SnapMode::Midpoint:
-    return settings.midpointEnabled;
-  case SnapMode::Center:
-    return settings.centerEnabled;
-  case SnapMode::Intersection:
-    return settings.intersectionEnabled;
-  case SnapMode::Nearest:
-    return settings.nearestEnabled;
-  case SnapMode::Tangent:
-    return settings.tangentEnabled;
-  case SnapMode::Perpendicular:
-    return settings.perpendicularEnabled;
-  default:
-    return false;
+  if (!logger_) {
+    logger_ = spdlog::default_logger();
   }
+
+  // Register callback to mark snap settings dirty when settings change
+  uiFSMAdapter_.setSnapSettingsChangedCallback([this]() {
+    snapSettingsDirty_ = true;
+    logger_->debug("SnapManager: Snap settings marked dirty");
+  });
+}
+
+// ==========================================================================
+// State Query Methods (for SnapSettingsPanel)
+// These methods delegate to UIFSMAdapter for state queries
+// ==========================================================================
+
+SnapSettings SnapManager::getSnapSettings() const {
+  /// Return the current snap settings from local storage
+  return uiFSMAdapter_.getSnapSettings();
+}
+
+bool SnapManager::isGridSnapEnabled() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.gridEnabled;
+}
+
+bool SnapManager::isEndpointSnapEnabled() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.endpointEnabled;
+}
+
+bool SnapManager::isMidpointSnapEnabled() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.midpointEnabled;
+}
+
+bool SnapManager::isCenterSnapEnabled() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.centerEnabled;
+}
+
+bool SnapManager::isIntersectionSnapEnabled() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.intersectionEnabled;
+}
+
+bool SnapManager::isNearestSnapEnabled() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.nearestEnabled;
+}
+
+bool SnapManager::isTangentSnapEnabled() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.tangentEnabled;
+}
+
+bool SnapManager::isPerpendicularSnapEnabled() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.perpendicularEnabled;
 }
 
 float SnapManager::getSnapTolerance() const {
@@ -82,658 +77,568 @@ float SnapManager::getSnapTolerance() const {
   return settings.tolerancePixels;
 }
 
-glm::vec4 SnapManager::getIndicatorColor() const {
-  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
-  return settings.indicatorColor;
-}
-
-bool SnapManager::showIndicators() const {
+bool SnapManager::showSnapIndicators() const {
   const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
   return settings.showIndicators;
 }
 
-// ============================================================================
-// Global Snap Enable/Disable
-// ============================================================================
+glm::vec4 SnapManager::getSnapIndicatorColor() const {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  return settings.indicatorColor;
+}
 
-void SnapManager::setSnapEnabled(bool enabled) { snapEnabled_ = enabled; }
+// ==========================================================================
+// Dirty Flag Mechanism (for caching snap point detection)
+// ==========================================================================
 
-bool SnapManager::isSnapEnabled() const { return snapEnabled_; }
+bool SnapManager::isSnapSettingsDirty() const { return snapSettingsDirty_; }
 
-// ============================================================================
-// Snap Calculation Methods
-// ============================================================================
+void SnapManager::clearSnapSettingsDirty() { snapSettingsDirty_ = false; }
 
-std::vector<SnapPoint> SnapManager::findSnapPoints(const glm::vec2 &screenPos,
-                                                   const glm::vec3 &worldPos) {
-  // Check if snap is globally enabled
-  if (!snapEnabled_) {
-    return {};
+// ==========================================================================
+// Snap Point Detection Methods (for drawing operations)
+// ==========================================================================
+
+std::optional<SnapPoint> SnapManager::findSnapPoint(
+    const glm::vec2 &position,
+    const std::vector<std::shared_ptr<model::IFigure>> &figures) {
+  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
+  const float tolerance = settings.tolerancePixels;
+
+  /// Track the closest snap point found so far
+  std::optional<SnapPoint> closestSnap;
+  float closestDistance = std::numeric_limits<float>::max();
+
+  /// Helper lambda to update closest snap if closer
+  auto updateClosest = [&](const std::optional<SnapPoint> &snap) {
+    if (snap) {
+      const float dist = distance(position, snap->position);
+      if (dist < tolerance && dist < closestDistance) {
+        closestSnap = snap;
+        closestDistance = dist;
+      }
+    }
+  };
+
+  /// Check each enabled snap mode
+  if (settings.gridEnabled) {
+    const GridSettings gridSettings = uiFSMAdapter_.getGridSettings();
+    updateClosest(findGridSnapPoint(position, gridSettings));
   }
 
-  // Check if cache is valid (event-based invalidation)
-  if (!snapCache_.valid) {
-    // Cache invalidated by event, must recalculate
-    return calculateSnapPoints(screenPos, worldPos);
+  if (settings.endpointEnabled) {
+    updateClosest(findEndpointSnap(position, figures));
   }
 
-  // Check distance-based invalidation
-  const float distance = glm::length(screenPos - snapCache_.lastScreenPos);
-  if (distance < CACHE_INVALIDATION_DISTANCE) {
-    // Cursor moved less than 5px, use cached snap points
-    return snapCache_.snapPoints;
+  if (settings.midpointEnabled) {
+    updateClosest(findMidpointSnap(position, figures));
   }
 
-  // Cursor moved more than 5px, recalculate snap points
-  return calculateSnapPoints(screenPos, worldPos);
+  if (settings.centerEnabled) {
+    updateClosest(findCenterSnap(position, figures));
+  }
+
+  if (settings.intersectionEnabled) {
+    updateClosest(findIntersectionSnap(position, figures));
+  }
+
+  if (settings.nearestEnabled) {
+    updateClosest(findNearestSnap(position, figures));
+  }
+
+  /// Note: Tangent and Perpendicular snap are not implemented in this subtask
+  /// They will be implemented in a later subtask when required
+
+  return closestSnap;
 }
 
 std::optional<SnapPoint>
-SnapManager::getNearestSnapPoint(const glm::vec2 &screenPos,
-                                 const glm::vec3 &worldPos) {
-  auto allSnapPoints = findSnapPoints(screenPos, worldPos);
+SnapManager::findGridSnapPoint(const glm::vec2 &position,
+                               const GridSettings &gridSettings) {
+  const float spacing = gridSettings.majorSpacing;
 
-  if (allSnapPoints.empty()) {
-    return std::nullopt;
-  }
+  /// Calculate the nearest grid intersection
+  const float snappedX = std::round(position.x / spacing) * spacing;
+  const float snappedY = std::round(position.y / spacing) * spacing;
 
-  // Find closest snap point within tolerance
-  std::optional<SnapPoint> closest;
-  float minDistance = std::numeric_limits<float>::max();
+  SnapPoint snap;
+  snap.position = glm::vec2(snappedX, snappedY);
+  snap.mode = SnapMode::Grid;
+  snap.description = "Grid";
 
-  for (const auto &snapPoint : allSnapPoints) {
-    if (snapPoint.distance < minDistance) {
-      minDistance = snapPoint.distance;
-      closest = snapPoint;
-    }
-  }
-
-  // Only return if within tolerance
-  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
-  if (minDistance <= settings.tolerancePixels) {
-    return closest;
-  }
-
-  return std::nullopt;
+  return snap;
 }
 
-// ============================================================================
-// Snap Mode Implementations
-// ============================================================================
+// ==========================================================================
+// Helper Methods for Snap Point Detection
+// ==========================================================================
 
-std::optional<SnapPoint> SnapManager::snapToGrid(const glm::vec3 &worldPos) {
-  // Delegate to GridManager's snapToGrid method
-  glm::vec3 snappedPos = gridManager_.snapToGrid(worldPos);
+std::optional<SnapPoint> SnapManager::findEndpointSnap(
+    const glm::vec2 &position,
+    const std::vector<std::shared_ptr<model::IFigure>> &figures) {
+  const float tolerance = uiFSMAdapter_.getSnapSettings().tolerancePixels;
 
-  // Calculate distance in world space (simplified approach)
-  const float worldDistance = glm::length(snappedPos - worldPos);
+  std::optional<SnapPoint> closestSnap;
+  float closestDistance = std::numeric_limits<float>::max();
 
-  return SnapPoint(snappedPos, SnapMode::Grid, "Grid Point", 0, worldDistance);
-}
-
-std::vector<SnapPoint>
-SnapManager::snapToEndpoints(const std::vector<uint32_t> &figureIds) {
-  std::vector<SnapPoint> snapPoints;
-
-  for (uint32_t figureId : figureIds) {
-    // Get figure from IModel
-    auto figure = model_.getFigure(figureId);
-    if (!figure) {
-      continue;
+  /// Helper lambda to check endpoint candidates
+  auto checkEndpoint = [&](const glm::vec2 &point, const std::string &desc) {
+    const float dist = distance(position, point);
+    if (dist < tolerance && dist < closestDistance) {
+      SnapPoint snap;
+      snap.position = point;
+      snap.mode = SnapMode::Endpoint;
+      snap.description = "Endpoint (" + desc + ")";
+      closestSnap = snap;
+      closestDistance = dist;
     }
+  };
 
-    // Check Triangle
+  for (const auto &figure : figures) {
+    /// Check Triangle endpoints
     if (auto tri =
             std::dynamic_pointer_cast<model::Figure<model::Triangle>>(figure)) {
-      const glm::vec3 points[] = {
-          glm::vec3(tri->first.x, tri->first.y, tri->first.z),
-          glm::vec3(tri->second.x, tri->second.y, tri->second.z),
-          glm::vec3(tri->third.x, tri->third.y, tri->third.z)};
-
-      for (const auto &point : points) {
-        snapPoints.emplace_back(point, SnapMode::Endpoint, "Endpoint",
-                                figureId);
-      }
+      const glm::vec3 pos = figure->getPosition();
+      checkEndpoint(glm::vec2(tri->first.x + pos.x, tri->first.y + pos.y),
+                    "Triangle 1");
+      checkEndpoint(glm::vec2(tri->second.x + pos.x, tri->second.y + pos.y),
+                    "Triangle 2");
+      checkEndpoint(glm::vec2(tri->third.x + pos.x, tri->third.y + pos.y),
+                    "Triangle 3");
     }
-    // Check Quad
+    /// Check Quad endpoints
     else if (auto quad = std::dynamic_pointer_cast<model::Figure<model::Quad>>(
                  figure)) {
-      const glm::vec3 points[] = {
-          glm::vec3(quad->first.x, quad->first.y, quad->first.z),
-          glm::vec3(quad->second.x, quad->second.y, quad->second.z),
-          glm::vec3(quad->third.x, quad->third.y, quad->third.z),
-          glm::vec3(quad->fourth.x, quad->fourth.y, quad->fourth.z)};
-
-      for (const auto &point : points) {
-        snapPoints.emplace_back(point, SnapMode::Endpoint, "Endpoint",
-                                figureId);
-      }
+      const glm::vec3 pos = figure->getPosition();
+      checkEndpoint(glm::vec2(quad->first.x + pos.x, quad->first.y + pos.y),
+                    "Quad 1");
+      checkEndpoint(glm::vec2(quad->second.x + pos.x, quad->second.y + pos.y),
+                    "Quad 2");
+      checkEndpoint(glm::vec2(quad->third.x + pos.x, quad->third.y + pos.y),
+                    "Quad 3");
+      checkEndpoint(glm::vec2(quad->fourth.x + pos.x, quad->fourth.y + pos.y),
+                    "Quad 4");
     }
-    // Check Circle (center only - circles have no endpoints)
+    /// Check Circle endpoints (edge points at cardinal directions)
     else if (auto circle =
                  std::dynamic_pointer_cast<model::Figure<model::Circle>>(
                      figure)) {
-      // Circles don't have endpoints, skip
-      continue;
+      const glm::vec3 pos = figure->getPosition();
+      const float r = circle->radius;
+      const glm::vec2 center(circle->center.x + pos.x,
+                             circle->center.y + pos.y);
+
+      /// Check cardinal points on the circle
+      checkEndpoint(glm::vec2(center.x + r, center.y), "Circle Right");
+      checkEndpoint(glm::vec2(center.x - r, center.y), "Circle Left");
+      checkEndpoint(glm::vec2(center.x, center.y + r), "Circle Top");
+      checkEndpoint(glm::vec2(center.x, center.y - r), "Circle Bottom");
     }
-    // Check Ngon (center only - ngons have no endpoints)
+    /// Check Ngon endpoints
     else if (auto ngon = std::dynamic_pointer_cast<model::Figure<model::Ngon>>(
                  figure)) {
-      // Ngons don't have endpoints, skip
-      continue;
+      const glm::vec3 pos = figure->getPosition();
+      const float r = ngon->radius;
+      const glm::vec2 center(ngon->center.x + pos.x, ngon->center.y + pos.y);
+      const int n = static_cast<int>(ngon->n);
+
+      /// Calculate vertices of the ngon
+      for (int i = 0; i < n; ++i) {
+        const float angle = 2.0f * M_PI * i / n;
+        const float x = center.x + r * std::cos(angle);
+        const float y = center.y + r * std::sin(angle);
+        checkEndpoint(glm::vec2(x, y), "Ngon Vertex " + std::to_string(i));
+      }
     }
-    // Check CurveBezier3
+    /// Check CurveBezier3 endpoints
     else if (auto curve =
                  std::dynamic_pointer_cast<model::Figure<model::CurveBezier3>>(
                      figure)) {
-      const glm::vec3 points[] = {
-          glm::vec3(curve->start.x, curve->start.y, curve->start.z),
-          glm::vec3(curve->end.x, curve->end.y, curve->end.z)};
-
-      for (const auto &point : points) {
-        snapPoints.emplace_back(point, SnapMode::Endpoint, "Endpoint",
-                                figureId);
-      }
+      const glm::vec3 pos = figure->getPosition();
+      checkEndpoint(glm::vec2(curve->start.x + pos.x, curve->start.y + pos.y),
+                    "Bezier3 Start");
+      checkEndpoint(glm::vec2(curve->end.x + pos.x, curve->end.y + pos.y),
+                    "Bezier3 End");
     }
-    // Check CurveBezier4
+    /// Check CurveBezier4 endpoints
     else if (auto curve =
                  std::dynamic_pointer_cast<model::Figure<model::CurveBezier4>>(
                      figure)) {
-      const glm::vec3 points[] = {
-          glm::vec3(curve->start.x, curve->start.y, curve->start.z),
-          glm::vec3(curve->end.x, curve->end.y, curve->end.z)};
-
-      for (const auto &point : points) {
-        snapPoints.emplace_back(point, SnapMode::Endpoint, "Endpoint",
-                                figureId);
-      }
+      const glm::vec3 pos = figure->getPosition();
+      checkEndpoint(glm::vec2(curve->start.x + pos.x, curve->start.y + pos.y),
+                    "Bezier4 Start");
+      checkEndpoint(glm::vec2(curve->end.x + pos.x, curve->end.y + pos.y),
+                    "Bezier4 End");
     }
   }
 
-  return snapPoints;
+  return closestSnap;
 }
 
-std::vector<SnapPoint>
-SnapManager::snapToMidpoints(const std::vector<uint32_t> &figureIds) {
-  std::vector<SnapPoint> snapPoints;
+std::optional<SnapPoint> SnapManager::findMidpointSnap(
+    const glm::vec2 &position,
+    const std::vector<std::shared_ptr<model::IFigure>> &figures) {
+  const float tolerance = uiFSMAdapter_.getSnapSettings().tolerancePixels;
 
-  for (uint32_t figureId : figureIds) {
-    // Get figure from IModel
-    auto figure = model_.getFigure(figureId);
-    if (!figure) {
-      continue;
+  std::optional<SnapPoint> closestSnap;
+  float closestDistance = std::numeric_limits<float>::max();
+
+  /// Helper lambda to check midpoint candidates
+  auto checkMidpoint = [&](const glm::vec2 &midpoint, const std::string &desc) {
+    const float dist = distance(position, midpoint);
+    if (dist < tolerance && dist < closestDistance) {
+      SnapPoint snap;
+      snap.position = midpoint;
+      snap.mode = SnapMode::Midpoint;
+      snap.description = "Midpoint (" + desc + ")";
+      closestSnap = snap;
+      closestDistance = dist;
     }
+  };
 
-    // Check Triangle
+  for (const auto &figure : figures) {
+    const glm::vec3 pos = figure->getPosition();
+
+    /// Check Triangle midpoints
     if (auto tri =
             std::dynamic_pointer_cast<model::Figure<model::Triangle>>(figure)) {
-      const glm::vec3 p1(tri->first.x, tri->first.y, tri->first.z);
-      const glm::vec3 p2(tri->second.x, tri->second.y, tri->second.z);
-      const glm::vec3 p3(tri->third.x, tri->third.y, tri->third.z);
+      const glm::vec2 p1(tri->first.x + pos.x, tri->first.y + pos.y);
+      const glm::vec2 p2(tri->second.x + pos.x, tri->second.y + pos.y);
+      const glm::vec2 p3(tri->third.x + pos.x, tri->third.y + pos.y);
 
-      const glm::vec3 midpoints[] = {(p1 + p2) * 0.5f, (p2 + p3) * 0.5f,
-                                     (p3 + p1) * 0.5f};
-
-      for (const auto &midpoint : midpoints) {
-        snapPoints.emplace_back(midpoint, SnapMode::Midpoint, "Midpoint",
-                                figureId);
-      }
+      checkMidpoint(glm::vec2((p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f),
+                    "Triangle 1-2");
+      checkMidpoint(glm::vec2((p2.x + p3.x) / 2.0f, (p2.y + p3.y) / 2.0f),
+                    "Triangle 2-3");
+      checkMidpoint(glm::vec2((p3.x + p1.x) / 2.0f, (p3.y + p1.y) / 2.0f),
+                    "Triangle 3-1");
     }
-    // Check Quad
+    /// Check Quad midpoints
     else if (auto quad = std::dynamic_pointer_cast<model::Figure<model::Quad>>(
                  figure)) {
-      const glm::vec3 p1(quad->first.x, quad->first.y, quad->first.z);
-      const glm::vec3 p2(quad->second.x, quad->second.y, quad->second.z);
-      const glm::vec3 p3(quad->third.x, quad->third.y, quad->third.z);
-      const glm::vec3 p4(quad->fourth.x, quad->fourth.y, quad->fourth.z);
+      const glm::vec2 p1(quad->first.x + pos.x, quad->first.y + pos.y);
+      const glm::vec2 p2(quad->second.x + pos.x, quad->second.y + pos.y);
+      const glm::vec2 p3(quad->third.x + pos.x, quad->third.y + pos.y);
+      const glm::vec2 p4(quad->fourth.x + pos.x, quad->fourth.y + pos.y);
 
-      const glm::vec3 midpoints[] = {(p1 + p2) * 0.5f, (p2 + p3) * 0.5f,
-                                     (p3 + p4) * 0.5f, (p4 + p1) * 0.5f};
-
-      for (const auto &midpoint : midpoints) {
-        snapPoints.emplace_back(midpoint, SnapMode::Midpoint, "Midpoint",
-                                figureId);
-      }
+      checkMidpoint(glm::vec2((p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f),
+                    "Quad 1-2");
+      checkMidpoint(glm::vec2((p2.x + p3.x) / 2.0f, (p2.y + p3.y) / 2.0f),
+                    "Quad 2-3");
+      checkMidpoint(glm::vec2((p3.x + p4.x) / 2.0f, (p3.y + p4.y) / 2.0f),
+                    "Quad 3-4");
+      checkMidpoint(glm::vec2((p4.x + p1.x) / 2.0f, (p4.y + p1.y) / 2.0f),
+                    "Quad 4-1");
     }
-    // Check Circle (center is also the midpoint)
-    else if (auto circle =
-                 std::dynamic_pointer_cast<model::Figure<model::Circle>>(
-                     figure)) {
-      const glm::vec3 center(circle->center.x, circle->center.y,
-                             circle->center.z);
-      snapPoints.emplace_back(center, SnapMode::Midpoint, "Center", figureId);
-    }
-    // Check Ngon (center is also the midpoint)
-    else if (auto ngon = std::dynamic_pointer_cast<model::Figure<model::Ngon>>(
-                 figure)) {
-      const glm::vec3 center(ngon->center.x, ngon->center.y, ngon->center.z);
-      snapPoints.emplace_back(center, SnapMode::Midpoint, "Center", figureId);
-    }
-    // Check CurveBezier3
+    /// Check Curve midpoints
     else if (auto curve =
                  std::dynamic_pointer_cast<model::Figure<model::CurveBezier3>>(
                      figure)) {
-      const glm::vec3 p1(curve->start.x, curve->start.y, curve->start.z);
-      const glm::vec3 p2(curve->end.x, curve->end.y, curve->end.z);
-      const glm::vec3 midpoint = (p1 + p2) * 0.5f;
-
-      snapPoints.emplace_back(midpoint, SnapMode::Midpoint, "Midpoint",
-                              figureId);
-    }
-    // Check CurveBezier4
-    else if (auto curve =
-                 std::dynamic_pointer_cast<model::Figure<model::CurveBezier4>>(
-                     figure)) {
-      const glm::vec3 p1(curve->start.x, curve->start.y, curve->start.z);
-      const glm::vec3 p2(curve->end.x, curve->end.y, curve->end.z);
-      const glm::vec3 midpoint = (p1 + p2) * 0.5f;
-
-      snapPoints.emplace_back(midpoint, SnapMode::Midpoint, "Midpoint",
-                              figureId);
+      const glm::vec2 p1(curve->start.x + pos.x, curve->start.y + pos.y);
+      const glm::vec2 p2(curve->end.x + pos.x, curve->end.y + pos.y);
+      checkMidpoint(glm::vec2((p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f),
+                    "Bezier3");
+    } else if (auto curve = std::dynamic_pointer_cast<
+                   model::Figure<model::CurveBezier4>>(figure)) {
+      const glm::vec2 p1(curve->start.x + pos.x, curve->start.y + pos.y);
+      const glm::vec2 p2(curve->end.x + pos.x, curve->end.y + pos.y);
+      checkMidpoint(glm::vec2((p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f),
+                    "Bezier4");
     }
   }
 
-  return snapPoints;
+  return closestSnap;
 }
 
-std::vector<SnapPoint>
-SnapManager::snapToCenters(const std::vector<uint32_t> &figureIds) {
-  std::vector<SnapPoint> snapPoints;
+std::optional<SnapPoint> SnapManager::findCenterSnap(
+    const glm::vec2 &position,
+    const std::vector<std::shared_ptr<model::IFigure>> &figures) {
+  const float tolerance = uiFSMAdapter_.getSnapSettings().tolerancePixels;
 
-  for (uint32_t figureId : figureIds) {
-    // Get figure from IModel
-    auto figure = model_.getFigure(figureId);
-    if (!figure) {
-      continue;
+  std::optional<SnapPoint> closestSnap;
+  float closestDistance = std::numeric_limits<float>::max();
+
+  /// Helper lambda to check center candidates
+  auto checkCenter = [&](const glm::vec2 &center, const std::string &desc) {
+    const float dist = distance(position, center);
+    if (dist < tolerance && dist < closestDistance) {
+      SnapPoint snap;
+      snap.position = center;
+      snap.mode = SnapMode::Center;
+      snap.description = "Center (" + desc + ")";
+      closestSnap = snap;
+      closestDistance = dist;
     }
+  };
 
-    // Check Circle
+  for (const auto &figure : figures) {
+    const glm::vec3 pos = figure->getPosition();
+
+    /// Check Circle center
     if (auto circle =
             std::dynamic_pointer_cast<model::Figure<model::Circle>>(figure)) {
-      const glm::vec3 center(circle->center.x, circle->center.y,
-                             circle->center.z);
-      snapPoints.emplace_back(center, SnapMode::Center, "Center", figureId);
+      const glm::vec2 center(circle->center.x + pos.x,
+                             circle->center.y + pos.y);
+      checkCenter(center, "Circle");
     }
-    // Check Ngon
+    /// Check Ngon center
     else if (auto ngon = std::dynamic_pointer_cast<model::Figure<model::Ngon>>(
                  figure)) {
-      const glm::vec3 center(ngon->center.x, ngon->center.y, ngon->center.z);
-      snapPoints.emplace_back(center, SnapMode::Center, "Center", figureId);
+      const glm::vec2 center(ngon->center.x + pos.x, ngon->center.y + pos.y);
+      checkCenter(center, "Ngon");
     }
-    // Check Triangle (centroid)
+    /// Check Triangle centroid
     else if (auto tri =
                  std::dynamic_pointer_cast<model::Figure<model::Triangle>>(
                      figure)) {
-      const glm::vec3 p1(tri->first.x, tri->first.y, tri->first.z);
-      const glm::vec3 p2(tri->second.x, tri->second.y, tri->second.z);
-      const glm::vec3 p3(tri->third.x, tri->third.y, tri->third.z);
-      const glm::vec3 centroid = (p1 + p2 + p3) / 3.0f;
-
-      snapPoints.emplace_back(centroid, SnapMode::Center, "Centroid", figureId);
+      const glm::vec2 p1(tri->first.x + pos.x, tri->first.y + pos.y);
+      const glm::vec2 p2(tri->second.x + pos.x, tri->second.y + pos.y);
+      const glm::vec2 p3(tri->third.x + pos.x, tri->third.y + pos.y);
+      const glm::vec2 centroid((p1.x + p2.x + p3.x) / 3.0f,
+                               (p1.y + p2.y + p3.y) / 3.0f);
+      checkCenter(centroid, "Triangle");
     }
-    // Check Quad (centroid)
+    /// Check Quad center
     else if (auto quad = std::dynamic_pointer_cast<model::Figure<model::Quad>>(
                  figure)) {
-      const glm::vec3 p1(quad->first.x, quad->first.y, quad->first.z);
-      const glm::vec3 p2(quad->second.x, quad->second.y, quad->second.z);
-      const glm::vec3 p3(quad->third.x, quad->third.y, quad->third.z);
-      const glm::vec3 p4(quad->fourth.x, quad->fourth.y, quad->fourth.z);
-      const glm::vec3 centroid = (p1 + p2 + p3 + p4) / 4.0f;
-
-      snapPoints.emplace_back(centroid, SnapMode::Center, "Centroid", figureId);
+      const glm::vec2 p1(quad->first.x + pos.x, quad->first.y + pos.y);
+      const glm::vec2 p2(quad->second.x + pos.x, quad->second.y + pos.y);
+      const glm::vec2 p3(quad->third.x + pos.x, quad->third.y + pos.y);
+      const glm::vec2 p4(quad->fourth.x + pos.x, quad->fourth.y + pos.y);
+      const glm::vec2 center((p1.x + p2.x + p3.x + p4.x) / 4.0f,
+                             (p1.y + p2.y + p3.y + p4.y) / 4.0f);
+      checkCenter(center, "Quad");
     }
   }
 
-  return snapPoints;
+  return closestSnap;
 }
 
-std::vector<SnapPoint>
-SnapManager::snapToIntersections(const std::vector<uint32_t> &figureIds) {
-  std::vector<SnapPoint> snapPoints;
+std::optional<SnapPoint> SnapManager::findIntersectionSnap(
+    const glm::vec2 &position,
+    const std::vector<std::shared_ptr<model::IFigure>> &figures) {
+  const float tolerance = uiFSMAdapter_.getSnapSettings().tolerancePixels;
 
-  // Extract all line segments from figures
-  std::vector<std::pair<glm::vec3, glm::vec3>> lineSegments;
+  std::optional<SnapPoint> closestSnap;
+  float closestDistance = std::numeric_limits<float>::max();
 
-  for (uint32_t figureId : figureIds) {
-    // Get figure from IModel
-    auto figure = model_.getFigure(figureId);
-    if (!figure) {
-      continue;
+  /// Helper lambda to check intersection candidates
+  auto checkIntersection = [&](const glm::vec2 &intersection,
+                               const std::string &desc) {
+    const float dist = distance(position, intersection);
+    if (dist < tolerance && dist < closestDistance) {
+      SnapPoint snap;
+      snap.position = intersection;
+      snap.mode = SnapMode::Intersection;
+      snap.description = "Intersection (" + desc + ")";
+      closestSnap = snap;
+      closestDistance = dist;
     }
+  };
 
-    // Check Triangle
+  /// Collect all line segments from figures
+  std::vector<std::pair<glm::vec2, glm::vec2>> segments;
+
+  for (const auto &figure : figures) {
+    const glm::vec3 pos = figure->getPosition();
+
+    /// Extract segments from Triangle
     if (auto tri =
             std::dynamic_pointer_cast<model::Figure<model::Triangle>>(figure)) {
-      const glm::vec3 p1(tri->first.x, tri->first.y, tri->first.z);
-      const glm::vec3 p2(tri->second.x, tri->second.y, tri->second.z);
-      const glm::vec3 p3(tri->third.x, tri->third.y, tri->third.z);
-
-      lineSegments.push_back({p1, p2});
-      lineSegments.push_back({p2, p3});
-      lineSegments.push_back({p3, p1});
+      const glm::vec2 p1(tri->first.x + pos.x, tri->first.y + pos.y);
+      const glm::vec2 p2(tri->second.x + pos.x, tri->second.y + pos.y);
+      const glm::vec2 p3(tri->third.x + pos.x, tri->third.y + pos.y);
+      segments.push_back({p1, p2});
+      segments.push_back({p2, p3});
+      segments.push_back({p3, p1});
     }
-    // Check Quad
+    /// Extract segments from Quad
     else if (auto quad = std::dynamic_pointer_cast<model::Figure<model::Quad>>(
                  figure)) {
-      const glm::vec3 p1(quad->first.x, quad->first.y, quad->first.z);
-      const glm::vec3 p2(quad->second.x, quad->second.y, quad->second.z);
-      const glm::vec3 p3(quad->third.x, quad->third.y, quad->third.z);
-      const glm::vec3 p4(quad->fourth.x, quad->fourth.y, quad->fourth.z);
-
-      lineSegments.push_back({p1, p2});
-      lineSegments.push_back({p2, p3});
-      lineSegments.push_back({p3, p4});
-      lineSegments.push_back({p4, p1});
-    }
-    // Curves don't have line segments for intersection calculation
-    // (would require curve-curve intersection algorithm)
-  }
-
-  // Calculate intersections between all line segment pairs
-  for (size_t i = 0; i < lineSegments.size(); ++i) {
-    for (size_t j = i + 1; j < lineSegments.size(); ++j) {
-      const auto &seg1 = lineSegments[i];
-      const auto &seg2 = lineSegments[j];
-
-      auto intersection =
-          lineIntersection(seg1.first, seg1.second, seg2.first, seg2.second);
-      if (intersection.has_value()) {
-        snapPoints.emplace_back(intersection.value(), SnapMode::Intersection,
-                                "Intersection", 0);
-      }
+      const glm::vec2 p1(quad->first.x + pos.x, quad->first.y + pos.y);
+      const glm::vec2 p2(quad->second.x + pos.x, quad->second.y + pos.y);
+      const glm::vec2 p3(quad->third.x + pos.x, quad->third.y + pos.y);
+      const glm::vec2 p4(quad->fourth.x + pos.x, quad->fourth.y + pos.y);
+      segments.push_back({p1, p2});
+      segments.push_back({p2, p3});
+      segments.push_back({p3, p4});
+      segments.push_back({p4, p1});
     }
   }
 
-  return snapPoints;
-}
+  /// Check intersections between all pairs of segments
+  for (size_t i = 0; i < segments.size(); ++i) {
+    for (size_t j = i + 1; j < segments.size(); ++j) {
+      const auto &seg1 = segments[i];
+      const auto &seg2 = segments[j];
 
-// ============================================================================
-// Performance Caching
-// ============================================================================
-
-void SnapManager::invalidateCache() {
-  snapCache_.valid = false;
-  snapCache_.snapPoints.clear();
-  snapCache_.lastScreenPos = glm::vec2(0.0f, 0.0f);
-  snapCache_.cachedFigureIds.clear();
-}
-
-// ============================================================================
-// Event Handler Implementations
-// ============================================================================
-
-void SnapManager::onFigureModified() {
-  // Invalidate cache on any figure modification
-  invalidateCache();
-}
-
-void SnapManager::onCameraChanged() {
-  // Invalidate cache on camera changes (zoom, pan, orbit)
-  invalidateCache();
-}
-
-void SnapManager::onSettingsChanged() {
-  // Invalidate cache on settings changes (grid or snap settings)
-  invalidateCache();
-}
-
-// ============================================================================
-// Helper Methods
-// ============================================================================
-
-std::vector<SnapPoint>
-SnapManager::calculateSnapPoints(const glm::vec2 &screenPos,
-                                 const glm::vec3 &worldPos) {
-  std::vector<SnapPoint> allSnapPoints;
-
-  const SnapSettings settings = uiFSMAdapter_.getSnapSettings();
-
-  // Get selected figure IDs
-  std::vector<uint32_t> figureIds = selectionManager_.getSelectedFigureIds();
-
-  // Try snap modes in priority order
-  // Priority: Grid → Endpoint → Midpoint → Center → Intersection → Nearest
-
-  // 1. Grid snap
-  if (settings.gridEnabled) {
-    auto gridSnap = snapToGrid(worldPos);
-    if (gridSnap.has_value()) {
-      // Use world distance for grid snap (simplified approach)
-      const float worldDist = distanceSquared(worldPos, gridSnap->position);
-      // Convert to approximate pixel distance (simplified)
-      constexpr float WORLD_TO_PIXEL_SCALE = 10.0f;
-      float screenDist = std::sqrt(worldDist) * WORLD_TO_PIXEL_SCALE;
-
-      if (screenDist <= settings.tolerancePixels) {
-        gridSnap->distance = screenDist;
-        allSnapPoints.push_back(gridSnap.value());
-      }
-    }
-  }
-
-  // 2. Endpoint snap
-  if (settings.endpointEnabled && !figureIds.empty()) {
-    auto endpoints = snapToEndpoints(figureIds);
-    for (auto &endpoint : endpoints) {
-      const float worldDist = distanceSquared(worldPos, endpoint.position);
-      constexpr float WORLD_TO_PIXEL_SCALE = 10.0f;
-      float screenDist = std::sqrt(worldDist) * WORLD_TO_PIXEL_SCALE;
-
-      if (screenDist <= settings.tolerancePixels) {
-        endpoint.distance = screenDist;
-        allSnapPoints.push_back(endpoint);
-      }
-    }
-  }
-
-  // 3. Midpoint snap
-  if (settings.midpointEnabled && !figureIds.empty()) {
-    auto midpoints = snapToMidpoints(figureIds);
-    for (auto &midpoint : midpoints) {
-      const float worldDist = distanceSquared(worldPos, midpoint.position);
-      constexpr float WORLD_TO_PIXEL_SCALE = 10.0f;
-      float screenDist = std::sqrt(worldDist) * WORLD_TO_PIXEL_SCALE;
-
-      if (screenDist <= settings.tolerancePixels) {
-        midpoint.distance = screenDist;
-        allSnapPoints.push_back(midpoint);
-      }
-    }
-  }
-
-  // 4. Center snap
-  if (settings.centerEnabled && !figureIds.empty()) {
-    auto centers = snapToCenters(figureIds);
-    for (auto &center : centers) {
-      const float worldDist = distanceSquared(worldPos, center.position);
-      constexpr float WORLD_TO_PIXEL_SCALE = 10.0f;
-      float screenDist = std::sqrt(worldDist) * WORLD_TO_PIXEL_SCALE;
-
-      if (screenDist <= settings.tolerancePixels) {
-        center.distance = screenDist;
-        allSnapPoints.push_back(center);
-      }
-    }
-  }
-
-  // 5. Intersection snap
-  if (settings.intersectionEnabled && !figureIds.empty()) {
-    auto intersections = snapToIntersections(figureIds);
-    for (auto &intersection : intersections) {
-      const float worldDist = distanceSquared(worldPos, intersection.position);
-      constexpr float WORLD_TO_PIXEL_SCALE = 10.0f;
-      float screenDist = std::sqrt(worldDist) * WORLD_TO_PIXEL_SCALE;
-
-      if (screenDist <= settings.tolerancePixels) {
-        intersection.distance = screenDist;
-        allSnapPoints.push_back(intersection);
-      }
-    }
-  }
-
-  // 6. Nearest point snap
-  if (settings.nearestEnabled && !figureIds.empty()) {
-    std::optional<SnapPoint> nearestPoint;
-    float minDistance = std::numeric_limits<float>::max();
-
-    for (uint32_t figureId : figureIds) {
-      // Get figure from IModel
-      auto figure = model_.getFigure(figureId);
-      if (!figure) {
+      /// Skip if segments share an endpoint (they're from the same figure)
+      if (seg1.first == seg2.first || seg1.first == seg2.second ||
+          seg1.second == seg2.first || seg1.second == seg2.second) {
         continue;
       }
 
-      // Extract line segments from the figure
-      std::vector<std::pair<glm::vec3, glm::vec3>> lineSegments;
+      /// Calculate intersection using line-line intersection formula
+      const float x1 = seg1.first.x, y1 = seg1.first.y;
+      const float x2 = seg1.second.x, y2 = seg1.second.y;
+      const float x3 = seg2.first.x, y3 = seg2.first.y;
+      const float x4 = seg2.second.x, y4 = seg2.second.y;
 
-      // Check Triangle
-      if (auto tri = std::dynamic_pointer_cast<model::Figure<model::Triangle>>(
-              figure)) {
-        const glm::vec3 p1(tri->first.x, tri->first.y, tri->first.z);
-        const glm::vec3 p2(tri->second.x, tri->second.y, tri->second.z);
-        const glm::vec3 p3(tri->third.x, tri->third.y, tri->third.z);
-        lineSegments.push_back({p1, p2});
-        lineSegments.push_back({p2, p3});
-        lineSegments.push_back({p3, p1});
+      const float denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+      /// Lines are parallel if denominator is zero
+      if (std::abs(denom) < 1e-6f) {
+        continue;
       }
-      // Check Quad
-      else if (auto quad =
-                   std::dynamic_pointer_cast<model::Figure<model::Quad>>(
+
+      const float t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+      const float u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+
+      /// Check if intersection is within both segments
+      if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f) {
+        const glm::vec2 intersection(x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+        checkIntersection(intersection, "Seg " + std::to_string(i) + " & " +
+                                            std::to_string(j));
+      }
+    }
+  }
+
+  return closestSnap;
+}
+
+std::optional<SnapPoint> SnapManager::findNearestSnap(
+    const glm::vec2 &position,
+    const std::vector<std::shared_ptr<model::IFigure>> &figures) {
+  const float tolerance = uiFSMAdapter_.getSnapSettings().tolerancePixels;
+
+  std::optional<SnapPoint> closestSnap;
+  float closestDistance = std::numeric_limits<float>::max();
+
+  for (const auto &figure : figures) {
+    const glm::vec3 pos = figure->getPosition();
+
+    /// For Circle and Ngon, find nearest point on the perimeter
+    if (auto circle =
+            std::dynamic_pointer_cast<model::Figure<model::Circle>>(figure)) {
+      const glm::vec2 center(circle->center.x + pos.x,
+                             circle->center.y + pos.y);
+      const float r = circle->radius;
+
+      /// Calculate direction from center to position
+      const glm::vec2 dir = position - center;
+      const float dist = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+
+      if (dist > 1e-6f) {
+        /// Nearest point on circle is along the direction vector
+        const glm::vec2 nearest = center + (dir / dist) * r;
+        const float snapDist = distance(position, nearest);
+
+        if (snapDist < tolerance && snapDist < closestDistance) {
+          SnapPoint snap;
+          snap.position = nearest;
+          snap.mode = SnapMode::Nearest;
+          snap.description = "Nearest (Circle)";
+          closestSnap = snap;
+          closestDistance = snapDist;
+        }
+      }
+    } else if (auto ngon =
+                   std::dynamic_pointer_cast<model::Figure<model::Ngon>>(
                        figure)) {
-        const glm::vec3 p1(quad->first.x, quad->first.y, quad->first.z);
-        const glm::vec3 p2(quad->second.x, quad->second.y, quad->second.z);
-        const glm::vec3 p3(quad->third.x, quad->third.y, quad->third.z);
-        const glm::vec3 p4(quad->fourth.x, quad->fourth.y, quad->fourth.z);
-        lineSegments.push_back({p1, p2});
-        lineSegments.push_back({p2, p3});
-        lineSegments.push_back({p3, p4});
-        lineSegments.push_back({p4, p1});
-      }
-      // Check CurveBezier3
-      else if (auto curve = std::dynamic_pointer_cast<
-                   model::Figure<model::CurveBezier3>>(figure)) {
-        const glm::vec3 p1(curve->start.x, curve->start.y, curve->start.z);
-        const glm::vec3 p2(curve->end.x, curve->end.y, curve->end.z);
-        lineSegments.push_back({p1, p2});
-      }
-      // Check CurveBezier4
-      else if (auto curve = std::dynamic_pointer_cast<
-                   model::Figure<model::CurveBezier4>>(figure)) {
-        const glm::vec3 p1(curve->start.x, curve->start.y, curve->start.z);
-        const glm::vec3 p2(curve->end.x, curve->end.y, curve->end.z);
-        lineSegments.push_back({p1, p2});
-      }
-      // Circles and Ngons don't have line segments for nearest point
-      // calculation (would require curve-point distance algorithm)
+      const glm::vec2 center(ngon->center.x + pos.x, ngon->center.y + pos.y);
+      const float r = ngon->radius;
+      const int n = static_cast<int>(ngon->n);
 
-      // For each line segment, project the query point and calculate distance
-      for (const auto &segment : lineSegments) {
-        glm::vec3 projected =
-            projectPointOnLine(worldPos, segment.first, segment.second);
-        float dist = distanceSquared(worldPos, projected);
+      /// Find nearest point on ngon perimeter
+      for (int i = 0; i < n; ++i) {
+        const float angle1 = 2.0f * M_PI * i / n;
+        const float angle2 = 2.0f * M_PI * (i + 1) / n;
 
-        // Update nearest if this is closer
-        if (dist < minDistance) {
-          minDistance = dist;
-          nearestPoint = SnapPoint(projected, SnapMode::Nearest,
-                                   "Nearest point", figureId);
+        const glm::vec2 v1(center.x + r * std::cos(angle1),
+                           center.y + r * std::sin(angle1));
+        const glm::vec2 v2(center.x + r * std::cos(angle2),
+                           center.y + r * std::sin(angle2));
+
+        /// Find nearest point on this segment
+        const glm::vec2 seg = v2 - v1;
+        const float segLengthSq = seg.x * seg.x + seg.y * seg.y;
+
+        if (segLengthSq > 1e-6f) {
+          const glm::vec2 toPos = position - v1;
+          float t = (toPos.x * seg.x + toPos.y * seg.y) / segLengthSq;
+          t = std::max(0.0f, std::min(1.0f, t));
+
+          const glm::vec2 nearest = v1 + t * seg;
+          const float snapDist = distance(position, nearest);
+
+          if (snapDist < tolerance && snapDist < closestDistance) {
+            SnapPoint snap;
+            snap.position = nearest;
+            snap.mode = SnapMode::Nearest;
+            snap.description = "Nearest (Ngon Edge " + std::to_string(i) + ")";
+            closestSnap = snap;
+            closestDistance = snapDist;
+          }
         }
       }
     }
+    /// For other figures, find nearest point on edges
+    else {
+      std::vector<std::pair<glm::vec2, glm::vec2>> segments;
 
-    // Add nearest point if found and within tolerance
-    if (nearestPoint.has_value()) {
-      constexpr float WORLD_TO_PIXEL_SCALE = 10.0f;
-      float screenDist = std::sqrt(minDistance) * WORLD_TO_PIXEL_SCALE;
+      if (auto tri = std::dynamic_pointer_cast<model::Figure<model::Triangle>>(
+              figure)) {
+        const glm::vec2 p1(tri->first.x + pos.x, tri->first.y + pos.y);
+        const glm::vec2 p2(tri->second.x + pos.x, tri->second.y + pos.y);
+        const glm::vec2 p3(tri->third.x + pos.x, tri->third.y + pos.y);
+        segments.push_back({p1, p2});
+        segments.push_back({p2, p3});
+        segments.push_back({p3, p1});
+      } else if (auto quad =
+                     std::dynamic_pointer_cast<model::Figure<model::Quad>>(
+                         figure)) {
+        const glm::vec2 p1(quad->first.x + pos.x, quad->first.y + pos.y);
+        const glm::vec2 p2(quad->second.x + pos.x, quad->second.y + pos.y);
+        const glm::vec2 p3(quad->third.x + pos.x, quad->third.y + pos.y);
+        const glm::vec2 p4(quad->fourth.x + pos.x, quad->fourth.y + pos.y);
+        segments.push_back({p1, p2});
+        segments.push_back({p2, p3});
+        segments.push_back({p3, p4});
+        segments.push_back({p4, p1});
+      }
 
-      if (screenDist <= settings.tolerancePixels) {
-        nearestPoint->distance = screenDist;
-        allSnapPoints.push_back(nearestPoint.value());
+      for (const auto &seg : segments) {
+        const glm::vec2 segVec = seg.second - seg.first;
+        const float segLengthSq = segVec.x * segVec.x + segVec.y * segVec.y;
+
+        if (segLengthSq > 1e-6f) {
+          const glm::vec2 toPos = position - seg.first;
+          float t = (toPos.x * segVec.x + toPos.y * segVec.y) / segLengthSq;
+          t = std::max(0.0f, std::min(1.0f, t));
+
+          const glm::vec2 nearest = seg.first + t * segVec;
+          const float snapDist = distance(position, nearest);
+
+          if (snapDist < tolerance && snapDist < closestDistance) {
+            SnapPoint snap;
+            snap.position = nearest;
+            snap.mode = SnapMode::Nearest;
+            snap.description = "Nearest (Edge)";
+            closestSnap = snap;
+            closestDistance = snapDist;
+          }
+        }
       }
     }
   }
 
-  // Sort snap points by distance (closest first)
-  std::sort(allSnapPoints.begin(), allSnapPoints.end(),
-            [](const SnapPoint &a, const SnapPoint &b) {
-              return a.distance < b.distance;
-            });
-
-  // Update cache
-  snapCache_.snapPoints = allSnapPoints;
-  snapCache_.lastScreenPos = screenPos;
-  snapCache_.cachedFigureIds = figureIds;
-  snapCache_.valid = true;
-
-  return allSnapPoints;
+  return closestSnap;
 }
 
-float SnapManager::distanceSquared(const glm::vec3 &a, const glm::vec3 &b) {
+float SnapManager::distance(const glm::vec2 &a, const glm::vec2 &b) const {
   const float dx = a.x - b.x;
   const float dy = a.y - b.y;
-  const float dz = a.z - b.z;
-  return dx * dx + dy * dy + dz * dz;
-}
-
-glm::vec3 SnapManager::projectPointOnLine(const glm::vec3 &point,
-                                          const glm::vec3 &lineStart,
-                                          const glm::vec3 &lineEnd) {
-  glm::vec3 lineVec = lineEnd - lineStart;
-  glm::vec3 pointVec = point - lineStart;
-
-  float lineLengthSquared = glm::dot(lineVec, lineVec);
-
-  // Handle degenerate case (zero-length line)
-  if (lineLengthSquared < std::numeric_limits<float>::epsilon()) {
-    return lineStart;
-  }
-
-  // Calculate projection parameter t
-  float t = glm::dot(pointVec, lineVec) / lineLengthSquared;
-
-  // Clamp t to [0, 1] to project onto line segment (not infinite line)
-  t = std::max(0.0f, std::min(1.0f, t));
-
-  // Calculate projected point
-  return lineStart + lineVec * t;
-}
-
-std::optional<glm::vec3> SnapManager::lineIntersection(const glm::vec3 &p1,
-                                                       const glm::vec3 &p2,
-                                                       const glm::vec3 &p3,
-                                                       const glm::vec3 &p4) {
-  // Calculate intersection of two line segments in 2D (ignoring Z)
-  // Using parametric line intersection formula
-
-  float x1 = p1.x, y1 = p1.y;
-  float x2 = p2.x, y2 = p2.y;
-  float x3 = p3.x, y3 = p3.y;
-  float x4 = p4.x, y4 = p4.y;
-
-  // Calculate denominator
-  float denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-
-  // Check if lines are parallel (denominator is zero)
-  if (std::abs(denom) < std::numeric_limits<float>::epsilon()) {
-    return std::nullopt;
-  }
-
-  // Calculate intersection point
-  float t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
-  float u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
-
-  // Check if intersection is within both line segments
-  if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f) {
-    float x = x1 + t * (x2 - x1);
-    float y = y1 + t * (y2 - y1);
-
-    // Use average Z from both segments
-    float z = (p1.z + p2.z + p3.z + p4.z) / 4.0f;
-
-    return glm::vec3(x, y, z);
-  }
-
-  return std::nullopt;
+  return std::sqrt(dx * dx + dy * dy);
 }
 
 } // namespace view

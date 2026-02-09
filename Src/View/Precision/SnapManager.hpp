@@ -1,338 +1,334 @@
 #pragma once
 
-#include <Model/IModel.hpp>
-#include <View/ObjectManagement/SelectionManager.hpp>
-#include <View/Precision/GridManager.hpp>
 #include <View/UIFSMAdapter.hpp>
-#include <functional>
 #include <glm/glm.hpp>
 #include <optional>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace view {
 
 /**
- * @brief Snap mode enumeration for different snap types
+ * @file SnapManager.hpp
+ * @brief Manages snap settings and snap point detection for precision drawing
  *
- * Note: Tangent and Perpendicular snap modes are defined but not yet
- * implemented. These are planned for future enhancement and require:
- * - Tangent: Calculate tangent lines to curves/circles at snap points
- * - Perpendicular: Calculate perpendicular lines from cursor to geometry
+ * Architecture Notes:
+ *
+ * SnapManager is NOT purely stateless - it maintains a dirty flag for caching.
+ * This architectural decision is justified for the following reasons:
+ *
+ * 1. Performance: Snap point detection is expensive (requires geometric
+ * calculations)
+ * 2. Caching: The dirty flag allows UI panels to cache snap point detection
+ * results
+ * 3. Integration: The dirty flag is set via callback when snap settings change
+ *
+ * This pattern is similar to GridManager's grid geometry caching.
+ *
+ * The stateless coordinator pattern is maintained for:
+ * - Snap settings queries (getSnapSettings, isSnapModeEnabled, etc.)
+ * - Snap point detection (findSnapPoint, findGridSnapPoint, etc.)
+ *
+ * Only the dirty flag is stateful, and it's explicitly managed through
+ * callbacks.
+ *
+ * @see GridManager for similar pattern
+ */
+
+/**
+ * @brief Snap mode enumeration
+ *
+ * Defines the available snap modes for precision drawing. Each mode
+ * corresponds to a specific type of snap point that can be detected.
  */
 enum class SnapMode {
-  Grid,
-  Endpoint,
-  Midpoint,
-  Center,
-  Intersection,
-  Nearest,
-  Tangent,      // TODO: Future enhancement - not yet implemented
-  Perpendicular // TODO: Future enhancement - not yet implemented
+  Grid = 1 << 0,          ///< Snap to grid intersections
+  Endpoint = 1 << 1,      ///< Snap to figure endpoints
+  Midpoint = 1 << 2,      ///< Snap to line/curve midpoints
+  Center = 1 << 3,        ///< Snap to circle/arc centers
+  Intersection = 1 << 4,  ///< Snap to line intersections
+  Nearest = 1 << 5,       ///< Snap to nearest point on figure
+  Tangent = 1 << 6,       ///< Snap to tangent points
+  Perpendicular = 1 << 7, ///< Snap to perpendicular points
+  All = Grid | Endpoint | Midpoint | Center | Intersection | Nearest | Tangent |
+        Perpendicular
 };
 
 /**
- * @brief Represents a single snap point with metadata
+ * @brief Snap point structure
  *
- * SnapPoint contains all information needed for snap point calculation,
- * visualization, and selection. The distance field is in screen pixels
- * for consistent tolerance checking regardless of zoom level.
+ * Contains information about a detected snap point, including its
+ * position, the snap mode that detected it, and a human-readable description.
  */
 struct SnapPoint {
-  /// World position of the snap point
-  glm::vec3 position;
+  /// Position of the snap point in world coordinates
+  glm::vec2 position;
 
-  /// Snap mode that produced this point
+  /// The snap mode that detected this point
   SnapMode mode;
 
-  /// Human-readable description (e.g., "Endpoint", "Grid Point")
+  /// Human-readable description of the snap point
   std::string description;
-
-  /// ID of the figure this snap point belongs to (0 for grid points)
-  uint32_t figureId;
-
-  /// Distance from cursor in pixels (for sorting and tolerance checking)
-  float distance;
-
-  /// Default constructor
-  SnapPoint();
-
-  /// Full constructor with all fields
-  SnapPoint(const glm::vec3 &pos, SnapMode m, const std::string &desc,
-            uint32_t id = 0, float dist = 0.0f);
 };
 
 /**
- * @brief Manager for object snapping functionality
+ * @brief Snap manager for precision drawing operations
  *
- * Provides snap point calculation for various snap modes:
- * - Grid snap
- * - Endpoint snap
- * - Midpoint snap
- * - Center snap
- * - Intersection snap
- * - Nearest snap
- * - Tangent snap (future)
- * - Perpendicular snap (future)
+ * SnapManager provides snap functionality for precise drawing operations.
+ * It manages snap settings, provides snap point detection, and maintains
+ * a dirty flag for caching optimization.
  *
- * Uses hybrid cache invalidation strategy (event-based + distance-based)
- * for optimal performance and correctness.
+ * Architecture:
+ * - SnapManager is NOT purely stateless - it maintains a dirty flag for caching
+ * - This is acceptable because snap point detection is expensive (requires
+ * geometric calculations)
+ * - This pattern is similar to GridManager's grid geometry caching
+ * - The dirty flag is set via callback when snap settings change in
+ * UIFSMAdapter
+ *
+ * @note UI panels should query snap state through UIFSMAdapter, not directly
  */
 class SnapManager {
 public:
-  /// Set of snap modes for per-tool configuration
-  using SnapModeSet = std::unordered_set<SnapMode>;
+  /**
+   * @brief Constructor
+   * @param uiFSMAdapter Reference to UIFSMAdapter for integration
+   *
+   * The UIFSMAdapter reference is stored for state queries. SnapManager
+   * does not manage the lifecycle of UIFSMAdapter.
+   */
+  explicit SnapManager(UIFSMAdapter &uiFSMAdapter);
 
   /**
-   * @brief Construct SnapManager
-   * @param uiFSMAdapter UIFSMAdapter reference for accessing snap settings
-   * @param gridManager GridManager reference for grid snapping
-   * @param selectionManager SelectionManager reference for object snapping
-   * @param model IModel reference for accessing figure data
+   * @brief Destructor
    */
-  SnapManager(UIFSMAdapter &uiFSMAdapter, GridManager &gridManager,
-              SelectionManager &selectionManager, model::IModel &model);
+  ~SnapManager() = default;
+
+  // ==========================================================================
+  // State Query Methods (for SnapSettingsPanel)
+  // These methods delegate to UIFSMAdapter for state queries
+  // ==========================================================================
 
   /**
-   * @brief Destroy SnapManager and clean up event callbacks
+   * @brief Get current snap settings
+   * @return Current snap settings
+   * @note Queries UIFSMAdapter for the snap settings
    */
-  ~SnapManager();
-
-  // Query methods (stateless)
-
-  /**
-   * @brief Check if snap is enabled for specific mode
-   * @param snapMode Snap mode to check
-   * @return true if snap is enabled
-   */
-  bool isSnapEnabled(SnapMode snapMode) const;
+  [[nodiscard]] SnapSettings getSnapSettings() const;
 
   /**
-   * @brief Get snap tolerance in pixels
-   * @return Tolerance in pixels
+   * @brief Check if grid snap is enabled
+   * @return true if grid snap is enabled
+   * @note Queries UIFSMAdapter for the snap settings
    */
-  float getSnapTolerance() const;
+  [[nodiscard]] bool isGridSnapEnabled() const;
+
+  /**
+   * @brief Check if endpoint snap is enabled
+   * @return true if endpoint snap is enabled
+   * @note Queries UIFSMAdapter for the snap settings
+   */
+  [[nodiscard]] bool isEndpointSnapEnabled() const;
+
+  /**
+   * @brief Check if midpoint snap is enabled
+   * @return true if midpoint snap is enabled
+   * @note Queries UIFSMAdapter for the snap settings
+   */
+  [[nodiscard]] bool isMidpointSnapEnabled() const;
+
+  /**
+   * @brief Check if center snap is enabled
+   * @return true if center snap is enabled
+   * @note Queries UIFSMAdapter for the snap settings
+   */
+  [[nodiscard]] bool isCenterSnapEnabled() const;
+
+  /**
+   * @brief Check if intersection snap is enabled
+   * @return true if intersection snap is enabled
+   * @note Queries UIFFSMAdapter for the snap settings
+   */
+  [[nodiscard]] bool isIntersectionSnapEnabled() const;
+
+  /**
+   * @brief Check if nearest point snap is enabled
+   * @return true if nearest point snap is enabled
+   * @note Queries UIFSMAdapter for the snap settings
+   */
+  [[nodiscard]] bool isNearestSnapEnabled() const;
+
+  /**
+   * @brief Check if tangent snap is enabled
+   * @return true if tangent snap is enabled
+   * @note Queries UIFFSMAdapter for the snap settings
+   */
+  [[nodiscard]] bool isTangentSnapEnabled() const;
+
+  /**
+   * @brief Check if perpendicular snap is enabled
+   * @return true if perpendicular snap is enabled
+   * @note Queries UIFFSMAdapter for the snap settings
+   */
+  [[nodiscard]] bool isPerpendicularSnapEnabled() const;
+
+  /**
+   * @brief Get snap tolerance
+   * @return Snap tolerance in pixels
+   * @note Queries UIFFSMAdapter for the snap settings
+   */
+  [[nodiscard]] float getSnapTolerance() const;
+
+  /**
+   * @brief Check if snap indicators should be shown
+   * @return true if indicators should be shown
+   * @note Queries UIFFSMAdapter for the snap settings
+   */
+  [[nodiscard]] bool showSnapIndicators() const;
 
   /**
    * @brief Get snap indicator color
-   * @return Snap indicator color
+   * @return Snap indicator color (RGBA)
+   * @note Queries UIFFSMAdapter for the snap settings
    */
-  glm::vec4 getIndicatorColor() const;
+  [[nodiscard]] glm::vec4 getSnapIndicatorColor() const;
+
+  // ==========================================================================
+  // Dirty Flag Mechanism (for caching snap point detection)
+  // ==========================================================================
 
   /**
-   * @brief Check if visual indicators should be shown
-   * @return true if indicators should be shown
-   */
-  bool showIndicators() const;
-
-  // Global snap enable/disable (for snap blocking)
-
-  /**
-   * @brief Enable or disable snapping globally
-   * @param enabled true to enable snap, false to disable
-   * @note When disabled, all snap modes are blocked regardless of settings
-   */
-  void setSnapEnabled(bool enabled);
-
-  /**
-   * @brief Check if snapping is enabled globally
-   * @return true if snap is enabled
-   */
-  bool isSnapEnabled() const;
-
-  // Snap calculation methods
-
-  /**
-   * @brief Find all snap points for the given screen position
-   * @param screenPos Screen position in pixels
-   * @param worldPos World position corresponding to screen position
-   * @return Vector of all available snap points
+   * @brief Check if snap settings have changed since last check
+   * @return true if settings are dirty
    *
-   * Uses hybrid cache invalidation (event-based + distance-based)
-   * for optimal performance. Returns all snap points within tolerance,
-   * sorted by distance from cursor.
+   * Snap settings are marked dirty when snap settings change.
+   * This allows efficient caching of snap point detection results.
    */
-  std::vector<SnapPoint> findSnapPoints(const glm::vec2 &screenPos,
-                                        const glm::vec3 &worldPos);
+  [[nodiscard]] bool isSnapSettingsDirty() const;
 
   /**
-   * @brief Get the nearest snap point within tolerance
-   * @param screenPos Screen position in pixels
-   * @param worldPos World position corresponding to screen position
-   * @return Nearest snap point if within tolerance, std::nullopt otherwise
+   * @brief Clear the snap settings dirty flag
    *
-   * Finds the single closest snap point from all available snap points.
-   * Only returns snap points within the configured tolerance.
+   * Call this after regenerating snap point detection results to indicate
+   * that the cached data is up to date.
    */
-  std::optional<SnapPoint> getNearestSnapPoint(const glm::vec2 &screenPos,
-                                               const glm::vec3 &worldPos);
+  void clearSnapSettingsDirty();
 
-  // Snap mode implementations
+  // ==========================================================================
+  // Snap Point Detection Methods (for drawing operations)
+  // ==========================================================================
 
   /**
-   * @brief Snap position to grid
-   * @param worldPos World position to snap
-   * @return Snap point if grid snap is within tolerance, std::nullopt otherwise
+   * @brief Find snap point near the given position
+   * @param position Position to search near (in screen coordinates)
+   * @param figures List of figures to search for snap points
+   * @return Snap point if found, empty optional if not found
+   *
+   * Searches for snap points based on enabled snap modes. Returns the
+   * closest snap point within tolerance, or empty optional if none found.
    */
-  std::optional<SnapPoint> snapToGrid(const glm::vec3 &worldPos);
+  [[nodiscard]] std::optional<SnapPoint>
+  findSnapPoint(const glm::vec2 &position,
+                const std::vector<std::shared_ptr<model::IFigure>> &figures);
 
   /**
-   * @brief Find all endpoint snap points for given figures
-   * @param figureIds Vector of figure IDs to process
-   * @return Vector of endpoint snap points
+   * @brief Find snap point for grid snap only
+   * @param position Position to search near (in screen coordinates)
+   * @param gridSettings Grid settings for grid snap calculation
+   * @return Snap point if found, empty optional if not found
+   *
+   * Calculates the nearest grid intersection point to the given position.
    */
-  std::vector<SnapPoint>
-  snapToEndpoints(const std::vector<uint32_t> &figureIds);
-
-  /**
-   * @brief Find all midpoint snap points for given figures
-   * @param figureIds Vector of figure IDs to process
-   * @return Vector of midpoint snap points
-   */
-  std::vector<SnapPoint>
-  snapToMidpoints(const std::vector<uint32_t> &figureIds);
-
-  /**
-   * @brief Find all center snap points for given figures
-   * @param figureIds Vector of figure IDs to process
-   * @return Vector of center snap points
-   */
-  std::vector<SnapPoint> snapToCenters(const std::vector<uint32_t> &figureIds);
-
-  /**
-   * @brief Find all intersection snap points for given figures
-   * @param figureIds Vector of figure IDs to process
-   * @return Vector of intersection snap points
-   */
-  std::vector<SnapPoint>
-  snapToIntersections(const std::vector<uint32_t> &figureIds);
-
-  // Performance caching
-
-  /**
-   * @brief Invalidate the snap point cache
-   * @note Called automatically by event handlers
-   * Can also be called manually if needed
-   */
-  void invalidateCache();
+  [[nodiscard]] std::optional<SnapPoint>
+  findGridSnapPoint(const glm::vec2 &position,
+                    const GridSettings &gridSettings);
 
 private:
-  /// Reference to UIFSMAdapter for accessing snap settings
+  /**
+   * @name State Caching
+   * @brief SnapManager maintains caching state for performance optimization
+   * @details
+   * SnapManager is NOT purely stateless - it maintains a dirty flag for
+   * caching. This is an intentional architectural decision for performance:
+   * - Snap point detection is expensive (requires geometric calculations)
+   * - Snap settings change infrequently compared to frame rate
+   * - Caching avoids recalculating snap points every frame
+   *
+   * The dirty flag is set via callback from UIFSMAdapter when settings change.
+   * This pattern is similar to GridManager's grid geometry caching.
+   */
+  ///@{
+  /// Reference to UIFSMAdapter (non-owning)
   UIFSMAdapter &uiFSMAdapter_;
 
-  /// Reference to GridManager for grid snapping
-  GridManager &gridManager_;
+  /// Flag to track if snap settings have changed
+  mutable bool snapSettingsDirty_;
+  ///@}
 
-  /// Reference to SelectionManager for object snapping
-  SelectionManager &selectionManager_;
+  /// Logger for diagnostic output
+  std::shared_ptr<spdlog::logger> logger_;
 
-  /// Reference to IModel for accessing figure data
-  model::IModel &model_;
-
-  /// Global snap enable/disable flag
-  bool snapEnabled_ = true;
-
-  // Performance cache (transient, not FSM state)
+  // ==========================================================================
+  // Helper Methods for Snap Point Detection
+  // ==========================================================================
 
   /**
-   * @brief Snap point cache for performance optimization
-   *
-   * Cache is invalidated by:
-   * - Event-based: Figure modification, camera changes, settings changes
-   * - Distance-based: Cursor moved more than CACHE_INVALIDATION_DISTANCE pixels
+   * @brief Find endpoint snap points
+   * @param position Position to search near
+   * @param figures List of figures to search
+   * @return Snap point if found, empty optional if not found
    */
-  struct SnapCache {
-    /// Cached snap points from last calculation
-    std::vector<SnapPoint> snapPoints;
-
-    /// Screen position of last cache update
-    glm::vec2 lastScreenPos{0.0f, 0.0f};
-
-    /// Figure IDs used for last cache update
-    std::vector<uint32_t> cachedFigureIds;
-
-    /// Whether cache is valid (not invalidated by events)
-    bool valid = false;
-  } snapCache_;
-
-  /// Distance threshold for distance-based cache invalidation (pixels)
-  static constexpr float CACHE_INVALIDATION_DISTANCE = 5.0f;
-
-  // Event handler callbacks (for cache invalidation)
-
-  /// Callback for figure modification events
-  std::function<void()> figureEventCallback_;
-
-  /// Callback for camera change events
-  std::function<void()> cameraEventCallback_;
-
-  /// Callback for settings change events
-  std::function<void()> settingsEventCallback_;
-
-  // Event handler implementations
+  [[nodiscard]] std::optional<SnapPoint>
+  findEndpointSnap(const glm::vec2 &position,
+                   const std::vector<std::shared_ptr<model::IFigure>> &figures);
 
   /**
-   * @brief Handle figure modification events
-   * Invalidates cache when figures are added, removed, or modified
+   * @brief Find midpoint snap points
+   * @param position Position to search near
+   * @param figures List of figures to search
+   * @return Snap point if found, empty optional if not found
    */
-  void onFigureModified();
+  [[nodiscard]] std::optional<SnapPoint>
+  findMidpointSnap(const glm::vec2 &position,
+                   const std::vector<std::shared_ptr<model::IFigure>> &figures);
 
   /**
-   * @brief Handle camera change events
-   * Invalidates cache when camera zoom, pan, or orbit changes
+   * @brief Find center snap points
+   * @param position Position to search near
+   * @param figures List of figures to search
+   * @return Snap point if found, empty optional if not found
    */
-  void onCameraChanged();
+  [[nodiscard]] std::optional<SnapPoint>
+  findCenterSnap(const glm::vec2 &position,
+                 const std::vector<std::shared_ptr<model::IFigure>> &figures);
 
   /**
-   * @brief Handle settings change events
-   * Invalidates cache when grid or snap settings change
+   * @brief Find intersection snap points
+   * @param position Position to search near
+   * @param figures List of figures to search
+   * @return Snap point if found, empty optional if not found
    */
-  void onSettingsChanged();
-
-  // Helper methods
+  [[nodiscard]] std::optional<SnapPoint> findIntersectionSnap(
+      const glm::vec2 &position,
+      const std::vector<std::shared_ptr<model::IFigure>> &figures);
 
   /**
-   * @brief Calculate all snap points for the given position
-   * @param screenPos Screen position in pixels
-   * @param worldPos World position corresponding to screen position
-   * @return Vector of all available snap points
+   * @brief Find nearest snap point
+   * @param position Position to search near
+   * @param figures List of figures to search
+   * @return Snap point if found, empty optional if not found
    */
-  std::vector<SnapPoint> calculateSnapPoints(const glm::vec2 &screenPos,
-                                             const glm::vec3 &worldPos);
+  [[nodiscard]] std::optional<SnapPoint>
+  findNearestSnap(const glm::vec2 &position,
+                  const std::vector<std::shared_ptr<model::IFigure>> &figures);
 
   /**
-   * @brief Calculate distance squared between two points (optimized for
-   * comparison)
+   * @brief Calculate distance between two points
    * @param a First point
    * @param b Second point
-   * @return Distance squared
+   * @return Euclidean distance between the points
    */
-  static float distanceSquared(const glm::vec3 &a, const glm::vec3 &b);
-
-  /**
-   * @brief Project world position onto line segment
-   * @param point Point to project
-   * @param lineStart Line segment start
-   * @param lineEnd Line segment end
-   * @return Projected point on line segment
-   */
-  static glm::vec3 projectPointOnLine(const glm::vec3 &point,
-                                      const glm::vec3 &lineStart,
-                                      const glm::vec3 &lineEnd);
-
-  /**
-   * @brief Calculate intersection of two line segments (2D)
-   * @param p1 First line start
-   * @param p2 First line end
-   * @param p3 Second line start
-   * @param p4 Second line end
-   * @return Intersection point if lines intersect, std::nullopt otherwise
-   */
-  static std::optional<glm::vec3> lineIntersection(const glm::vec3 &p1,
-                                                   const glm::vec3 &p2,
-                                                   const glm::vec3 &p3,
-                                                   const glm::vec3 &p4);
+  [[nodiscard]] float distance(const glm::vec2 &a, const glm::vec2 &b) const;
 };
 
 } // namespace view
