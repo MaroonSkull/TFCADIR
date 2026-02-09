@@ -2,6 +2,9 @@
 
 #include <Controller/IController.hpp>
 #include <View/CameraController.hpp>
+#include <View/Commands/CommandHistory.hpp>
+#include <View/Commands/ExtendedCommandManager.hpp>
+#include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
@@ -24,8 +27,9 @@ private:
   ImGuiID dockIdTools_{};
   ImGuiID dockIdLog_{};
   ImGuiID dockIdMouse_{};
-  ImGuiID dockIdOutliner_{};   // Phase 3: Outliner panel dock ID
-  ImGuiID dockIdProperties_{}; // Phase 3: Property inspector dock ID
+  ImGuiID dockIdOutliner_{};       // Phase 3: Outliner panel dock ID
+  ImGuiID dockIdProperties_{};     // Phase 3: Property inspector dock ID
+  ImGuiID dockIdCommandHistory_{}; // Phase 4: Command history panel dock ID
   ImVec2 mouseOverlayPosition_{};
   ImVec2 mousePositionAbsolute_{};
   ImTextureID textureId_{};
@@ -65,6 +69,15 @@ private:
   /// Phase 3: Property inspector panel for editing object properties
   std::unique_ptr<view::PropertyInspectorPanel> propertyInspectorPanel_;
 
+  /// Phase 4: Command history for storing command state
+  std::unique_ptr<view::CommandHistory> commandHistory_;
+
+  /// Phase 4: Extended command manager for typed commands
+  std::unique_ptr<view::ExtendedCommandManager> extendedCommandManager_;
+
+  /// Phase 4: Command history panel for undo/redo visualization
+  std::unique_ptr<view::CommandHistoryPanel> commandHistoryPanel_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -77,6 +90,7 @@ private:
   void ShowSketchPlaneOverlay();
   void ShowOutlinerPanel();
   void ShowPropertyInspectorPanel();
+  void ShowCommandHistoryPanel(); // Phase 4: Command history panel
   // void ShowListPanel()
   void ShowSimpleOverlay(); // let it float after the mouse and show its
                             // coordinates if within canvas

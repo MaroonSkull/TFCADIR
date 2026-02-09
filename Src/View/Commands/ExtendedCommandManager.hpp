@@ -15,8 +15,9 @@ namespace view {
 
 class UIFSMAdapter;
 
-// Forward declaration
+// Forward declarations
 class CommandFactory;
+class CommandHistoryPanel;
 
 /**
  * @brief Information structure for command history display
@@ -74,6 +75,16 @@ public:
    * @brief Destructor
    */
   ~ExtendedCommandManager() = default;
+
+  /**
+   * @brief Set the command history panel for cache invalidation notifications
+   * @param panel Pointer to the command history panel (can be null)
+   *
+   * This allows ExtendedCommandManager to notify the panel when command
+   * state changes, triggering cache updates. The panel is optional to
+   * support headless operation.
+   */
+  void setCommandHistoryPanel(CommandHistoryPanel *panel);
 
   // ==========================================================================
   // Phase 4 Typed Command API
@@ -222,6 +233,9 @@ private:
 
   /// Reference to the model for figure operations
   model::FlatFigures &model_;
+
+  /// Pointer to command history panel for cache invalidation (optional)
+  CommandHistoryPanel *commandHistoryPanel_{nullptr};
 
   /**
    * @brief Notify listeners that a command was executed

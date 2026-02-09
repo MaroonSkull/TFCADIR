@@ -2,6 +2,7 @@
 
 #include "CommandFactory.hpp"
 #include "CommandHistory.hpp"
+#include "ImGUI/CommandHistoryPanel.hpp"
 #include "Model/Model.hpp"
 #include <chrono>
 #include <fstream>
@@ -16,6 +17,13 @@ ExtendedCommandManager::ExtendedCommandManager(CommandHistory &commandHistory,
     : commandHistory_(commandHistory), model_(model) {
   spdlog::info(
       "[ExtendedCommandManager] Initialized (delegates to CommandHistory)");
+}
+
+void ExtendedCommandManager::setCommandHistoryPanel(
+    CommandHistoryPanel *panel) {
+  commandHistoryPanel_ = panel;
+  spdlog::debug("[ExtendedCommandManager] Command history panel {}",
+                panel ? "registered" : "unregistered");
 }
 
 // ==========================================================================
@@ -301,22 +309,34 @@ void ExtendedCommandManager::loadHistory(
 
 void ExtendedCommandManager::notifyCommandExecuted() {
   spdlog::debug("[ExtendedCommandManager] notifyCommandExecuted");
-  // TODO: Implement notification callbacks when UI integration is ready
+  /// Mark panel cache as dirty to trigger UI update
+  if (commandHistoryPanel_) {
+    commandHistoryPanel_->markDirty();
+  }
 }
 
 void ExtendedCommandManager::notifyCommandUndone() {
   spdlog::debug("[ExtendedCommandManager] notifyCommandUndone");
-  // TODO: Implement notification callbacks when UI integration is ready
+  /// Mark panel cache as dirty to trigger UI update
+  if (commandHistoryPanel_) {
+    commandHistoryPanel_->markDirty();
+  }
 }
 
 void ExtendedCommandManager::notifyCommandRedone() {
   spdlog::debug("[ExtendedCommandManager] notifyCommandRedone");
-  // TODO: Implement notification callbacks when UI integration is ready
+  /// Mark panel cache as dirty to trigger UI update
+  if (commandHistoryPanel_) {
+    commandHistoryPanel_->markDirty();
+  }
 }
 
 void ExtendedCommandManager::notifyHistoryCleared() {
   spdlog::debug("[ExtendedCommandManager] notifyHistoryCleared");
-  // TODO: Implement notification callbacks when UI integration is ready
+  /// Mark panel cache as dirty to trigger UI update
+  if (commandHistoryPanel_) {
+    commandHistoryPanel_->markDirty();
+  }
 }
 
 // ==========================================================================

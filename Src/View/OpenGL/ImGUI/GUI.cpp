@@ -1,6 +1,9 @@
 ﻿#include "imgui.h"
 #include <Controller/OpenGL/ImGUI.hpp>
 #include <GUI.hpp>
+#include <View/Commands/CommandHistory.hpp>
+#include <View/Commands/ExtendedCommandManager.hpp>
+#include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
@@ -99,12 +102,17 @@ void GUI::ShowDockSpace() {
     dockIdProperties_ = DockBuilderSplitNode(centerId, ImGuiDir_Right, 0.30f,
                                              nullptr, &centerId);
 
+    // Phase 4: Split tools dock to create space for command history
+    dockIdCommandHistory_ = DockBuilderSplitNode(dockIdTools_, ImGuiDir_Down,
+                                                 0.3f, nullptr, &dockIdTools_);
+
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
     DockBuilderDockWindow("Mouse coords", dockIdMouse_);
     DockBuilderDockWindow("Outliner", dockIdOutliner_);
     DockBuilderDockWindow("Properties", dockIdProperties_);
+    DockBuilderDockWindow("Command History", dockIdCommandHistory_);
 
     DockBuilderFinish(dockId_);
   }
@@ -257,6 +265,15 @@ void GUI::ShowPropertyInspectorPanel() {
 }
 
 /**
+ * @brief Renders the Command History panel for undo/redo visualization
+ */
+void GUI::ShowCommandHistoryPanel() {
+  if (commandHistoryPanel_) {
+    commandHistoryPanel_->render();
+  }
+}
+
+/**
  * @brief Shows sketch plane visualization overlay when in sketch mode
  */
 void GUI::ShowSketchPlaneOverlay() {
@@ -317,6 +334,18 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   propertyInspectorPanel_ = std::make_unique<view::PropertyInspectorPanel>(
       *uiFSMAdapter_, *selectionManager_, *model);
 
+  // Initialize Phase 4: Command system
+  /// Create command history for storing command state
+  commandHistory_ = std::make_unique<view::CommandHistory>();
+  /// Create extended command manager with command history and model
+  extendedCommandManager_ =
+      std::make_unique<view::ExtendedCommandManager>(*commandHistory_, *model);
+  /// Create command history panel and link to command manager for cache
+  /// invalidation
+  commandHistoryPanel_ =
+      std::make_unique<view::CommandHistoryPanel>(*extendedCommandManager_);
+  extendedCommandManager_->setCommandHistoryPanel(commandHistoryPanel_.get());
+
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -376,6 +405,9 @@ GUI::DrawGUI(ImTextureID renderTexture) {
   // Phase 3: Render object management panels
   ShowOutlinerPanel();
   ShowPropertyInspectorPanel();
+
+  // Phase 4: Render command history panel
+  ShowCommandHistoryPanel();
 
   // SshowDemoWindow();
   Render();
