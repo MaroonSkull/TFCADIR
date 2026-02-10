@@ -210,6 +210,231 @@ struct CoordinateInputSettings {
 };
 
 // ==========================================================================
+// Phase 7: Theme Data Structures
+// ==========================================================================
+
+/**
+ * @brief Theme preset enumeration
+ *
+ * Defines the available predefined theme presets for the application.
+ */
+enum class ThemePreset {
+  Dark,         ///< Professional dark theme (default CAD theme)
+  Light,        ///< Light theme for bright environments
+  HighContrast, ///< High contrast theme for accessibility
+  Custom        ///< User-defined custom theme
+};
+
+/**
+ * @brief Complete color scheme for ImGUI theme
+ *
+ * Contains all colors used throughout the UI including ImGUI colors,
+ * CAD-specific colors (grid, axes, selection), and application colors.
+ */
+struct ColorScheme {
+  // ==========================================================================
+  // ImGUI Core Colors
+  // ==========================================================================
+
+  /// Main window background color
+  glm::vec4 windowBg;
+
+  /// Child window/panel background color
+  glm::vec4 panelBg;
+
+  /// Primary text color
+  glm::vec4 text;
+
+  /// Disabled text color
+  glm::vec4 textDisabled;
+
+  /// Primary accent color (buttons, active elements)
+  glm::vec4 accent;
+
+  /// Hover state color for interactive elements
+  glm::vec4 accentHover;
+
+  /// Border color for windows and elements
+  glm::vec4 border;
+
+  /// Border color for active/hovered elements
+  glm::vec4 borderActive;
+
+  /// Background color for buttons
+  glm::vec4 buttonBg;
+
+  /// Background color for hovered buttons
+  glm::vec4 buttonBgHovered;
+
+  /// Background color for active buttons
+  glm::vec4 buttonBgActive;
+
+  /// Header background color (collapsing headers, menu bars)
+  glm::vec4 headerBg;
+
+  /// Header background color when hovered
+  glm::vec4 headerBgHovered;
+
+  /// Header background color when active
+  glm::vec4 headerBgActive;
+
+  /// Background color for input fields
+  glm::vec4 frameBg;
+
+  /// Background color for hovered input fields
+  glm::vec4 frameBgHovered;
+
+  /// Background color for active input fields
+  glm::vec4 frameBgActive;
+
+  /// Title bar background color
+  glm::vec4 titleBg;
+
+  /// Title bar background color when active
+  glm::vec4 titleBgActive;
+
+  /// Title bar text color
+  glm::vec4 titleText;
+
+  /// Title bar text color when active
+  glm::vec4 titleTextActive;
+
+  /// Background color for menu bars
+  glm::vec4 menuBarBg;
+
+  /// Scrollbar background color
+  glm::vec4 scrollbarBg;
+
+  /// Scrollbar grab color
+  glm::vec4 scrollbarGrab;
+
+  /// Scrollbar grab color when hovered
+  glm::vec4 scrollbarGrabHovered;
+
+  /// Scrollbar grab color when active
+  glm::vec4 scrollbarGrabActive;
+
+  /// Check mark color for checkboxes and radio buttons
+  glm::vec4 checkMark;
+
+  /// Slider grab color
+  glm::vec4 sliderGrab;
+
+  /// Slider grab color when active
+  glm::vec4 sliderGrabActive;
+
+  /// Background color for tables
+  glm::vec4 tableBg;
+
+  /// Background color for table headers
+  glm::vec4 tableHeaderBg;
+
+  /// Background color for alternating table rows
+  glm::vec4 tableRowBgAlt;
+
+  /// Border color for table headers
+  glm::vec4 tableBorderStrong;
+
+  /// Background color for selected items
+  glm::vec4 selectionBg;
+
+  /// Text color for selected items
+  glm::vec4 selectionText;
+
+  /// Color for drag and drop preview
+  glm::vec4 dragDropTarget;
+
+  /// Color for navigation highlight
+  glm::vec4 navHighlight;
+
+  /// Color for navigation windowing highlight
+  glm::vec4 navWindowingHighlight;
+
+  /// Color for navigation windowing dim background
+  glm::vec4 navWindowingDimBg;
+
+  /// Color for modal window dim background
+  glm::vec4 modalWindowDimBg;
+
+  // ==========================================================================
+  // CAD-Specific Colors
+  // ==========================================================================
+
+  /// Major grid lines color
+  glm::vec4 gridMajor;
+
+  /// Minor grid lines color
+  glm::vec4 gridMinor;
+
+  /// X axis color
+  glm::vec4 axisX;
+
+  /// Y axis color
+  glm::vec4 axisY;
+
+  /// Z axis color
+  glm::vec4 axisZ;
+
+  /// Selection highlight color
+  glm::vec4 selection;
+
+  /// Snap indicator color
+  glm::vec4 snap;
+
+  /// Preview/ghost geometry color
+  glm::vec4 preview;
+
+  /// Cursor color
+  glm::vec4 cursor;
+
+  /// Highlight color for hovered elements
+  glm::vec4 highlight;
+
+  /// Error/warning color
+  glm::vec4 error;
+
+  /// Success color
+  glm::vec4 success;
+
+  /// Info color
+  glm::vec4 info;
+
+  /**
+   * @brief Equality operator for ColorScheme
+   * @param other The other ColorScheme to compare
+   * @return true if all colors are equal
+   */
+  bool operator==(const ColorScheme &other) const = default;
+};
+
+/**
+ * @brief Theme settings for the application
+ *
+ * Contains configuration for the current theme preset and custom color scheme.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct ThemeSettings {
+  /// Current theme preset
+  ThemePreset preset = ThemePreset::Dark;
+
+  /// Custom color scheme (used when preset is Custom)
+  ColorScheme customScheme;
+
+  /// Whether to use the custom scheme instead of preset
+  bool useCustom = false;
+
+  /**
+   * @brief Equality operator for ThemeSettings
+   * @param other The other ThemeSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const ThemeSettings &other) const {
+    return preset == other.preset && useCustom == other.useCustom &&
+           customScheme == other.customScheme;
+  }
+};
+
+// ==========================================================================
 // Phase 7: Polish & Optimization - Keyboard Shortcuts Data Structures
 // ==========================================================================
 
@@ -1215,6 +1440,36 @@ public:
   void setShortcutSettingsChangedCallback(ShortcutSettingsCallback callback);
 
   // ==========================================================================
+  // Phase 7: Theme Settings Methods
+  // These methods provide access to theme settings
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for theme settings change notifications
+   */
+  using ThemeSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current theme settings
+   * @return Current theme settings
+   */
+  ThemeSettings getThemeSettings() const;
+
+  /**
+   * @brief Set theme settings
+   * @param settings The new theme settings
+   *
+   * Triggers OnThemeSettingsChanged FSM event and notifies listeners.
+   */
+  void setThemeSettings(const ThemeSettings &settings);
+
+  /**
+   * @brief Set callback for theme settings change notifications
+   * @param callback Function to invoke when theme settings change
+   */
+  void setThemeSettingsChangedCallback(ThemeSettingsCallback callback);
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -1434,6 +1689,19 @@ private:
 
   /// Callback for shortcut settings change notifications
   ShortcutSettingsCallback onShortcutSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Theme Settings Storage
+  // These member variables store theme settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Theme settings for the application
+  ThemeSettings themeSettings_;
+
+  /// Callback for theme settings change notifications
+  ThemeSettingsCallback onThemeSettingsChanged_;
 
   /**
    * @brief Get available sketch planes

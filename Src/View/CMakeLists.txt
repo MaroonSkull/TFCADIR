@@ -107,11 +107,13 @@ project(${PROJECT_NAME})
                                     Polish PRIVATE_SOURCES Polish /
                                     ShortcutManager.cpp Polish /
                                     ContextMenuManager.cpp Polish /
-                                    SettingsDialog.cpp PUBLIC_SOURCES Polish /
+                                    SettingsDialog.cpp Polish /
+                                    ThemeManager.cpp PUBLIC_SOURCES Polish /
                                     ShortcutManager.hpp Polish /
                                     ContextMenuManager.hpp Polish /
-                                    SettingsDialog.hpp PUBLIC_DEPENDENCIES
-                                        UIFSMAdapter ObjectManagement glm::glm imgui COMPILE_FEATURES
+                                    SettingsDialog.hpp Polish /
+                                    ThemeManager.hpp PUBLIC_DEPENDENCIES
+                                        UIFSMAdapter ObjectManagement glm::glm imgui spdlog::spdlog COMPILE_FEATURES
                                             cxx_std_17)
 
 #Select specific view
