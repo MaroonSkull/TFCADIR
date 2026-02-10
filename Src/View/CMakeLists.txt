@@ -108,11 +108,13 @@ project(${PROJECT_NAME})
                                     ShortcutManager.cpp Polish /
                                     ContextMenuManager.cpp Polish /
                                     SettingsDialog.cpp Polish /
-                                    ThemeManager.cpp PUBLIC_SOURCES Polish /
+                                    ThemeManager.cpp Polish /
+                                    TooltipManager.cpp PUBLIC_SOURCES Polish /
                                     ShortcutManager.hpp Polish /
                                     ContextMenuManager.hpp Polish /
                                     SettingsDialog.hpp Polish /
-                                    ThemeManager.hpp PUBLIC_DEPENDENCIES
+                                    ThemeManager.hpp Polish /
+                                    TooltipManager.hpp PUBLIC_DEPENDENCIES
                                         UIFSMAdapter ObjectManagement glm::glm imgui spdlog::spdlog COMPILE_FEATURES
                                             cxx_std_17)
 

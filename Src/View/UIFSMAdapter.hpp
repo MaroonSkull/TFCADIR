@@ -580,6 +580,88 @@ struct ShortcutSettings {
 };
 
 // ==========================================================================
+// Phase 7: Tooltip Data Structures
+// ==========================================================================
+
+/**
+ * @brief Tooltip preset enumeration
+ *
+ * Defines the available predefined tooltip presets for the application.
+ */
+enum class TooltipPreset {
+  Basic,    ///< Basic tooltips (title only)
+  Detailed, ///< Detailed tooltips (title + description + shortcut)
+  Minimal,  ///< Minimal tooltips (title + shortcut)
+  Custom    ///< User-defined custom tooltip configuration
+};
+
+/**
+ * @brief Tooltip configuration for appearance and behavior
+ *
+ * Contains configuration for tooltip display including timing,
+ * positioning, and content options.
+ */
+struct TooltipConfig {
+  /// Delay before showing tooltip in milliseconds
+  int delay = 500;
+
+  /// Duration to show tooltip in milliseconds (0 = until mouse moves)
+  int duration = 0;
+
+  /// Maximum width of tooltip in pixels
+  int maxWidth = 400;
+
+  /// Position mode for tooltip display
+  TooltipPreset preset = TooltipPreset::Detailed;
+
+  /// Whether to show keyboard shortcuts in tooltips
+  bool showShortcuts = true;
+
+  /// Whether to show descriptions in tooltips
+  bool showDescriptions = true;
+
+  /// Whether to wrap tooltip text
+  bool wrapText = true;
+
+  /**
+   * @brief Equality operator for TooltipConfig
+   * @param other The other TooltipConfig to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const TooltipConfig &other) const = default;
+};
+
+/**
+ * @brief Tooltip settings for the application
+ *
+ * Contains configuration for tooltip behavior and appearance.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct TooltipSettings {
+  /// Whether tooltips are enabled globally
+  bool enabled = true;
+
+  /// Tooltip configuration preset
+  TooltipPreset preset = TooltipPreset::Detailed;
+
+  /// Custom tooltip configuration (used when preset is Custom)
+  TooltipConfig customConfig;
+
+  /// Whether to use the custom configuration instead of preset
+  bool useCustom = false;
+
+  /**
+   * @brief Equality operator for TooltipSettings
+   * @param other The other TooltipSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const TooltipSettings &other) const {
+    return enabled == other.enabled && preset == other.preset &&
+           useCustom == other.useCustom && customConfig == other.customConfig;
+  }
+};
+
+// ==========================================================================
 // Phase 6: FSM Event Definitions
 // These events are defined in fsm::events namespace in FSM.hpp
 // and are used for cache invalidation and notifications
@@ -1470,6 +1552,36 @@ public:
   void setThemeSettingsChangedCallback(ThemeSettingsCallback callback);
 
   // ==========================================================================
+  // Phase 7: Tooltip Settings Methods
+  // These methods provide access to tooltip settings
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for tooltip settings change notifications
+   */
+  using TooltipSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current tooltip settings
+   * @return Current tooltip settings
+   */
+  TooltipSettings getTooltipSettings() const;
+
+  /**
+   * @brief Set tooltip settings
+   * @param settings The new tooltip settings
+   *
+   * Triggers OnTooltipSettingsChanged FSM event and notifies listeners.
+   */
+  void setTooltipSettings(const TooltipSettings &settings);
+
+  /**
+   * @brief Set callback for tooltip settings change notifications
+   * @param callback Function to invoke when tooltip settings change
+   */
+  void setTooltipSettingsChangedCallback(TooltipSettingsCallback callback);
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -1702,6 +1814,19 @@ private:
 
   /// Callback for theme settings change notifications
   ThemeSettingsCallback onThemeSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Tooltip Settings Storage
+  // These member variables store tooltip settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Tooltip settings for the application
+  TooltipSettings tooltipSettings_;
+
+  /// Callback for tooltip settings change notifications
+  TooltipSettingsCallback onTooltipSettingsChanged_;
 
   /**
    * @brief Get available sketch planes

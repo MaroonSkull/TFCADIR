@@ -9,7 +9,7 @@ UIFSMAdapter::UIFSMAdapter(fsm::Machine &fsm,
                            std::shared_ptr<spdlog::logger> logger)
     : fsm_(fsm), cameraController_(cameraController),
       logger_(std::move(logger)), currentState_(fsm.get_current_state()),
-      primarySelectionIndex_(-1) {
+      primarySelectionIndex_(-1), tooltipSettings_{} {
   logger_->info("UIFSMAdapter initialized");
 }
 
@@ -970,6 +970,68 @@ void UIFSMAdapter::setShortcutSettings(const ShortcutSettings &settings) {
 void UIFSMAdapter::setShortcutSettingsChangedCallback(
     ShortcutSettingsCallback callback) {
   onShortcutSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Theme Settings Methods
+// These methods provide access to theme settings
+// ==========================================================================
+
+ThemeSettings UIFSMAdapter::getThemeSettings() const {
+  /// Return the current theme settings from local storage
+  return themeSettings_;
+}
+
+void UIFSMAdapter::setThemeSettings(const ThemeSettings &settings) {
+  /// Update theme settings and notify listeners
+  if (themeSettings_ != settings) {
+    themeSettings_ = settings;
+    logger_->info("Theme settings updated");
+
+    /// Trigger FSM event to notify components
+    fsm_.process_event(fsm::events::OnThemeSettingsChanged{});
+
+    /// Notify listeners of theme settings change
+    if (onThemeSettingsChanged_) {
+      onThemeSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setThemeSettingsChangedCallback(
+    ThemeSettingsCallback callback) {
+  onThemeSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Tooltip Settings Methods
+// These methods provide access to tooltip settings
+// ==========================================================================
+
+TooltipSettings UIFSMAdapter::getTooltipSettings() const {
+  /// Return the current tooltip settings from local storage
+  return tooltipSettings_;
+}
+
+void UIFSMAdapter::setTooltipSettings(const TooltipSettings &settings) {
+  /// Update tooltip settings and notify listeners
+  if (tooltipSettings_ != settings) {
+    tooltipSettings_ = settings;
+    logger_->info("Tooltip settings updated");
+
+    /// Trigger FSM event to notify components
+    fsm_.process_event(fsm::events::OnTooltipSettingsChanged{});
+
+    /// Notify listeners of tooltip settings change
+    if (onTooltipSettingsChanged_) {
+      onTooltipSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setTooltipSettingsChangedCallback(
+    TooltipSettingsCallback callback) {
+  onTooltipSettingsChanged_ = std::move(callback);
 }
 
 } // namespace view
