@@ -662,6 +662,70 @@ struct TooltipSettings {
 };
 
 // ==========================================================================
+// Phase 7: Help Data Structures
+// ==========================================================================
+
+/**
+ * @brief Help topic for documentation
+ *
+ * Contains all information about a single help topic including
+ * its content, category, keywords for search, and related topics.
+ */
+struct HelpTopic {
+  /// Unique identifier for the topic
+  std::string id;
+
+  /// Display title
+  std::string title;
+
+  /// Help content (markdown formatted)
+  std::string content;
+
+  /// Category for grouping (e.g., "tools", "reference", "getting-started")
+  std::string category;
+
+  /// Keywords for search
+  std::vector<std::string> keywords;
+
+  /// ID of related topic (for navigation)
+  std::string relatedTopicId;
+
+  /**
+   * @brief Equality operator for HelpTopic
+   * @param other The other HelpTopic to compare
+   * @return true if all fields are equal
+   */
+  bool operator==(const HelpTopic &other) const = default;
+};
+
+/**
+ * @brief Help settings for the application
+ *
+ * Contains configuration for help system behavior.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct HelpSettings {
+  /// Whether help system is enabled
+  bool enabled = true;
+
+  /// Default topic to show on startup
+  std::string defaultTopic = "welcome";
+
+  /// Whether to show help on application startup
+  bool showOnStartup = false;
+
+  /// Maximum size of help history
+  int historySize = 20;
+
+  /**
+   * @brief Equality operator for HelpSettings
+   * @param other The other HelpSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const HelpSettings &other) const = default;
+};
+
+// ==========================================================================
 // Phase 6: FSM Event Definitions
 // These events are defined in fsm::events namespace in FSM.hpp
 // and are used for cache invalidation and notifications
@@ -1582,6 +1646,48 @@ public:
   void setTooltipSettingsChangedCallback(TooltipSettingsCallback callback);
 
   // ==========================================================================
+  // Phase 7: Help Settings Methods
+  // These methods provide access to help system
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for help settings change notifications
+   */
+  using HelpSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current help topics
+   * @return Vector of help topics
+   */
+  std::vector<HelpTopic> getHelpTopics() const;
+
+  /**
+   * @brief Get the current help settings
+   * @return Current help settings
+   */
+  HelpSettings getHelpSettings() const;
+
+  /**
+   * @brief Set help settings
+   * @param settings The new help settings
+   *
+   * Triggers OnHelpSettingsChanged FSM event and notifies listeners.
+   */
+  void setHelpSettings(const HelpSettings &settings);
+
+  /**
+   * @brief Set callback for help settings change notifications
+   * @param callback Function to invoke when help settings change
+   */
+  void setHelpSettingsChangedCallback(HelpSettingsCallback callback);
+
+  /**
+   * @brief Get the current shortcut settings
+   * @return Current shortcut settings
+   */
+  ShortcutSettings getShortcuts() const;
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -1827,6 +1933,22 @@ private:
 
   /// Callback for tooltip settings change notifications
   TooltipSettingsCallback onTooltipSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Help Settings Storage
+  // These member variables store help settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Help topics for the application
+  std::vector<HelpTopic> helpTopics_;
+
+  /// Help settings for the application
+  HelpSettings helpSettings_;
+
+  /// Callback for help settings change notifications
+  HelpSettingsCallback onHelpSettingsChanged_;
 
   /**
    * @brief Get available sketch planes

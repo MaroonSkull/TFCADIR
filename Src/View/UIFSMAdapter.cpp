@@ -11,6 +11,67 @@ UIFSMAdapter::UIFSMAdapter(fsm::Machine &fsm,
       logger_(std::move(logger)), currentState_(fsm.get_current_state()),
       primarySelectionIndex_(-1), tooltipSettings_{} {
   logger_->info("UIFSMAdapter initialized");
+
+  // Initialize default help topics
+  helpTopics_ = {
+      {"welcome",
+       "Welcome to TFCADIR",
+       "Welcome to TFCADIR - a powerful CAD application.\n\nThis help "
+       "system provides context-sensitive assistance for all tools and "
+       "features.",
+       "getting-started",
+       {"welcome", "tutorial", "basics", "introduction"},
+       "tools"},
+      {"tools",
+       "Drawing Tools",
+       "TFCADIR provides a comprehensive set of drawing tools for 3D "
+       "modeling.\n\n## Available Tools\n- Line3D: Draw 3D lines\n- Circle3D: "
+       "Draw "
+       "3D circles\n- Arc3D: Draw 3D arcs\n- Rectangle3D: Draw 3D "
+       "rectangles\n- "
+       "Polygon3D: Draw 3D polygons\n- NGon3D: Draw regular polygons",
+       "tools",
+       {"line", "circle", "arc", "rectangle", "polygon", "drawing", "tools"},
+       "getting-started"},
+      {"shortcuts",
+       "Keyboard Shortcuts",
+       "Keyboard shortcuts provide quick access to frequently used "
+       "commands.\n\n"
+       "## Common Shortcuts\n- Ctrl+Z: Undo\n- Ctrl+Y: Redo\n- Ctrl+S: "
+       "Save\n- Escape: Cancel current operation\n- F1: Show context-sensitive "
+       "help",
+       "reference",
+       {"keyboard", "shortcuts", "hotkeys", "commands"},
+       ""},
+      {"navigation",
+       "3D Navigation",
+       "Navigate the 3D viewport using mouse and keyboard.\n\n## Mouse "
+       "Controls\n"
+       "- Left Click + Drag: Rotate view\n- Right Click + Drag: Pan view\n- "
+       "Scroll Wheel: Zoom in/out\n- Middle Click + Drag: Pan view",
+       "reference",
+       {"navigation", "viewport", "camera", "view"},
+       "tools"},
+      {"grid",
+       "Grid and Snapping",
+       "Use grid and snap tools for precise drawing.\n\n## Grid Settings\n- "
+       "Major Spacing: Distance between major grid lines\n- Minor Divisions: "
+       "Number of divisions between major lines\n\n## Snap Modes\n- Grid: Snap "
+       "to grid intersections\n- Endpoint: Snap to line endpoints\n- Midpoint: "
+       "Snap to line midpoints\n- Center: Snap to circle/arc centers",
+       "reference",
+       {"grid", "snap", "precision", "snapping"},
+       "tools"},
+      {"selection",
+       "Selection and Editing",
+       "Select and edit geometry using various tools.\n\n## Selection Modes\n"
+       "- Click: Select single object\n- Shift+Click: Add to selection\n- "
+       "Ctrl+Click: Toggle selection\n- Drag: Box selection\n\n## Editing\n- "
+       "Delete: Remove selected objects\n- Ctrl+D: Duplicate selection",
+       "tools",
+       {"selection", "editing", "modify", "objects"},
+       "tools"},
+  };
 }
 
 UIFSMAdapter::~UIFSMAdapter() { logger_->info("UIFSMAdapter destroyed"); }
@@ -1032,6 +1093,53 @@ void UIFSMAdapter::setTooltipSettings(const TooltipSettings &settings) {
 void UIFSMAdapter::setTooltipSettingsChangedCallback(
     TooltipSettingsCallback callback) {
   onTooltipSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Help Settings Methods
+// These methods provide access to help system
+// ==========================================================================
+
+std::vector<UIFSMAdapter::HelpTopic> UIFSMAdapter::getHelpTopics() const {
+  /// Return the help topics from local storage
+  return helpTopics_;
+}
+
+UIFSMAdapter::HelpSettings UIFSMAdapter::getHelpSettings() const {
+  /// Return the current help settings from local storage
+  return helpSettings_;
+}
+
+void UIFSMAdapter::setHelpSettings(const HelpSettings &settings) {
+  /// Update help settings and notify listeners
+  if (helpSettings_ != settings) {
+    helpSettings_ = settings;
+    logger_->info("Help settings updated");
+
+    /// Trigger FSM event to notify components
+    fsm_.process_event(fsm::events::OnHelpSettingsChanged{});
+
+    /// Notify listeners of help settings change
+    if (onHelpSettingsChanged_) {
+      onHelpSettingsChanged_();
+    }
+  } else {
+    /// Even if settings are the same, notify listeners to ensure consistency
+    if (onHelpSettingsChanged_) {
+      onHelpSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setHelpSettingsChangedCallback(
+    HelpSettingsCallback callback) {
+  onHelpSettingsChanged_ = std::move(callback);
+}
+
+/// Get the current shortcut settings
+ShortcutSettings UIFSMAdapter::getShortcuts() const {
+  /// Return the shortcut settings from local storage
+  return shortcutSettings_;
 }
 
 } // namespace view
