@@ -105,9 +105,11 @@ project(${PROJECT_NAME})
 # Phase 7: Polish & Optimization (Keyboard Shortcuts, Context Menus, Settings Dialog, Theme System, Tooltips, Help System, Performance Monitoring)
                                 config_lib(
                                     Polish PRIVATE_SOURCES Polish /
-                                    ShortcutManager.cpp PUBLIC_SOURCES Polish /
-                                    ShortcutManager.hpp PUBLIC_DEPENDENCIES
-                                        UIFSMAdapter imgui COMPILE_FEATURES
+                                    ShortcutManager.cpp Polish /
+                                    ContextMenuManager.cpp PUBLIC_SOURCES Polish /
+                                    ShortcutManager.hpp Polish /
+                                    ContextMenuManager.hpp PUBLIC_DEPENDENCIES
+                                        UIFSMAdapter ObjectManagement glm::glm imgui COMPILE_FEATURES
                                             cxx_std_17)
 
 #Select specific view
