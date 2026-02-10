@@ -1,4 +1,6 @@
 #include "UIFSMAdapter.hpp"
+#include <optional>
+#include <tinyexpr.h>
 
 namespace view {
 
@@ -906,6 +908,22 @@ void UIFSMAdapter::setCoordinateInputSettingsChangedCallback(
 bool UIFSMAdapter::isExpressionParsingEnabled() const {
   /// Return the expression parsing enabled flag from local storage
   return coordinateInputSettings_.expressionParsingEnabled;
+}
+
+void UIFSMAdapter::setExpressionParsingEnabled(bool enabled) {
+  /// Update expression parsing enabled state
+  if (coordinateInputSettings_.expressionParsingEnabled != enabled) {
+    coordinateInputSettings_.expressionParsingEnabled = enabled;
+    logger_->info("Expression parsing {}", enabled ? "enabled" : "disabled");
+
+    /// Trigger FSM event to notify components
+    fsm_.process_event(fsm::events::OnCoordinateInputSettingsChanged{});
+
+    /// Notify listeners of coordinate input settings change
+    if (onCoordinateInputSettingsChanged_) {
+      onCoordinateInputSettingsChanged_();
+    }
+  }
 }
 
 int UIFSMAdapter::getCoordinatePrecision() const {

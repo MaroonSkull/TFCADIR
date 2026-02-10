@@ -53,6 +53,10 @@ target_include_directories (EmbedResource INTERFACE
 )
 add_dependencies (${PROJECT_NAME} EmbedResource)
 
+#tinyexpr
+add_subdirectory(tinyexpr)
+add_dependencies (${PROJECT_NAME} tinyexpr)
+
 #SWOGL
 FetchContent_Declare(swogl
     GIT_REPOSITORY https://github.com/MaroonSkull/swogl.git

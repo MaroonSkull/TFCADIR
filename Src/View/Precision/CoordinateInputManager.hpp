@@ -1,5 +1,6 @@
 #pragma once
 
+#include <View/Precision/ExpressionEvaluator.hpp>
 #include <View/UIFSMAdapter.hpp>
 #include <glm/glm.hpp>
 #include <optional>
@@ -73,13 +74,12 @@ struct CoordinateInputResult {
  *    - This maintains consistency across the application
  *
  * 5. Expression Parsing:
- *    - Implements a simple recursive descent parser
- *    - Supports basic operators: +, -, *, /
+ *    - Uses TinyExpr library for expression evaluation
+ *    - Supports operators: +, -, *, /, ^
  *    - Supports parentheses for grouping
- *    - Supports functions: sin, cos, tan, sqrt, abs
+ *    - Supports functions: sin, cos, tan, sqrt, abs, ln, log, exp
  *    - Supports constants: pi, e
- *    - Does NOT use external libraries (TinyExpr integration planned for
- * Subtask 10/10)
+ *    - All trigonometric functions use degrees
  *
  * USAGE:
  *
@@ -229,86 +229,10 @@ private:
 
   /// Flag to track if coordinate input settings have changed
   mutable bool coordinateInputDirty_;
+
+  /// Expression evaluator for parsing mathematical expressions
+  ExpressionEvaluator expressionEvaluator_;
   ///@}
-
-  // ==========================================================================
-  // Expression Parser Implementation
-  // ==========================================================================
-
-  /**
-   * @brief Token type for expression parser
-   */
-  enum class TokenType {
-    Number,   ///< Numeric literal
-    Plus,     ///< + operator
-    Minus,    ///< - operator
-    Multiply, ///< * operator
-    Divide,   ///< / operator
-    LParen,   ///< ( left parenthesis
-    RParen,   ///< ) right parenthesis
-    Function, ///< Function name (sin, cos, tan, sqrt, abs)
-    Constant, ///< Constant name (pi, e)
-    End       ///< End of input
-  };
-
-  /**
-   * @brief Token structure for expression parser
-   */
-  struct Token {
-    TokenType type;
-    std::string text;
-    double value; ///< For Number tokens
-  };
-
-  /**
-   * @brief Tokenize the input string
-   * @param input Input string to tokenize
-   * @return Vector of tokens
-   */
-  [[nodiscard]] std::vector<Token> tokenize(const std::string &input) const;
-
-  /**
-   * @brief Parse an expression (addition/subtraction)
-   * @param tokens Token vector
-   * @param pos Current position in token vector
-   * @return Parsed value
-   */
-  [[nodiscard]] double parseExpression(const std::vector<Token> &tokens,
-                                       size_t &pos) const;
-
-  /**
-   * @brief Parse a term (multiplication/division)
-   * @param tokens Token vector
-   * @param pos Current position in token vector
-   * @return Parsed value
-   */
-  [[nodiscard]] double parseTerm(const std::vector<Token> &tokens,
-                                 size_t &pos) const;
-
-  /**
-   * @brief Parse a factor (number, parenthesis, function, constant)
-   * @param tokens Token vector
-   * @param pos Current position in token vector
-   * @return Parsed value
-   */
-  [[nodiscard]] double parseFactor(const std::vector<Token> &tokens,
-                                   size_t &pos) const;
-
-  /**
-   * @brief Evaluate a function
-   * @param name Function name
-   * @param argument Function argument
-   * @return Function result
-   */
-  [[nodiscard]] double evaluateFunction(const std::string &name,
-                                        double argument) const;
-
-  /**
-   * @brief Convert degrees to radians
-   * @param degrees Angle in degrees
-   * @return Angle in radians
-   */
-  [[nodiscard]] static double degreesToRadians(double degrees);
 
   /**
    * @brief Check if a string is a valid number

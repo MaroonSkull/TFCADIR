@@ -1012,6 +1012,15 @@ public:
   bool isExpressionParsingEnabled() const;
 
   /**
+   * @brief Set expression parsing enabled state
+   * @param enabled The new enabled state
+   *
+   * Updates the coordinate input settings and triggers the
+   * OnCoordinateInputSettingsChanged FSM event.
+   */
+  void setExpressionParsingEnabled(bool enabled);
+
+  /**
    * @brief Get the coordinate precision
    * @return Number of decimal places for coordinate display
    */

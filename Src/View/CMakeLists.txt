@@ -33,6 +33,7 @@ config_lib(UIFSMAdapter
     PUBLIC_DEPENDENCIES
         CameraController
         Controller
+        tinyexpr
     COMPILE_FEATURES
         cxx_std_17
 )
@@ -134,6 +135,7 @@ config_lib(Precision
         Precision/SnapSettingsPanel.cpp
         Precision/CoordinateInputWidget.cpp
         Precision/MeasurementDisplay.cpp
+        Precision/ExpressionEvaluator.cpp
     PUBLIC_SOURCES
         Precision/GridManager.hpp
         Precision/SnapManager.hpp
@@ -143,10 +145,12 @@ config_lib(Precision
         Precision/SnapSettingsPanel.hpp
         Precision/CoordinateInputWidget.hpp
         Precision/MeasurementDisplay.hpp
+        Precision/ExpressionEvaluator.hpp
     PUBLIC_DEPENDENCIES
         UIFSMAdapter
         glm::glm
         imgui
+        tinyexpr
     COMPILE_FEATURES
         cxx_std_17
 )
