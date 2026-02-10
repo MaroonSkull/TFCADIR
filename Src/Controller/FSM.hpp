@@ -77,6 +77,7 @@ struct OnCameraOrbited {};
 struct OnGridSettingsChanged {};
 struct OnSnapSettingsChanged {};
 struct OnCoordinateInputSettingsChanged {};
+struct OnShortcutSettingsChanged {};
 } // namespace events
 
 // State enumeration (kept for backward compatibility)
@@ -333,6 +334,9 @@ template <typename Event> void Machine::process_event(const Event &event) {
   } else if constexpr (std::is_same_v<
                            Event, events::OnCoordinateInputSettingsChanged>) {
     fsm_->triggerEvent("OnCoordinateInputSettingsChanged");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnShortcutSettingsChanged>) {
+    fsm_->triggerEvent("OnShortcutSettingsChanged");
   }
 }
 

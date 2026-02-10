@@ -14,6 +14,7 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -206,6 +207,151 @@ struct CoordinateInputSettings {
    * @return true if all settings are equal
    */
   bool operator==(const CoordinateInputSettings &other) const = default;
+};
+
+// ==========================================================================
+// Phase 7: Polish & Optimization - Keyboard Shortcuts Data Structures
+// ==========================================================================
+
+/**
+ * @brief Keyboard modifier keys for shortcut combinations
+ *
+ * Defines the available modifier keys that can be combined
+ * with regular keys to form keyboard shortcuts.
+ */
+enum class KeyModifier {
+  None,        ///< No modifier key
+  Ctrl,        ///< Control key
+  Shift,       ///< Shift key
+  Alt,         ///< Alt key
+  CtrlShift,   ///< Control + Shift
+  CtrlAlt,     ///< Control + Alt
+  ShiftAlt,    ///< Shift + Alt
+  CtrlShiftAlt ///< Control + Shift + Alt
+};
+
+/**
+ * @brief Key combination for keyboard shortcuts
+ *
+ * Represents a keyboard shortcut as a combination of a key code
+ * and optional modifier keys.
+ */
+struct KeyCombo {
+  /// ImGui key code (e.g., ImGuiKey_Z, ImGuiKey_Y)
+  int keyCode;
+
+  /// Modifier keys combination
+  KeyModifier modifier;
+
+  /**
+   * @brief Equality operator for KeyCombo
+   * @param other The other KeyCombo to compare
+   * @return true if both key code and modifier match
+   */
+  bool operator==(const KeyCombo &other) const {
+    return keyCode == other.keyCode && modifier == other.modifier;
+  }
+};
+
+/**
+ * @brief Keyboard shortcut definition
+ *
+ * Contains all information about a keyboard shortcut including
+ * its key combination, action string, description, and customization flag.
+ */
+struct Shortcut {
+  /// Unique identifier for the shortcut (e.g., "undo", "redo", "line_tool")
+  std::string id;
+
+  /// Key combination that triggers this shortcut
+  KeyCombo keyCombo;
+
+  /// Human-readable description of what this shortcut does
+  std::string description;
+
+  /// Action string for dispatching (e.g., "commandManager.undo",
+  /// "tool.activate")
+  std::string action;
+
+  /// Whether this shortcut can be customized by the user
+  bool isCustomizable = true;
+
+  /**
+   * @brief Default constructor
+   */
+  Shortcut() = default;
+
+  /**
+   * @brief Constructor with all fields
+   */
+  Shortcut(std::string id, KeyCombo keyCombo, std::string description,
+           std::string action, bool isCustomizable = true)
+      : id(std::move(id)), keyCombo(keyCombo),
+        description(std::move(description)), action(std::move(action)),
+        isCustomizable(isCustomizable) {}
+
+  /**
+   * @brief Move constructor
+   */
+  Shortcut(Shortcut &&other) noexcept
+      : id(std::move(other.id)), keyCombo(other.keyCombo),
+        description(std::move(other.description)),
+        action(std::move(other.action)), isCustomizable(other.isCustomizable) {}
+
+  /**
+   * @brief Move assignment operator
+   */
+  Shortcut &operator=(Shortcut &&other) noexcept {
+    if (this != &other) {
+      id = std::move(other.id);
+      keyCombo = other.keyCombo;
+      description = std::move(other.description);
+      action = std::move(other.action);
+      isCustomizable = other.isCustomizable;
+    }
+    return *this;
+  }
+
+  /**
+   * @brief Copy constructor
+   */
+  Shortcut(const Shortcut &other) = default;
+
+  /**
+   * @brief Copy assignment operator
+   */
+  Shortcut &operator=(const Shortcut &other) = default;
+
+  /**
+   * @brief Equality operator for Shortcut
+   * @param other The other Shortcut to compare
+   * @return true if all fields are equal
+   */
+  bool operator==(const Shortcut &other) const {
+    return id == other.id && keyCombo == other.keyCombo &&
+           description == other.description && action == other.action &&
+           isCustomizable == other.isCustomizable;
+  }
+};
+
+/**
+ * @brief Shortcut settings for keyboard shortcuts
+ *
+ * Contains configuration for all keyboard shortcuts in the application.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct ShortcutSettings {
+  /// Map of shortcut ID to shortcut definition
+  std::unordered_map<std::string, Shortcut> shortcuts;
+
+  /**
+   * @brief Equality operator for ShortcutSettings
+   * @param other The other ShortcutSettings to compare
+   * @return true if all shortcuts are equal
+   */
+  bool operator==(const ShortcutSettings &other) const {
+    return shortcuts == other.shortcuts;
+  }
 };
 
 // ==========================================================================
@@ -1039,6 +1185,36 @@ public:
   CoordinateInputMode getCoordinateInputMode() const;
 
   // ==========================================================================
+  // Phase 7: Shortcut Settings Methods
+  // These methods provide access to keyboard shortcut settings
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for shortcut settings change notifications
+   */
+  using ShortcutSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current shortcut settings
+   * @return Current shortcut settings
+   */
+  ShortcutSettings getShortcutSettings() const;
+
+  /**
+   * @brief Set shortcut settings
+   * @param settings The new shortcut settings
+   *
+   * Triggers OnShortcutSettingsChanged FSM event and notifies listeners.
+   */
+  void setShortcutSettings(const ShortcutSettings &settings);
+
+  /**
+   * @brief Set callback for shortcut settings change notifications
+   * @param callback Function to invoke when shortcut settings change
+   */
+  void setShortcutSettingsChangedCallback(ShortcutSettingsCallback callback);
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -1245,6 +1421,19 @@ private:
 
   /// Callback for coordinate input settings change notifications
   CoordinateInputSettingsCallback onCoordinateInputSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Shortcut Settings Storage
+  // These member variables store shortcut settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Shortcut settings for keyboard shortcuts
+  ShortcutSettings shortcutSettings_;
+
+  /// Callback for shortcut settings change notifications
+  ShortcutSettingsCallback onShortcutSettingsChanged_;
 
   /**
    * @brief Get available sketch planes

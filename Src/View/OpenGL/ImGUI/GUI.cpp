@@ -9,6 +9,7 @@
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/Polish/ShortcutManager.hpp>
 #include <View/Precision/CoordinateInputWidget.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
 #include <View/Precision/MeasurementDisplay.hpp>
@@ -470,6 +471,20 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   measurementDisplay_ = std::make_unique<view::MeasurementDisplay>(
       uiFSMAdapter_.get(), measurementManager_.get());
 
+  /// Phase 7: Create shortcut manager for keyboard shortcut handling (stateless
+  /// coordinator)
+  shortcutManager_ = std::make_unique<view::ShortcutManager>(*uiFSMAdapter_);
+
+  /// Phase 7: Register default undo/redo shortcuts
+  /// Register Ctrl+Z for undo
+  shortcutManager_->registerShortcut("undo",
+                                     {ImGuiKey_Z, view::KeyModifier::Ctrl},
+                                     "commandManager.undo", "Undo last action");
+  /// Register Ctrl+Y for redo
+  shortcutManager_->registerShortcut(
+      "redo", {ImGuiKey_Y, view::KeyModifier::Ctrl}, "commandManager.redo",
+      "Redo last undone action");
+
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -503,16 +518,32 @@ std::tuple<ImVec2, float, std::optional<ImVec2>>
 GUI::DrawGUI(ImTextureID renderTexture) {
   NewFrame();
 
-  // Handle keyboard shortcuts for undo/redo
+  // Handle keyboard shortcuts through ShortcutManager
   ImGuiIO &io = GetIO();
-  if (io.KeyCtrl && commandManager_) {
-    if (IsKeyPressed(ImGuiKey_Z) && commandManager_->canUndo()) {
-      commandManager_->undo();
-      spdlog::info("Undo performed");
-    }
-    if (IsKeyPressed(ImGuiKey_Y) && commandManager_->canRedo()) {
-      commandManager_->redo();
-      spdlog::info("Redo performed");
+
+  // Determine the modifier key combination
+  view::KeyModifier modifier = view::KeyModifier::None;
+  if (io.KeyCtrl && io.KeyShift && io.KeyAlt) {
+    modifier = view::KeyModifier::CtrlShiftAlt;
+  } else if (io.KeyCtrl && io.KeyShift) {
+    modifier = view::KeyModifier::CtrlShift;
+  } else if (io.KeyCtrl && io.KeyAlt) {
+    modifier = view::KeyModifier::CtrlAlt;
+  } else if (io.KeyShift && io.KeyAlt) {
+    modifier = view::KeyModifier::ShiftAlt;
+  } else if (io.KeyCtrl) {
+    modifier = view::KeyModifier::Ctrl;
+  } else if (io.KeyShift) {
+    modifier = view::KeyModifier::Shift;
+  } else if (io.KeyAlt) {
+    modifier = view::KeyModifier::Alt;
+  }
+
+  // Check for relevant key presses and handle through ShortcutManager
+  // This includes undo (Ctrl+Z), redo (Ctrl+Y), and other registered shortcuts
+  for (int key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; ++key) {
+    if (IsKeyPressed(static_cast<ImGuiKey>(key))) {
+      shortcutManager_->handleKeyPress(key, modifier);
     }
   }
 

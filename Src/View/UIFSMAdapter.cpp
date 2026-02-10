@@ -941,4 +941,35 @@ CoordinateInputMode UIFSMAdapter::getCoordinateInputMode() const {
   return coordinateInputSettings_.inputMode;
 }
 
+// ==========================================================================
+// Phase 7: Shortcut Settings Methods
+// These methods provide access to keyboard shortcut settings
+// ==========================================================================
+
+ShortcutSettings UIFSMAdapter::getShortcutSettings() const {
+  /// Return the current shortcut settings from local storage
+  return shortcutSettings_;
+}
+
+void UIFSMAdapter::setShortcutSettings(const ShortcutSettings &settings) {
+  /// Update shortcut settings and notify listeners
+  if (shortcutSettings_ != settings) {
+    shortcutSettings_ = settings;
+    logger_->info("Shortcut settings updated");
+
+    /// Trigger FSM event to notify components
+    fsm_.process_event(fsm::events::OnShortcutSettingsChanged{});
+
+    /// Notify listeners of shortcut settings change
+    if (onShortcutSettingsChanged_) {
+      onShortcutSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setShortcutSettingsChangedCallback(
+    ShortcutSettingsCallback callback) {
+  onShortcutSettingsChanged_ = std::move(callback);
+}
+
 } // namespace view

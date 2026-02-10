@@ -10,6 +10,7 @@
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/Polish/ShortcutManager.hpp>
 #include <View/Precision/CoordinateInputWidget.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
 #include <View/Precision/MeasurementDisplay.hpp>
@@ -111,6 +112,10 @@ private:
 
   /// Phase 6: Measurement display for measurement overlay
   std::unique_ptr<view::MeasurementDisplay> measurementDisplay_;
+
+  /// Phase 7: Shortcut manager for keyboard shortcut handling (stateless
+  /// coordinator)
+  std::unique_ptr<view::ShortcutManager> shortcutManager_;
 
   /// Current status bar text
   std::string statusText_{"3D Mode"};
