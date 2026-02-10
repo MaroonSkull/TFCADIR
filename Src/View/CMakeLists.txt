@@ -110,13 +110,15 @@ project(${PROJECT_NAME})
                                     SettingsDialog.cpp Polish /
                                     ThemeManager.cpp Polish /
                                     TooltipManager.cpp Polish /
-                                    HelpBrowser.cpp PUBLIC_SOURCES Polish /
+                                    HelpBrowser.cpp Polish /
+                                    PerformanceMonitor.cpp PUBLIC_SOURCES Polish /
                                     ShortcutManager.hpp Polish /
                                     ContextMenuManager.hpp Polish /
                                     SettingsDialog.hpp Polish /
                                     ThemeManager.hpp Polish /
                                     TooltipManager.hpp Polish /
-                                    HelpBrowser.hpp PUBLIC_DEPENDENCIES
+                                    HelpBrowser.hpp Polish /
+                                    PerformanceMonitor.hpp PUBLIC_DEPENDENCIES
                                         UIFSMAdapter ObjectManagement glm::glm imgui spdlog::spdlog COMPILE_FEATURES
                                             cxx_std_17)
 

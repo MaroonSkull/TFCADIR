@@ -1,4 +1,6 @@
 #include "UIFSMAdapter.hpp"
+#include "Polish/PerformanceMonitor.hpp"
+#include <memory>
 #include <optional>
 #include <tinyexpr.h>
 
@@ -9,7 +11,8 @@ UIFSMAdapter::UIFSMAdapter(fsm::Machine &fsm,
                            std::shared_ptr<spdlog::logger> logger)
     : fsm_(fsm), cameraController_(cameraController),
       logger_(std::move(logger)), currentState_(fsm.get_current_state()),
-      primarySelectionIndex_(-1), tooltipSettings_{} {
+      primarySelectionIndex_(-1), tooltipSettings_{},
+      performanceMonitor_(std::make_unique<View::PerformanceMonitor>()) {
   logger_->info("UIFSMAdapter initialized");
 
   // Initialize default help topics
@@ -1140,6 +1143,53 @@ void UIFSMAdapter::setHelpSettingsChangedCallback(
 ShortcutSettings UIFSMAdapter::getShortcuts() const {
   /// Return the shortcut settings from local storage
   return shortcutSettings_;
+}
+
+// ==========================================================================
+// Phase 7: Performance Monitor Methods
+// These methods provide access to performance monitoring
+// ==========================================================================
+
+/**
+ * @brief Get performance monitor instance
+ * @return View::PerformanceMonitor Pointer to the performance monitor
+ */
+View::PerformanceMonitor *UIFSMAdapter::getPerformanceMonitor() {
+  /// Return the performance monitor from local storage
+  return performanceMonitor_.get();
+}
+
+/**
+ * @brief Get performance statistics
+ * @return View::PerformanceStats Current performance statistics
+ */
+View::PerformanceStats UIFSMAdapter::getPerformanceStats() const {
+  /// Return the performance stats from the monitor, or default if not available
+  return performanceMonitor_ ? performanceMonitor_->getStats()
+                             : View::PerformanceStats{};
+}
+
+/**
+ * @brief Get performance display configuration
+ * @return View::PerformanceDisplayConfig Current display configuration
+ */
+View::PerformanceDisplayConfig
+UIFSMAdapter::getPerformanceDisplayConfig() const {
+  /// Return the display config from the monitor, or default if not available
+  return performanceMonitor_ ? performanceMonitor_->getDisplayConfig()
+                             : View::PerformanceDisplayConfig{};
+}
+
+/**
+ * @brief Set performance display configuration
+ * @param config New display configuration
+ */
+void UIFSMAdapter::setPerformanceDisplayConfig(
+    const View::PerformanceDisplayConfig &config) {
+  /// Update the display config if the monitor is available
+  if (performanceMonitor_) {
+    performanceMonitor_->setDisplayConfig(config);
+  }
 }
 
 } // namespace view

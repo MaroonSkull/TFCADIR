@@ -18,6 +18,15 @@
 #include <unordered_set>
 #include <vector>
 
+namespace View {
+
+// Forward declarations for Phase 7: PerformanceMonitor
+struct PerformanceStats;
+struct PerformanceDisplayConfig;
+class PerformanceMonitor;
+
+} // namespace View
+
 namespace view {
 
 // ==========================================================================
@@ -1688,6 +1697,36 @@ public:
   ShortcutSettings getShortcuts() const;
 
   // ==========================================================================
+  // Phase 7: Performance Monitor Methods
+  // These methods provide access to performance monitoring
+  // ==========================================================================
+
+  /**
+   * @brief Get performance monitor instance
+   * @return Pointer to performance monitor
+   */
+  View::PerformanceMonitor *getPerformanceMonitor();
+
+  /**
+   * @brief Get performance statistics
+   * @return PerformanceStats Current statistics
+   */
+  View::PerformanceStats getPerformanceStats() const;
+
+  /**
+   * @brief Get performance display configuration
+   * @return PerformanceDisplayConfig Current configuration
+   */
+  View::PerformanceDisplayConfig getPerformanceDisplayConfig() const;
+
+  /**
+   * @brief Set performance display configuration
+   * @param config New configuration
+   */
+  void
+  setPerformanceDisplayConfig(const View::PerformanceDisplayConfig &config);
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -1949,6 +1988,16 @@ private:
 
   /// Callback for help settings change notifications
   HelpSettingsCallback onHelpSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Performance Monitor Storage
+  // These member variables store performance monitoring state that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Performance monitor instance for real-time statistics
+  std::unique_ptr<View::PerformanceMonitor> performanceMonitor_;
 
   /**
    * @brief Get available sketch planes
