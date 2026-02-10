@@ -106,9 +106,11 @@ project(${PROJECT_NAME})
                                 config_lib(
                                     Polish PRIVATE_SOURCES Polish /
                                     ShortcutManager.cpp Polish /
-                                    ContextMenuManager.cpp PUBLIC_SOURCES Polish /
+                                    ContextMenuManager.cpp Polish /
+                                    SettingsDialog.cpp PUBLIC_SOURCES Polish /
                                     ShortcutManager.hpp Polish /
-                                    ContextMenuManager.hpp PUBLIC_DEPENDENCIES
+                                    ContextMenuManager.hpp Polish /
+                                    SettingsDialog.hpp PUBLIC_DEPENDENCIES
                                         UIFSMAdapter ObjectManagement glm::glm imgui COMPILE_FEATURES
                                             cxx_std_17)
 
