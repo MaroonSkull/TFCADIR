@@ -2,6 +2,7 @@
 
 #include <View/UIFSMAdapter.hpp>
 #include <glm/glm.hpp>
+#include <imgui.h>
 #include <map>
 #include <mutex>
 #include <optional>

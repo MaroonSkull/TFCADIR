@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <glm/glm.hpp>
+#include <imgui.h>
 #include <map>
 #include <string>
 #include <vector>
@@ -225,11 +226,12 @@ struct ThemeColors {
 };
 
 /**
- * @brief Theme settings
+ * @brief Local theme settings for the settings dialog
  *
- * Contains configuration for theme customization.
+ * This is a local structure used by the settings dialog UI,
+ * separate from the FSM state ThemeSettings in UIFSMAdapter.
  */
-struct ThemeSettings {
+struct DialogThemeSettings {
   /// Current theme name
   std::string currentTheme = "Dark";
 
@@ -252,7 +254,7 @@ struct Settings {
   ViewSettings view;
   PerformanceSettings performance;
   std::vector<ShortcutEntry> shortcuts;
-  ThemeSettings theme;
+  DialogThemeSettings theme;
 };
 
 /**

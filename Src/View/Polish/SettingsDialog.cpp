@@ -494,8 +494,11 @@ void SettingsDialog::renderInterfaceTab() {
   }
 
   // Font selection
-  ImGui::InputText("Font", &workingSettings_.interface.font);
-  if (ImGui::IsItemDeactivatedAfterEdit()) {
+  char fontBuffer[256];
+  strncpy(fontBuffer, workingSettings_.interface.font.c_str(), sizeof(fontBuffer) - 1);
+  fontBuffer[sizeof(fontBuffer) - 1] = '\0';
+  if (ImGui::InputText("Font", fontBuffer, sizeof(fontBuffer))) {
+    workingSettings_.interface.font = fontBuffer;
     markModified();
   }
 
@@ -533,8 +536,10 @@ void SettingsDialog::renderInterfaceTab() {
   ImGui::Text("Startup Panels:");
   for (size_t i = 0; i < workingSettings_.interface.startupPanels.size(); ++i) {
     std::string label = "##panel" + std::to_string(i);
-    ImGui::InputText(label.c_str(),
-                     &workingSettings_.interface.startupPanels[i]);
+    char panelBuffer[256];
+    strncpy(panelBuffer, workingSettings_.interface.startupPanels[i].c_str(), sizeof(panelBuffer) - 1);
+    panelBuffer[sizeof(panelBuffer) - 1] = '\0';
+    ImGui::InputText(label.c_str(), panelBuffer, sizeof(panelBuffer));
     if (ImGui::IsItemDeactivatedAfterEdit()) {
       markModified();
     }

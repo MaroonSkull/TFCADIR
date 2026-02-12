@@ -651,9 +651,6 @@ void UIFSMAdapter::setGridSettings(const GridSettings &settings) {
       onGridGeometryDirty_();
     }
 
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnGridSettingsChanged{});
-
     /// Notify listeners of grid settings change
     if (onGridSettingsChanged_) {
       onGridSettingsChanged_();
@@ -711,9 +708,6 @@ void UIFSMAdapter::setSnapSettings(const SnapSettings &settings) {
   if (snapSettings_ != settings) {
     snapSettings_ = settings;
     logger_->info("Snap settings updated");
-
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnSnapSettingsChanged{});
 
     /// Notify listeners of snap settings change
     if (onSnapSettingsChanged_) {
@@ -948,9 +942,6 @@ void UIFSMAdapter::setCoordinateInputSettings(
     coordinateInputSettings_ = settings;
     logger_->info("Coordinate input settings updated");
 
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnCoordinateInputSettingsChanged{});
-
     /// Notify listeners of coordinate input settings change
     if (onCoordinateInputSettingsChanged_) {
       onCoordinateInputSettingsChanged_();
@@ -979,9 +970,6 @@ void UIFSMAdapter::setExpressionParsingEnabled(bool enabled) {
   if (coordinateInputSettings_.expressionParsingEnabled != enabled) {
     coordinateInputSettings_.expressionParsingEnabled = enabled;
     logger_->info("Expression parsing {}", enabled ? "enabled" : "disabled");
-
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnCoordinateInputSettingsChanged{});
 
     /// Notify listeners of coordinate input settings change
     if (onCoordinateInputSettingsChanged_) {
@@ -1021,9 +1009,6 @@ void UIFSMAdapter::setShortcutSettings(const ShortcutSettings &settings) {
     shortcutSettings_ = settings;
     logger_->info("Shortcut settings updated");
 
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnShortcutSettingsChanged{});
-
     /// Notify listeners of shortcut settings change
     if (onShortcutSettingsChanged_) {
       onShortcutSettingsChanged_();
@@ -1051,9 +1036,6 @@ void UIFSMAdapter::setThemeSettings(const ThemeSettings &settings) {
   if (themeSettings_ != settings) {
     themeSettings_ = settings;
     logger_->info("Theme settings updated");
-
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnThemeSettingsChanged{});
 
     /// Notify listeners of theme settings change
     if (onThemeSettingsChanged_) {
@@ -1083,9 +1065,6 @@ void UIFSMAdapter::setTooltipSettings(const TooltipSettings &settings) {
     tooltipSettings_ = settings;
     logger_->info("Tooltip settings updated");
 
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnTooltipSettingsChanged{});
-
     /// Notify listeners of tooltip settings change
     if (onTooltipSettingsChanged_) {
       onTooltipSettingsChanged_();
@@ -1103,12 +1082,12 @@ void UIFSMAdapter::setTooltipSettingsChangedCallback(
 // These methods provide access to help system
 // ==========================================================================
 
-std::vector<UIFSMAdapter::HelpTopic> UIFSMAdapter::getHelpTopics() const {
+std::vector<HelpTopic> UIFSMAdapter::getHelpTopics() const {
   /// Return the help topics from local storage
   return helpTopics_;
 }
 
-UIFSMAdapter::HelpSettings UIFSMAdapter::getHelpSettings() const {
+HelpSettings UIFSMAdapter::getHelpSettings() const {
   /// Return the current help settings from local storage
   return helpSettings_;
 }
@@ -1118,9 +1097,6 @@ void UIFSMAdapter::setHelpSettings(const HelpSettings &settings) {
   if (helpSettings_ != settings) {
     helpSettings_ = settings;
     logger_->info("Help settings updated");
-
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnHelpSettingsChanged{});
 
     /// Notify listeners of help settings change
     if (onHelpSettingsChanged_) {

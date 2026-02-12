@@ -4,11 +4,10 @@
 #include <map>
 #include <sstream>
 
-namespace TFCADIR {
-namespace View {
+namespace view {
 namespace Polish {
 
-HelpBrowser::HelpBrowser(UIFSMAdapter *fsmAdapter)
+HelpBrowser::HelpBrowser(view::UIFSMAdapter *fsmAdapter)
     : fsmAdapter_(fsmAdapter), cacheDirty_(true), cachedSettings_{},
       lastCacheUpdate_{} {}
 
@@ -153,22 +152,12 @@ std::string HelpBrowser::getKeyboardShortcutsReference() const {
   oss << "Keyboard Shortcuts Reference\n";
   oss << "========================\n\n";
 
-  // Group by category
-  std::map<std::string, std::vector<View::Shortcut>> grouped;
+  // List all shortcuts
   for (const auto &pair : shortcuts.shortcuts) {
-    grouped[pair.second.category].push_back(pair.second);
+    oss << pair.second.description << ": " << pair.second.id << "\n";
   }
 
-  for (const auto &[category, categoryShortcuts] : grouped) {
-    oss << "[" << category << "]\n";
-
-    for (const auto &shortcut : categoryShortcuts) {
-      oss << "  " << shortcut.description << ": " << shortcut.id << "\n";
-    }
-
-    oss << "\n";
-  }
-
+  oss << "\n";
   return oss.str();
 }
 
@@ -216,5 +205,4 @@ void HelpBrowser::updateCachedSettings() const {
 }
 
 } // namespace Polish
-} // namespace View
-} // namespace TFCADIR
+} // namespace view

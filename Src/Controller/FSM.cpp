@@ -325,4 +325,109 @@ void Machine::on_exit_sketch_mode(const fsmconfig::TransitionEvent &event) {
                event.to_state, event.event_name);
 }
 
+/// Phase 7: Polish & Optimization Event Handlers
+
+/// @brief Handles shortcut registration events
+/// @details Logs when a keyboard shortcut is registered in the system
+void Machine::on_shortcut_registered(const fsmconfig::TransitionEvent &event) {
+  auto id_it = event.data.find("shortcut_id");
+  auto action_it = event.data.find("action");
+  auto key_it = event.data.find("key_combination");
+
+  if (id_it != event.data.end() && action_it != event.data.end() &&
+      key_it != event.data.end()) {
+    spdlog::info("Shortcut registered: id={}, action={}, key={}",
+                 id_it->second.asString(), action_it->second.asString(),
+                 key_it->second.asString());
+  }
+}
+
+/// @brief Handles shortcut unregistration events
+/// @details Logs when a keyboard shortcut is removed from the system
+void Machine::on_shortcut_unregistered(
+    const fsmconfig::TransitionEvent &event) {
+  auto id_it = event.data.find("shortcut_id");
+  if (id_it != event.data.end()) {
+    spdlog::info("Shortcut unregistered: id={}", id_it->second.asString());
+  }
+}
+
+/// @brief Handles shortcut activation events
+/// @details Logs when a keyboard shortcut is triggered by user input
+void Machine::on_shortcut_activated(const fsmconfig::TransitionEvent &event) {
+  auto id_it = event.data.find("shortcut_id");
+  if (id_it != event.data.end()) {
+    spdlog::info("Shortcut activated: id={}", id_it->second.asString());
+  }
+}
+
+/// @brief Handles context menu request events
+/// @details Logs when a context menu is requested at a specific position
+void Machine::on_context_menu_requested(
+    const fsmconfig::TransitionEvent &event) {
+  auto menu_it = event.data.find("menu_id");
+  auto x_it = event.data.find("x");
+  auto y_it = event.data.find("y");
+
+  if (menu_it != event.data.end() && x_it != event.data.end() &&
+      y_it != event.data.end()) {
+    float x = x_it->second.asFloat();
+    float y = y_it->second.asFloat();
+    spdlog::info("Context menu requested: menu_id=({}, {})",
+                 menu_it->second.asString(), x, y);
+  }
+}
+
+/// @brief Handles theme change events
+/// @details Logs when the application theme is changed
+void Machine::on_theme_changed(const fsmconfig::TransitionEvent &event) {
+  auto theme_it = event.data.find("theme_name");
+  if (theme_it != event.data.end()) {
+    spdlog::info("Theme changed: theme={}", theme_it->second.asString());
+  }
+}
+
+/// @brief Handles tooltip change events
+/// @details Logs when tooltip content is updated
+void Machine::on_tooltip_changed(const fsmconfig::TransitionEvent &event) {
+  auto id_it = event.data.find("tooltip_id");
+  auto content_it = event.data.find("content");
+  auto x_it = event.data.find("x");
+  auto y_it = event.data.find("y");
+
+  if (id_it != event.data.end() && content_it != event.data.end() &&
+      x_it != event.data.end() && y_it != event.data.end()) {
+    float x = x_it->second.asFloat();
+    float y = y_it->second.asFloat();
+    spdlog::info("Tooltip changed: id=({}, {}), pos=({}, {})",
+                 id_it->second.asString(), content_it->second.asString(), x, y);
+  }
+}
+
+/// @brief Handles help request events
+/// @details Logs when help is requested for a specific topic
+void Machine::on_help_requested(const fsmconfig::TransitionEvent &event) {
+  auto topic_it = event.data.find("topic");
+  if (topic_it != event.data.end()) {
+    spdlog::info("Help requested: topic={}", topic_it->second.asString());
+  }
+}
+
+/// @brief Handles performance update events
+/// @details Logs when performance metrics are updated
+void Machine::on_performance_update(const fsmconfig::TransitionEvent &event) {
+  auto fps_it = event.data.find("fps");
+  auto frame_time_it = event.data.find("frame_time");
+  auto memory_it = event.data.find("memory_usage");
+
+  if (fps_it != event.data.end() && frame_time_it != event.data.end() &&
+      memory_it != event.data.end()) {
+    float fps = fps_it->second.asFloat();
+    float frame_time = frame_time_it->second.asFloat();
+    spdlog::info(
+        "Performance update: fps={:.2f}, frame_time={:.4f}ms, memory={}", fps,
+        frame_time, memory_it->second.asString());
+  }
+}
+
 } // namespace fsm

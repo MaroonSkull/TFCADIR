@@ -2,126 +2,195 @@
 #Defines states and transitions for the drawing application
 
 #Global variables
-variables : mouse_x : 0.0 mouse_y : 0.0
+variables:
+  mouse_x: 0.0
+  mouse_y: 0.0
 
 #State definitions
-            states : Idle : on_enter : on_idle_enter on_exit
-    : on_idle_exit actions : -log_idle_state
+states:
+  Idle:
+    on_enter: on_idle_enter
+    on_exit: on_idle_exit
+    actions:
+      - log_idle_state
 
-                                 DrawingProcessing : on_enter
-    : on_drawing_enter on_exit : on_drawing_exit actions : -log_drawing_state
+  DrawingProcessing:
+    on_enter: on_drawing_enter
+    on_exit: on_drawing_exit
+    actions:
+      - log_drawing_state
 
-                                                               MoveFirstPoint
-    : on_enter : on_move_first_point_enter on_exit
-    : on_move_first_point_exit actions : -log_move_first_point_state
+  MoveFirstPoint:
+    on_enter: on_move_first_point_enter
+    on_exit: on_move_first_point_exit
+    actions:
+      - log_move_first_point_state
 
-                                             PlaneSelection : on_enter
-    : on_plane_selection_enter on_exit : on_plane_selection_exit actions
-    : -log_plane_selection_state
+  PlaneSelection:
+    on_enter: on_plane_selection_enter
+    on_exit: on_plane_selection_exit
+    actions:
+      - log_plane_selection_state
 
-          SketchEdit : on_enter : on_sketch_edit_enter on_exit
-    : on_sketch_edit_exit actions : -log_sketch_edit_state
+  SketchEdit:
+    on_enter: on_sketch_edit_enter
+    on_exit: on_sketch_edit_exit
+    actions:
+      - log_sketch_edit_state
 
 #Transition definitions
-                                        transitions :
-#From Idle to DrawingProcessing on figure creation events
-    -from : Idle to : DrawingProcessing event
-    : OnAddTriangleByCenter on_transition : on_start_drawing
+transitions:
+  #From Idle to DrawingProcessing on figure creation events
+  - from: Idle
+    to: DrawingProcessing
+    event: OnAddTriangleByCenter
+    on_transition: on_start_drawing
 
-                                            -
-                                            from : Idle to
-    : DrawingProcessing event : OnAddTriangleByCorners on_transition
-    : on_start_drawing
+  - from: Idle
+    to: DrawingProcessing
+    event: OnAddTriangleByCorners
+    on_transition: on_start_drawing
 
-      -
-      from : Idle to : DrawingProcessing event
-    : OnAddSquareByCenter on_transition : on_start_drawing
+  - from: Idle
+    to: DrawingProcessing
+    event: OnAddSquareByCenter
+    on_transition: on_start_drawing
 
-                                          -
-                                          from : Idle to
-    : DrawingProcessing event : OnAddSquareByCorners on_transition
-    : on_start_drawing
+  - from: Idle
+    to: DrawingProcessing
+    event: OnAddSquareByCorners
+    on_transition: on_start_drawing
 
-      -
-      from : Idle to : DrawingProcessing event : OnAddNgonByCenter on_transition
-    : on_start_drawing
+  - from: Idle
+    to: DrawingProcessing
+    event: OnAddNgonByCenter
+    on_transition: on_start_drawing
 
-      -
-      from : Idle to : DrawingProcessing event
-    : OnAddCircleByCenter on_transition : on_start_drawing
+  - from: Idle
+    to: DrawingProcessing
+    event: OnAddCircleByCenter
+    on_transition: on_start_drawing
 
-                                          -
-                                          from : Idle to
-    : DrawingProcessing event : OnAddLine on_transition : on_start_drawing
+  - from: Idle
+    to: DrawingProcessing
+    event: OnAddLine
+    on_transition: on_start_drawing
 
-#From DrawingProcessing to MoveFirstPoint on mouse move
-                                                          -
-                                                          from
-    : DrawingProcessing to : MoveFirstPoint event : OnMouseMove on_transition
-    : on_move_to_first_point
+  #From DrawingProcessing to MoveFirstPoint on mouse move
+  - from: DrawingProcessing
+    to: MoveFirstPoint
+    event: OnMouseMove
+    on_transition: on_move_to_first_point
 
-#From MoveFirstPoint back to DrawingProcessing
-      -
-      from : MoveFirstPoint to : DrawingProcessing event
-    : OnMouseMove on_transition : on_update_drawing
+  #From MoveFirstPoint back to DrawingProcessing
+  - from: MoveFirstPoint
+    to: DrawingProcessing
+    event: OnMouseMove
+    on_transition: on_update_drawing
 
-#From DrawingProcessing back to Idle(figure completed)
-                                  -
-                                  from : DrawingProcessing to : Idle event
-    : OnFigureComplete on_transition : on_complete_figure
+  #From DrawingProcessing back to Idle(figure completed)
+  - from: DrawingProcessing
+    to: Idle
+    event: OnFigureComplete
+    on_transition: on_complete_figure
 
-#From MoveFirstPoint back to Idle(cancelled)
-                                       -
-                                       from : MoveFirstPoint to : Idle event
-    : OnFigureCancel on_transition : on_cancel_figure
+  #From MoveFirstPoint back to Idle(cancelled)
+  - from: MoveFirstPoint
+    to: Idle
+    event: OnFigureCancel
+    on_transition: on_cancel_figure
 
-#Sketch mode transitions
-#From Idle to PlaneSelection when entering sketch mode
-                                     -
-                                     from : Idle to : PlaneSelection event
-    : OnEnterSketchMode on_transition : on_enter_sketch_mode
+  #Sketch mode transitions
+  #From Idle to PlaneSelection when entering sketch mode
+  - from: Idle
+    to: PlaneSelection
+    event: OnEnterSketchMode
+    on_transition: on_enter_sketch_mode
 
-#From PlaneSelection to SketchEdit when plane is selected
-                                        -
-                                        from : PlaneSelection to
-    : SketchEdit event : OnPlaneSelected on_transition : on_select_plane
+  #From PlaneSelection to SketchEdit when plane is selected
+  - from: PlaneSelection
+    to: SketchEdit
+    event: OnPlaneSelected
+    on_transition: on_select_plane
 
-#From SketchEdit back to Idle when exiting sketch mode
-                                                         -
-                                                         from : SketchEdit to
-    : Idle event : OnExitSketchMode on_transition : on_exit_sketch_mode
+  #From SketchEdit back to Idle when exiting sketch mode
+  - from: SketchEdit
+    to: Idle
+    event: OnExitSketchMode
+    on_transition: on_exit_sketch_mode
 
-#Sketch drawing transitions -                                                  \
-    from SketchEdit to DrawingProcessing(start drawing in SKETCH MODE)
-                                                    -
-                                                    from : SketchEdit to
-    : DrawingProcessing event : OnAddTriangleByCenterInSketch on_transition
-    : on_start_drawing_in_sketch
+  #Sketch drawing transitions - from SketchEdit to DrawingProcessing(start drawing in SKETCH MODE)
+  - from: SketchEdit
+    to: DrawingProcessing
+    event: OnAddTriangleByCenterInSketch
+    on_transition: on_start_drawing_in_sketch
 
-      -
-      from : SketchEdit to : DrawingProcessing event
-    : OnAddCircleByCenterInSketch on_transition : on_start_drawing_in_sketch
+  - from: SketchEdit
+    to: DrawingProcessing
+    event: OnAddCircleByCenterInSketch
+    on_transition: on_start_drawing_in_sketch
 
-                                                  -
-                                                  from : SketchEdit to
-    : DrawingProcessing event : OnAddSquareByCenterInSketch on_transition
-    : on_start_drawing_in_sketch
+  - from: SketchEdit
+    to: DrawingProcessing
+    event: OnAddSquareByCenterInSketch
+    on_transition: on_start_drawing_in_sketch
 
-      -
-      from : SketchEdit to : DrawingProcessing event
-    : OnAddSquareByCornersInSketch on_transition : on_start_drawing_in_sketch
+  - from: SketchEdit
+    to: DrawingProcessing
+    event: OnAddSquareByCornersInSketch
+    on_transition: on_start_drawing_in_sketch
 
-                                                   -
-                                                   from : SketchEdit to
-    : DrawingProcessing event : OnAddNgonByCenterInSketch on_transition
-    : on_start_drawing_in_sketch
+  - from: SketchEdit
+    to: DrawingProcessing
+    event: OnAddNgonByCenterInSketch
+    on_transition: on_start_drawing_in_sketch
 
-      -
-      from : SketchEdit to : DrawingProcessing event
-    : OnAddLineInSketch on_transition : on_start_drawing_in_sketch
+  - from: SketchEdit
+    to: DrawingProcessing
+    event: OnAddLineInSketch
+    on_transition: on_start_drawing_in_sketch
 
-#From DrawingProcessing back to SketchEdit(figure complete IN SKETCH)
-                                        -
-                                        from : DrawingProcessing to
-    : SketchEdit event : OnFigureCompleteInSketch on_transition
-    : on_complete_figure_in_sketch
+  #From DrawingProcessing back to SketchEdit(figure complete IN SKETCH)
+  - from: DrawingProcessing
+    to: SketchEdit
+    event: OnFigureCompleteInSketch
+    on_transition: on_complete_figure_in_sketch
+
+# Phase 7: Polish & Optimization Events
+# These events are triggered by Polish components and handled by the FSM
+# No state transitions are defined for these events as they are notification-only
+
+# Shortcut events (triggered by ShortcutManager)
+# OnShortcutRegistered - Fired when a keyboard shortcut is registered
+# OnShortcutUnregistered - Fired when a keyboard shortcut is unregistered
+# OnShortcutActivated - Fired when a keyboard shortcut is activated
+
+# Context Menu events (triggered by ContextMenuManager)
+# OnContextMenuRequested - Fired when a context menu is requested
+
+# Theme events (triggered by ThemeManager)
+# OnThemeChanged - Fired when the application theme is changed
+
+# Tooltip events (triggered by TooltipManager)
+# OnTooltipChanged - Fired when tooltip content is changed
+
+# Help events (triggered by HelpSystem)
+# OnHelpRequested - Fired when help is requested for a topic
+
+# Performance events (triggered by PerformanceMonitor)
+# OnPerformanceUpdate - Fired when performance metrics are updated
+
+# Phase 9: Command Manager Toolbar Events
+# These events are triggered by CommandManager operations
+- event: OnUndo
+  description: User triggered undo operation
+  actions:
+    - log_undo_operation
+- event: OnRedo
+  description: User triggered redo operation
+  actions:
+    - log_redo_operation
+- event: OnCommandExecuted
+  description: A command was executed successfully
+  actions:
+    - log_command_executed

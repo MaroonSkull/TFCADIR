@@ -307,7 +307,7 @@ private:
    * Refreshes the cached settings from UIFSMAdapter if the cache
    * is dirty or more than 100ms has passed since last update.
    */
-  void updateCachedSettings();
+  void updateCachedSettings() const;
 
   /**
    * @brief Mark cached settings as dirty

@@ -9,8 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace TFCADIR {
-namespace View {
+namespace view {
 namespace Polish {
 
 /**
@@ -21,7 +20,7 @@ namespace Polish {
  */
 class HelpBrowser {
 public:
-  explicit HelpBrowser(UIFSMAdapter *fsmAdapter);
+  explicit HelpBrowser(view::UIFSMAdapter *fsmAdapter);
   ~HelpBrowser() = default;
 
   // Query-based API (stateless)
@@ -110,7 +109,7 @@ public:
   void markCacheDirty();
 
 private:
-  UIFSMAdapter *fsmAdapter_;
+  view::UIFSMAdapter *fsmAdapter_;
   mutable std::mutex mutex_;
 
   // Cached data with dirty flag for rate limiting
@@ -125,5 +124,4 @@ private:
 };
 
 } // namespace Polish
-} // namespace View
-} // namespace TFCADIR
+} // namespace view

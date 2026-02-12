@@ -20,10 +20,16 @@
 
 namespace View {
 
-// Forward declarations for Phase 7: PerformanceMonitor
+// Forward declarations for Phase 7 Polish components
 struct PerformanceStats;
 struct PerformanceDisplayConfig;
 class PerformanceMonitor;
+class ShortcutManager;
+class ContextMenuManager;
+class SettingsDialog;
+class ThemeManager;
+class TooltipManager;
+class HelpBrowser;
 
 } // namespace View
 
