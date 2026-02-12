@@ -991,7 +991,7 @@ public:
    * Executes the command and adds it to the command history if successful.
    * Any commands after the current position are removed (redo chain cleared).
    */
-  void executeCommand(std::unique_ptr<ICommand> command);
+  void executeCommand(std::unique_ptr<Commands::ICommand> command);
 
   /**
    * @brief Undo the last command
@@ -1068,7 +1068,7 @@ public:
    * Returns a raw pointer to the command at the specified index.
    * The command remains owned by UIFSMAdapter.
    */
-  const ICommand *getCommandAt(size_t index) const;
+  const Commands::ICommand *getCommandAt(size_t index) const;
 
   // ==========================================================================
   // Phase 5: Navigation State Management Methods
@@ -1847,7 +1847,7 @@ private:
   // ==========================================================================
 
   /// Vector of command objects (actual commands, not just descriptions)
-  std::vector<std::unique_ptr<ICommand>> commandHistory_;
+  std::vector<std::unique_ptr<Commands::ICommand>> commandHistory_;
 
   /// Current position in command history (index of last executed command)
   size_t currentCommandIndex_{0};

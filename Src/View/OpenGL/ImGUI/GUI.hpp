@@ -73,8 +73,8 @@ private:
   /// Phase 2: Tool options panel for tool selection and configuration
   std::unique_ptr<view::ImGUI::ToolOptionsPanel> toolOptionsPanel_;
 
-  /// Phase 9: Command Manager toolbar for undo/redo support
-  std::unique_ptr<view::Commands::CommandManager> commandManagerCommands_;
+  /// Phase 3: Selection manager for object selection operations
+  std::unique_ptr<view::SelectionManager> selectionManager_;
 
   /// Phase 3: Selection manager for object selection operations
   std::unique_ptr<view::SelectionManager> selectionManager_;
