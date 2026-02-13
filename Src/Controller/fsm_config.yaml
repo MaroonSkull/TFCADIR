@@ -38,6 +38,31 @@ states:
     actions:
       - log_sketch_edit_state
 
+  # Phase 10: Selection mode states
+  SelectionMode:
+    on_enter: on_selection_mode_enter
+    on_exit: on_selection_mode_exit
+    actions:
+      - log_selection_mode_state
+
+  BoxSelection:
+    on_enter: on_box_selection_enter
+    on_exit: on_box_selection_exit
+    actions:
+      - log_box_selection_state
+
+  LassoSelection:
+    on_enter: on_lasso_selection_enter
+    on_exit: on_lasso_selection_exit
+    actions:
+      - log_lasso_selection_state
+
+  PolygonSelection:
+    on_enter: on_polygon_selection_enter
+    on_exit: on_polygon_selection_exit
+    actions:
+      - log_polygon_selection_state
+
 #Transition definitions
 transitions:
   #From Idle to DrawingProcessing on figure creation events
@@ -155,6 +180,73 @@ transitions:
     to: SketchEdit
     event: OnFigureCompleteInSketch
     on_transition: on_complete_figure_in_sketch
+
+  # Phase 10: Selection mode transitions
+  # From Idle to SelectionMode when entering point selection
+  - from: Idle
+    to: SelectionMode
+    event: OnEnterSelectionMode
+    on_transition: on_enter_selection_mode
+
+  # From Idle to BoxSelection when entering box selection mode
+  - from: Idle
+    to: BoxSelection
+    event: OnEnterBoxSelection
+    on_transition: on_enter_box_selection
+
+  # From Idle to LassoSelection when entering lasso selection mode
+  - from: Idle
+    to: LassoSelection
+    event: OnEnterLassoSelection
+    on_transition: on_enter_lasso_selection
+
+  # From Idle to PolygonSelection when entering polygon selection mode
+  - from: Idle
+    to: PolygonSelection
+    event: OnEnterPolygonSelection
+    on_transition: on_enter_polygon_selection
+
+  # From any selection mode back to Idle when selection is complete
+  - from: SelectionMode
+    to: Idle
+    event: OnSelectionComplete
+    on_transition: on_complete_selection
+
+  - from: BoxSelection
+    to: Idle
+    event: OnSelectionComplete
+    on_transition: on_complete_box_selection
+
+  - from: LassoSelection
+    to: Idle
+    event: OnSelectionComplete
+    on_transition: on_complete_lasso_selection
+
+  - from: PolygonSelection
+    to: Idle
+    event: OnSelectionComplete
+    on_transition: on_complete_polygon_selection
+
+  # From any selection mode back to Idle when cancelled
+  - from: SelectionMode
+    to: Idle
+    event: OnSelectionCancel
+    on_transition: on_cancel_selection
+
+  - from: BoxSelection
+    to: Idle
+    event: OnSelectionCancel
+    on_transition: on_cancel_selection
+
+  - from: LassoSelection
+    to: Idle
+    event: OnSelectionCancel
+    on_transition: on_cancel_selection
+
+  - from: PolygonSelection
+    to: Idle
+    event: OnSelectionCancel
+    on_transition: on_cancel_selection
 
 # Phase 7: Polish & Optimization Events
 # These events are triggered by Polish components and handled by the FSM

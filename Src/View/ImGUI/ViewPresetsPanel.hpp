@@ -1,8 +1,8 @@
 #pragma once
 
 #include <View/Navigation/NavigationTypes.hpp>
-#include <string>
 #include <chrono>
+#include <string>
 
 namespace view {
 
@@ -11,8 +11,8 @@ class NavigationManager;
 
 /**
  * @brief ImGUI panel for view preset selection
- * @details Provides UI buttons for selecting predefined view presets (Top, Front,
- *          Right, Isometric, etc.). Implements caching with dirty flag and 100ms
+ * @details Provides UI buttons for selecting predefined view presets (Top,
+ * Front, Right, Isometric, etc.). Implements caching with dirty flag and 100ms
  *          update rate limiting for performance (max 10 Hz).
  *
  *          This panel follows the query-based pattern from ToolOptionsPanel:

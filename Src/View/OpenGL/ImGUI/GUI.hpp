@@ -11,6 +11,10 @@
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/ObjectManagement/SelectionTypes.hpp>
+#include <View/OpenGL/ImGUI/CanvasContextMenu.hpp>
+#include <View/OpenGL/ImGUI/ContextMenu.hpp>
+#include <View/OpenGL/ImGUI/ObjectContextMenu.hpp>
 #include <View/OpenGL/ImGUI/PropertiesPanel.hpp>
 #include <View/OpenGL/ImGUI/ShortcutDialog.hpp>
 #include <View/OpenGL/ImGUI/ViewPresetButtons.hpp>
@@ -48,6 +52,8 @@ private:
   ImGuiID dockIdGridSettings_{};    // Phase 6: Grid settings panel dock ID
   ImGuiID dockIdSnapSettings_{};    // Phase 6: Snap settings panel dock ID
   ImGuiID dockIdCoordinateInput_{}; // Phase 6: Coordinate input widget dock ID
+  ImGuiID
+      dockIdSelectionSettings_{}; // Phase 10: Selection settings panel dock ID
   ImVec2 mouseOverlayPosition_{};
   ImVec2 mousePositionAbsolute_{};
   ImTextureID textureId_{};
@@ -135,6 +141,24 @@ private:
   /// Phase 9.5: Enhanced properties panel with context-aware display
   std::unique_ptr<view::PropertiesPanel> propertiesPanel_;
 
+  /// Phase 9.6: Canvas context menu for right-click on empty canvas space
+  std::unique_ptr<view::CanvasContextMenu> canvasContextMenu_;
+
+  /// Phase 9.6: Object context menu for right-click on selected objects
+  std::unique_ptr<view::ObjectContextMenu> objectContextMenu_;
+
+  /// Phase 10: Selection settings for advanced selection modes
+  view::SelectionSettings selectionSettings_;
+
+  /// Phase 10: Current selection geometry for box/lasso/polygon selection
+  view::SelectionGeometry currentSelectionGeometry_;
+
+  /// Phase 10: Selection memory for persistent selection sets
+  view::SelectionMemory selectionMemory_;
+
+  /// Phase 10: Flag indicating active selection drag operation
+  bool isSelectionDragActive_{false};
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -169,6 +193,18 @@ private:
    * @param io ImGuiIO for key state checking
    */
   void handleViewPresetShortcuts();
+
+  /**
+   * @brief Render the selection settings panel for Phase 10 advanced selection
+   *
+   * Displays the selection mode controls, filter options, and selection memory.
+   */
+  void ShowSelectionSettingsPanel();
+
+  /**
+   * @brief Handle keyboard shortcuts for selection modes (Phase 10)
+   */
+  void handleSelectionShortcuts();
 
 public:
   GUI(std::shared_ptr<controller::IController> sp_controller);

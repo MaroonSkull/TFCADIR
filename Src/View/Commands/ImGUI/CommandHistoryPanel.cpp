@@ -1,7 +1,7 @@
 #include "CommandHistoryPanel.hpp"
 #include <algorithm>
-#include <chrono>
 #include <cctype>
+#include <chrono>
 #include <format>
 #include <imgui.h>
 #include <sstream>
@@ -91,9 +91,10 @@ void CommandHistoryPanel::renderRedoStack() const {
 
   // Fix: Check IsItemClicked OUTSIDE the CollapsingHeader block
   // to properly detect both expand and collapse actions
-  ImGuiTreeNodeFlags headerFlags = showRedoStackExpanded_ ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+  ImGuiTreeNodeFlags headerFlags =
+      showRedoStackExpanded_ ? ImGuiTreeNodeFlags_DefaultOpen : 0;
   bool headerVisible = ImGui::CollapsingHeader(headerText.c_str(), headerFlags);
-  
+
   // Update expanded state when header is clicked (both expand and collapse)
   if (ImGui::IsItemClicked()) {
     showRedoStackExpanded_ = !showRedoStackExpanded_;
@@ -143,7 +144,8 @@ void CommandHistoryPanel::renderUndoStack() const {
 
   // Fix: Check IsItemClicked OUTSIDE of CollapsingHeader block
   // to properly detect both expand and collapse actions
-  ImGuiTreeNodeFlags headerFlags = showUndoStackExpanded_ ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+  ImGuiTreeNodeFlags headerFlags =
+      showUndoStackExpanded_ ? ImGuiTreeNodeFlags_DefaultOpen : 0;
   bool headerVisible = ImGui::CollapsingHeader(headerText.c_str(), headerFlags);
   // Update expanded state when header is clicked (both expand and collapse)
   if (ImGui::IsItemClicked()) {
@@ -252,7 +254,7 @@ void CommandHistoryPanel::updateHistoryCache() const {
   // Filter commands based on filterText
   std::string filterTextLower = filterText_;
   std::transform(filterTextLower.begin(), filterTextLower.end(),
-                  filterTextLower.begin(), ::tolower);
+                 filterTextLower.begin(), ::tolower);
 
   // Commands from 0 to currentIndex are in undo stack (can be undone)
   for (size_t i = 0; i <= currentIndex && i < commands.size(); ++i) {
@@ -262,8 +264,8 @@ void CommandHistoryPanel::updateHistoryCache() const {
       historyCache_.cachedUndoStack.push_back(cmd);
     } else {
       std::string descLower = cmd.description;
-      std::transform(descLower.begin(), descLower.end(),
-                      descLower.begin(), ::tolower);
+      std::transform(descLower.begin(), descLower.end(), descLower.begin(),
+                     ::tolower);
       if (descLower.find(filterTextLower) != std::string::npos) {
         historyCache_.cachedUndoStack.push_back(cmd);
       }
@@ -278,8 +280,8 @@ void CommandHistoryPanel::updateHistoryCache() const {
       historyCache_.cachedRedoStack.push_back(cmd);
     } else {
       std::string descLower = cmd.description;
-      std::transform(descLower.begin(), descLower.end(),
-                      descLower.begin(), ::tolower);
+      std::transform(descLower.begin(), descLower.end(), descLower.begin(),
+                     ::tolower);
       if (descLower.find(filterTextLower) != std::string::npos) {
         historyCache_.cachedRedoStack.push_back(cmd);
       }

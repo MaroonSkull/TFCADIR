@@ -217,16 +217,16 @@ void ThemeManager::applyTheme(ImGuiStyle &style) const {
                                   : getPresetScheme(settings.preset);
 
   // Apply ImGUI core colors
-  style.Colors[ImGuiCol_WindowBg] = ImVec4(
-      scheme.windowBg.r, scheme.windowBg.g, scheme.windowBg.b,
-      scheme.windowBg.a);
+  style.Colors[ImGuiCol_WindowBg] =
+      ImVec4(scheme.windowBg.r, scheme.windowBg.g, scheme.windowBg.b,
+             scheme.windowBg.a);
 
   // Apply ImGUI core colors
   style.Colors[ImGuiCol_WindowBg] =
       ImVec4(scheme.windowBg.r, scheme.windowBg.g, scheme.windowBg.b,
              scheme.windowBg.a);
-  style.Colors[ImGuiCol_WindowBg] = ImVec4(
-      scheme.panelBg.r, scheme.panelBg.g, scheme.panelBg.b, scheme.panelBg.a);
+  style.Colors[ImGuiCol_WindowBg] = ImVec4(scheme.panelBg.r, scheme.panelBg.g,
+                                           scheme.panelBg.b, scheme.panelBg.a);
   style.Colors[ImGuiCol_PopupBg] = ImVec4(scheme.panelBg.r, scheme.panelBg.g,
                                           scheme.panelBg.b, scheme.panelBg.a);
   style.Colors[ImGuiCol_FrameBg] = ImVec4(scheme.frameBg.r, scheme.frameBg.g,

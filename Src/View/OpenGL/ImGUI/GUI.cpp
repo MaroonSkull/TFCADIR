@@ -9,6 +9,10 @@
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/ObjectManagement/SelectionTypes.hpp>
+#include <View/OpenGL/ImGUI/CanvasContextMenu.hpp>
+#include <View/OpenGL/ImGUI/ContextMenu.hpp>
+#include <View/OpenGL/ImGUI/ObjectContextMenu.hpp>
 #include <View/OpenGL/ImGUI/PropertiesPanel.hpp>
 #include <View/OpenGL/ImGUI/ShortcutDialog.hpp>
 #include <View/Polish/ShortcutManager.hpp>
@@ -141,6 +145,12 @@ void GUI::ShowDockSpace() {
         DockBuilderSplitNode(dockIdSnapSettings_, ImGuiDir_Down, 0.50f, nullptr,
                              &dockIdSnapSettings_);
 
+    // Phase 10: Split coordinate input dock to create space for selection
+    // settings
+    dockIdSelectionSettings_ =
+        DockBuilderSplitNode(dockIdCoordinateInput_, ImGuiDir_Down, 0.50f,
+                             nullptr, &dockIdCoordinateInput_);
+
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
@@ -152,6 +162,7 @@ void GUI::ShowDockSpace() {
     DockBuilderDockWindow("Grid Settings", dockIdGridSettings_);
     DockBuilderDockWindow("Snap Settings", dockIdSnapSettings_);
     DockBuilderDockWindow("Coordinate Input", dockIdCoordinateInput_);
+    DockBuilderDockWindow("Selection Settings", dockIdSelectionSettings_);
 
     DockBuilderFinish(dockId_);
   }
@@ -534,6 +545,100 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   propertiesPanel_ = std::make_unique<view::PropertiesPanel>(
       *uiFSMAdapter_, *selectionManager_, *model);
 
+  /// Phase 9.6: Create canvas context menu for right-click on empty canvas
+  /// space
+  canvasContextMenu_ = std::make_unique<view::CanvasContextMenu>(
+      *extendedCommandManager_, *navigationManager_, uiFSMAdapter_.get());
+
+  /// Phase 9.6: Create object context menu for right-click on selected objects
+  objectContextMenu_ = std::make_unique<view::ObjectContextMenu>(
+      *extendedCommandManager_, selectionManager_.get(), uiFSMAdapter_.get());
+
+  /// Phase 9.6: Set up canvas context menu callbacks
+  canvasContextMenu_->setOnPan([this]() {
+    spdlog::info("Pan operation initiated from context menu");
+    // Pan is handled by mouse drag in navigation event handler
+  });
+
+  canvasContextMenu_->setOnZoomToFit([this]() {
+    if (navigationManager_) {
+      navigationManager_->zoomToFit();
+    }
+  });
+
+  canvasContextMenu_->setOnZoomToSelection([this]() {
+    if (navigationManager_) {
+      navigationManager_->zoomToSelection();
+    }
+  });
+
+  canvasContextMenu_->setOnOpenSnapSettings([this]() {
+    spdlog::info("Snap settings requested from context menu");
+    // Snap settings panel is always visible in the dock
+  });
+
+  canvasContextMenu_->setOnOpenGridSettings([this]() {
+    spdlog::info("Grid settings requested from context menu");
+    // Grid settings panel is always visible in the dock
+  });
+
+  /// Phase 9.6: Set up object context menu callbacks
+  objectContextMenu_->setOnDuplicate([this](const std::vector<uint32_t> &ids) {
+    spdlog::info("Duplicate {} objects from context menu", ids.size());
+    // TODO: Implement duplicate through command system
+  });
+
+  objectContextMenu_->setOnDelete([this](const std::vector<uint32_t> &ids) {
+    spdlog::info("Delete {} objects from context menu", ids.size());
+    // TODO: Implement delete through command system
+  });
+
+  objectContextMenu_->setOnMove([this](const std::vector<uint32_t> &ids) {
+    spdlog::info("Move {} objects from context menu", ids.size());
+    // TODO: Implement move operation through tool activation
+  });
+
+  objectContextMenu_->setOnRotate([this](const std::vector<uint32_t> &ids) {
+    spdlog::info("Rotate {} objects from context menu", ids.size());
+    // TODO: Implement rotate operation through tool activation
+  });
+
+  objectContextMenu_->setOnScale([this](const std::vector<uint32_t> &ids) {
+    spdlog::info("Scale {} objects from context menu", ids.size());
+    // TODO: Implement scale operation through tool activation
+  });
+
+  objectContextMenu_->setOnOpenProperties([this]() {
+    spdlog::info("Properties dialog requested from context menu");
+    // Properties panel is always visible in the dock
+  });
+
+  objectContextMenu_->setOnOpenLayers([this]() {
+    spdlog::info("Layers dialog requested from context menu");
+    // TODO: Implement layers dialog
+  });
+
+  objectContextMenu_->setOnBringToFront(
+      [this](const std::vector<uint32_t> &ids) {
+        spdlog::info("Bring {} objects to front from context menu", ids.size());
+        // TODO: Implement z-order through command system
+      });
+
+  objectContextMenu_->setOnSendToBack([this](const std::vector<uint32_t> &ids) {
+    spdlog::info("Send {} objects to back from context menu", ids.size());
+    // TODO: Implement z-order through command system
+  });
+
+  objectContextMenu_->setOnCreateCopy([this](const std::vector<uint32_t> &ids) {
+    spdlog::info("Create copy of {} objects from context menu", ids.size());
+    // TODO: Implement copy through command system
+  });
+
+  objectContextMenu_->setOnMirror([this](const std::vector<uint32_t> &ids) {
+    spdlog::info("Mirror {} objects from context menu", ids.size());
+    // TODO: Implement mirror operation
+  });
+
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
       [this](const std::string &status) { statusText_ = status; });
@@ -636,8 +741,41 @@ GUI::DrawGUI(ImTextureID renderTexture) {
     shortcutDialog_->render();
   }
 
+  // Phase 9.6: Handle context menus
+  // Check for right-click on canvas to show context menu
+  if (isCanvasHovered_ && IsMouseClicked(ImGuiMouseButton_Right)) {
+    // Check if we have selected objects
+    bool hasSelection =
+        selectionManager_ && !selectionManager_->getSelectedFigureIds().empty();
+
+    if (hasSelection) {
+      // Show object context menu
+      objectContextMenu_->setSelectedObjects(
+          selectionManager_->getSelectedFigureIds());
+      objectContextMenu_->show(mousePositionAbsolute_);
+    } else {
+      // Show canvas context menu
+      canvasContextMenu_->show(mousePositionAbsolute_);
+    }
+  }
+
+  // Render context menus
+  if (canvasContextMenu_ && canvasContextMenu_->isVisible()) {
+    canvasContextMenu_->render();
+  }
+
+  if (objectContextMenu_ && objectContextMenu_->isVisible()) {
+    objectContextMenu_->render();
+  }
+
   // Phase 9.4: Handle view preset keyboard shortcuts
   handleViewPresetShortcuts();
+
+  // Phase 10: Render selection settings panel
+  ShowSelectionSettingsPanel();
+
+  // Phase 10: Handle selection keyboard shortcuts
+  handleSelectionShortcuts();
 
   // SshowDemoWindow();
   Render();
@@ -702,5 +840,230 @@ void GUI::handleViewPresetShortcuts() {
   // NumPad 5: Isometric view
   if (IsKeyPressed(ImGuiKey_Keypad5)) {
     applyViewPreset(view::ViewPreset::Isometric);
+  }
+}
+
+/**
+ * @brief Render the selection settings panel for Phase 10 advanced selection
+ *
+ * Displays the selection mode controls, filter options, and selection memory.
+ */
+void GUI::ShowSelectionSettingsPanel() {
+  if (Begin("Selection Settings")) {
+    // Selection mode section
+    if (CollapsingHeader("Selection Mode", ImGuiTreeNodeFlags_DefaultOpen)) {
+      // Selection mode radio buttons
+      int modeIndex = static_cast<int>(selectionSettings_.mode);
+      if (RadioButton("Point", &modeIndex,
+                      static_cast<int>(view::SelectionMode::Point))) {
+        selectionSettings_.mode = view::SelectionMode::Point;
+        spdlog::info("Selection mode changed to Point");
+      }
+      SameLine();
+      if (RadioButton("Box", &modeIndex,
+                      static_cast<int>(view::SelectionMode::Box))) {
+        selectionSettings_.mode = view::SelectionMode::Box;
+        spdlog::info("Selection mode changed to Box");
+      }
+      SameLine();
+      if (RadioButton("Lasso", &modeIndex,
+                      static_cast<int>(view::SelectionMode::Lasso))) {
+        selectionSettings_.mode = view::SelectionMode::Lasso;
+        spdlog::info("Selection mode changed to Lasso");
+      }
+      SameLine();
+      if (RadioButton("Polygon", &modeIndex,
+                      static_cast<int>(view::SelectionMode::Polygon))) {
+        selectionSettings_.mode = view::SelectionMode::Polygon;
+        spdlog::info("Selection mode changed to Polygon");
+      }
+    }
+
+    Separator();
+
+    // Selection filter section
+    if (CollapsingHeader("Selection Filters", ImGuiTreeNodeFlags_DefaultOpen)) {
+      // Figure type filters
+      Text("Figure Types:");
+      auto &filter = selectionSettings_.filter;
+
+      CheckboxFlags(
+          "Triangles", reinterpret_cast<unsigned int *>(&filter.figureTypes),
+          static_cast<unsigned int>(view::FigureTypeFilter::Triangle));
+      SameLine();
+      CheckboxFlags("Quads",
+                    reinterpret_cast<unsigned int *>(&filter.figureTypes),
+                    static_cast<unsigned int>(view::FigureTypeFilter::Quad));
+      SameLine();
+      CheckboxFlags("Circles",
+                    reinterpret_cast<unsigned int *>(&filter.figureTypes),
+                    static_cast<unsigned int>(view::FigureTypeFilter::Circle));
+
+      CheckboxFlags("N-gons",
+                    reinterpret_cast<unsigned int *>(&filter.figureTypes),
+                    static_cast<unsigned int>(view::FigureTypeFilter::Ngon));
+      SameLine();
+      CheckboxFlags(
+          "Bezier3", reinterpret_cast<unsigned int *>(&filter.figureTypes),
+          static_cast<unsigned int>(view::FigureTypeFilter::CurveBezier3));
+      SameLine();
+      CheckboxFlags(
+          "Bezier4", reinterpret_cast<unsigned int *>(&filter.figureTypes),
+          static_cast<unsigned int>(view::FigureTypeFilter::CurveBezier4));
+
+      Separator();
+
+      // Visibility and lock filters
+      Checkbox("Visible Only", &filter.visibleOnly);
+      SameLine();
+      Checkbox("Exclude Locked", &filter.excludeLocked);
+
+      // Select all / none buttons for figure types
+      Separator();
+      if (Button("Select All Types")) {
+        filter.figureTypes = view::FigureTypeFilter::All;
+      }
+      SameLine();
+      if (Button("Clear Types")) {
+        filter.figureTypes = view::FigureTypeFilter::None;
+      }
+    }
+
+    Separator();
+
+    // Selection memory section
+    if (CollapsingHeader("Selection Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
+      // Show saved selection sets
+      Text("Saved Selections: %zu", selectionMemory_.savedSelections.size());
+
+      // Input for naming selection sets
+      static char selectionName[64] = "";
+      InputText("##SelectionName", selectionName, IM_ARRAYSIZE(selectionName));
+      SameLine();
+      if (Button("Save")) {
+        if (selectionName[0] != '\0' && selectionManager_) {
+          selectionMemory_.saveSelection(
+              selectionName, selectionManager_->getSelectedFigureIds());
+          spdlog::info("Saved selection set '{}' with {} figures",
+                       selectionName,
+                       selectionManager_->getSelectedFigureIds().size());
+        }
+      }
+
+      // List saved selections
+      if (BeginChild("SavedSelectionsList", ImVec2(0, 100), true)) {
+        for (size_t i = 0; i < selectionMemory_.savedSelections.size(); ++i) {
+          const auto &entry = selectionMemory_.savedSelections[i];
+          PushID(static_cast<int>(i));
+          if (Button(entry.name.c_str(), ImVec2(-FLT_MIN, 0))) {
+            // Restore this selection
+            if (selectionManager_) {
+              selectionManager_->clearSelection();
+              selectionManager_->applySelectionModifier(
+                  entry.figureIds, view::SelectionModifier::None);
+              spdlog::info("Restored selection set '{}' with {} figures",
+                           entry.name, entry.figureIds.size());
+            }
+          }
+          SameLine();
+          if (Button("X", ImVec2(24, 0))) {
+            selectionMemory_.deleteSelection(entry.id);
+            spdlog::info("Deleted selection set '{}'", entry.name);
+          }
+          PopID();
+        }
+      }
+      EndChild();
+    }
+
+    Separator();
+
+    // Selection actions
+    if (CollapsingHeader("Actions", ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (Button("Invert Selection")) {
+        if (selectionManager_) {
+          selectionManager_->invertSelection(selectionSettings_.filter);
+          spdlog::info("Selection inverted");
+        }
+      }
+      SameLine();
+      if (Button("Select All")) {
+        if (selectionManager_) {
+          selectionManager_->selectAll();
+          spdlog::info("All figures selected");
+        }
+      }
+      SameLine();
+      if (Button("Clear Selection")) {
+        if (selectionManager_) {
+          selectionManager_->clearSelection();
+          spdlog::info("Selection cleared");
+        }
+      }
+    }
+  }
+  End();
+}
+
+/**
+ * @brief Handle keyboard shortcuts for selection modes (Phase 10)
+ */
+void GUI::handleSelectionShortcuts() {
+  ImGuiIO &io = GetIO();
+
+  // Only handle shortcuts when canvas is hovered
+  if (!isCanvasHovered_) {
+    return;
+  }
+
+  // Ctrl+A: Select all
+  if (io.KeyCtrl && IsKeyPressed(ImGuiKey_A)) {
+    if (selectionManager_) {
+      selectionManager_->selectAll();
+      spdlog::info("Select all via Ctrl+A");
+    }
+  }
+
+  // Ctrl+I: Invert selection
+  if (io.KeyCtrl && IsKeyPressed(ImGuiKey_I)) {
+    if (selectionManager_) {
+      selectionManager_->invertSelection(selectionSettings_.filter);
+      spdlog::info("Invert selection via Ctrl+I");
+    }
+  }
+
+  // Escape: Clear selection or cancel polygon selection
+  if (IsKeyPressed(ImGuiKey_Escape)) {
+    if (selectionSettings_.mode == view::SelectionMode::Polygon &&
+        !currentSelectionGeometry_.points.empty()) {
+      // Cancel polygon selection
+      currentSelectionGeometry_.points.clear();
+      spdlog::info("Polygon selection cancelled");
+    } else if (selectionManager_ &&
+               !selectionManager_->getSelectedFigureIds().empty()) {
+      // Clear selection
+      selectionManager_->clearSelection();
+      spdlog::info("Selection cleared via Escape");
+    }
+  }
+
+  // Number keys for quick selection mode switching
+  if (!io.KeyCtrl && !io.KeyShift && !io.KeyAlt) {
+    if (IsKeyPressed(ImGuiKey_1)) {
+      selectionSettings_.mode = view::SelectionMode::Point;
+      spdlog::info("Selection mode: Point");
+    }
+    if (IsKeyPressed(ImGuiKey_2)) {
+      selectionSettings_.mode = view::SelectionMode::Box;
+      spdlog::info("Selection mode: Box");
+    }
+    if (IsKeyPressed(ImGuiKey_3)) {
+      selectionSettings_.mode = view::SelectionMode::Lasso;
+      spdlog::info("Selection mode: Lasso");
+    }
+    if (IsKeyPressed(ImGuiKey_4)) {
+      selectionSettings_.mode = view::SelectionMode::Polygon;
+      spdlog::info("Selection mode: Polygon");
+    }
   }
 }

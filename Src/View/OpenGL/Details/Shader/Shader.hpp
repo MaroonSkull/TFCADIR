@@ -1,43 +1,45 @@
 #pragma once
 
-#include <glad/gl.h>
 #include <Resource.h>
+#include <glad/gl.h>
 
+#include <array>
 #include <string>
 #include <string_view>
-#include <array>
 
 class Shader {
 public:
-	enum type {
-		Vertex = GL_VERTEX_SHADER,
-		Geometry = GL_GEOMETRY_SHADER,
-		Fragment = GL_FRAGMENT_SHADER,
-		// control and evaluation shaders require GL 4.0 (or ARB_tessellation_shader)
-		TessEvaluation = GL_TESS_EVALUATION_SHADER,
-		TessControl = GL_TESS_CONTROL_SHADER,
-		// compute shader requires GL 4.3 (or ARB_compute_shader)
-		Compute = GL_COMPUTE_SHADER
-	};
+  enum type {
+    Vertex = GL_VERTEX_SHADER,
+    Geometry = GL_GEOMETRY_SHADER,
+    Fragment = GL_FRAGMENT_SHADER,
+    // control and evaluation shaders require GL 4.0 (or
+    // ARB_tessellation_shader)
+    TessEvaluation = GL_TESS_EVALUATION_SHADER,
+    TessControl = GL_TESS_CONTROL_SHADER,
+    // compute shader requires GL 4.3 (or ARB_compute_shader)
+    Compute = GL_COMPUTE_SHADER
+  };
+
 private:
-	Shader::type shaderType_ = Shader::type::Vertex; // Default value
-	const std::string source_;
-	GLuint shaderId_{};
-	bool isShaderDeleted_{ false };
+  Shader::type shaderType_ = Shader::type::Vertex; // Default value
+  const std::string source_;
+  GLuint shaderId_{};
+  bool isShaderDeleted_{false};
 
 public:
-	Shader(const Resource& Source, Shader::type);
-	~Shader();
+  Shader(const Resource &Source, Shader::type);
+  ~Shader();
 
-	struct cmp {
-		bool operator()(const Shader*, const Shader*) const;
-	};
+  struct cmp {
+    bool operator()(const Shader *, const Shader *) const;
+  };
 
-	auto getShaderId() const -> decltype(shaderId_);
-	auto getShaderType() const -> decltype(shaderType_);
-	void deleteShader();
+  auto getShaderId() const -> decltype(shaderId_);
+  auto getShaderType() const -> decltype(shaderType_);
+  void deleteShader();
 
-	void setUniform(std::string_view, GLfloat) const;
-	void setUniform(std::string_view, const std::array<GLfloat, 4>&) const;
-	void setUniform(std::string_view, bool) const;
+  void setUniform(std::string_view, GLfloat) const;
+  void setUniform(std::string_view, const std::array<GLfloat, 4> &) const;
+  void setUniform(std::string_view, bool) const;
 };

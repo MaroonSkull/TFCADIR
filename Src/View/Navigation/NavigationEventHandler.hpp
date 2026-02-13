@@ -20,10 +20,11 @@ public:
   /**
    * @brief Constructor for NavigationEventHandler
    * @param navigationManager Reference to NavigationManager
-   * @param toolManager Pointer to ToolManager (optional, for tool-specific handling)
+   * @param toolManager Pointer to ToolManager (optional, for tool-specific
+   * handling)
    */
   NavigationEventHandler(NavigationManager &navigationManager,
-                        ToolManager *toolManager = nullptr);
+                         ToolManager *toolManager = nullptr);
 
   /**
    * @brief Destructor
@@ -32,13 +33,14 @@ public:
 
   /**
    * @brief Handles mouse wheel scroll event for zooming
-   * @param delta Scroll delta (positive = scroll up/zoom in, negative = scroll down/zoom out)
+   * @param delta Scroll delta (positive = scroll up/zoom in, negative = scroll
+   * down/zoom out)
    * @param cursorPos Current cursor position in screen coordinates
    * @param viewportSize Viewport size in pixels
    * @return true if the event was handled
    */
   bool handleMouseWheel(float delta, const glm::ivec2 &cursorPos,
-                       const glm::ivec2 &viewportSize);
+                        const glm::ivec2 &viewportSize);
 
   /**
    * @brief Handles mouse button press event
@@ -47,7 +49,8 @@ public:
    * @param cursorPos Current cursor position in screen coordinates
    * @return true if the event was handled
    */
-  bool handleMouseButtonPress(int button, int mods, const glm::ivec2 &cursorPos);
+  bool handleMouseButtonPress(int button, int mods,
+                              const glm::ivec2 &cursorPos);
 
   /**
    * @brief Handles mouse button release event

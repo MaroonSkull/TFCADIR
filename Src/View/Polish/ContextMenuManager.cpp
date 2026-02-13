@@ -51,10 +51,11 @@ Menu ContextMenuManager::buildCanvasMenu() {
   menu.items.push_back(buildSeparator());
 
   // Paste action (if clipboard has content)
-  menu.items.push_back(MenuItem("paste", "Paste", getShortcutForAction("edit.paste"), [this]() {
-    // TODO: Implement paste functionality
-    spdlog::info("Paste action triggered from context menu");
-  }));
+  menu.items.push_back(
+      MenuItem("paste", "Paste", getShortcutForAction("edit.paste"), [this]() {
+        // TODO: Implement paste functionality
+        spdlog::info("Paste action triggered from context menu");
+      }));
 
   menu.items.push_back(buildSeparator());
 
@@ -79,14 +80,14 @@ Menu ContextMenuManager::buildObjectMenu(uint32_t objectId) {
   Menu menu("Object Context");
 
   // Delete action
-  menu.items.push_back(MenuItem("delete", "Delete", getShortcutForAction("object.delete"), [this, objectId]() {
-    dispatchAction("object.delete");
-  }));
+  menu.items.push_back(
+      MenuItem("delete", "Delete", getShortcutForAction("object.delete"),
+               [this, objectId]() { dispatchAction("object.delete"); }));
 
   // Duplicate action
-  menu.items.push_back(
-      MenuItem("duplicate", "Duplicate", getShortcutForAction("object.duplicate"),
-               [this, objectId]() { dispatchAction("object.duplicate"); }));
+  menu.items.push_back(MenuItem(
+      "duplicate", "Duplicate", getShortcutForAction("object.duplicate"),
+      [this, objectId]() { dispatchAction("object.duplicate"); }));
 
   menu.items.push_back(buildSeparator());
 
@@ -143,7 +144,8 @@ Menu ContextMenuManager::buildOutlinerMenu() {
 
   // Delete selected
   menu.items.push_back(
-      MenuItem("delete_selected", "Delete Selected", getShortcutForAction("selection.delete"),
+      MenuItem("delete_selected", "Delete Selected",
+               getShortcutForAction("selection.delete"),
                [this]() { dispatchAction("selection.delete"); }));
 
   // Show/hide submenu
@@ -167,10 +169,11 @@ Menu ContextMenuManager::buildOutlinerMenu() {
   menu.items.push_back(buildSeparator());
 
   // Rename
-  menu.items.push_back(MenuItem("rename", "Rename", getShortcutForAction("object.rename"), [this]() {
-    // TODO: Implement rename
-    spdlog::info("Rename selected object");
-  }));
+  menu.items.push_back(MenuItem(
+      "rename", "Rename", getShortcutForAction("object.rename"), [this]() {
+        // TODO: Implement rename
+        spdlog::info("Rename selected object");
+      }));
 
   return menu;
 }

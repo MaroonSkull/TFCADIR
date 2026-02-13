@@ -1,9 +1,10 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <vector>
+
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace model {
 class FlatFigures;
@@ -17,6 +18,11 @@ namespace view {
  * @details Implements mathematical algorithms for point-in-figure tests and
  *          box selection. All methods are stateless and rely on passed-in
  *          viewport transform matrices.
+ *
+ * Phase 10 extends this with:
+ * - Lasso selection (freeform polygon)
+ * - Polygon selection (discrete vertices)
+ * - Containment vs intersection modes
  */
 class CanvasHitTester {
 public:
@@ -24,7 +30,7 @@ public:
    * @brief Constructs a new CanvasHitTester
    * @param model Reference to the figures model
    */
-  explicit CanvasHitTester(model::FlatFigures& model);
+  explicit CanvasHitTester(model::FlatFigures &model);
 
   /**
    * @brief Destructor
@@ -46,8 +52,8 @@ public:
    *          figure (last in render order) at the hit point.
    */
   uint32_t hitTest(float screenX, float screenY, float viewportWidth,
-                   float viewportHeight, const glm::mat4& modelView,
-                   const glm::mat4& projection, float tolerance = 5.0f);
+                   float viewportHeight, const glm::mat4 &modelView,
+                   const glm::mat4 &projection, float tolerance = 5.0f);
 
   /**
    * @brief Tests if a selection box intersects any 2D figures
@@ -65,14 +71,65 @@ public:
    *          the box.
    */
   std::vector<uint32_t> hitTestBox(float screenMinX, float screenMinY,
-                                    float screenMaxX, float screenMaxY,
-                                    float viewportWidth, float viewportHeight,
-                                    const glm::mat4& modelView,
-                                    const glm::mat4& projection);
+                                   float screenMaxX, float screenMaxY,
+                                   float viewportWidth, float viewportHeight,
+                                   const glm::mat4 &modelView,
+                                   const glm::mat4 &projection);
+
+  // ==========================================================================
+  // Phase 10: Advanced Selection Methods
+  // ==========================================================================
+
+  /**
+   * @brief Tests if figures intersect or are contained within a polygon
+   * @param screenPolygon Polygon vertices in screen coordinates
+   * @param viewportWidth Viewport width in pixels
+   * @param viewportHeight Viewport height in pixels
+   * @param modelView Model-view matrix
+   * @param projection Projection matrix
+   * @param requireContainment If true, only return fully contained figures
+   * @return Vector of figure IDs that match the selection criteria
+   * @details Converts polygon to world coordinates and tests each figure.
+   *          Used for both lasso and polygon selection.
+   */
+  std::vector<uint32_t>
+  hitTestPolygon(const std::vector<glm::vec2> &screenPolygon,
+                 float viewportWidth, float viewportHeight,
+                 const glm::mat4 &modelView, const glm::mat4 &projection,
+                 bool requireContainment = false);
+
+  /**
+   * @brief Tests if a point is inside a polygon using ray casting algorithm
+   * @param point Point to test in world coordinates
+   * @param polygon Polygon vertices in world coordinates
+   * @return true if the point is inside the polygon
+   */
+  static bool isPointInPolygon(const glm::vec2 &point,
+                               const std::vector<glm::vec2> &polygon);
+
+  /**
+   * @brief Tests if a figure's bounding box is fully contained within a polygon
+   * @param figure Figure to test
+   * @param polygonWorld Polygon vertices in world coordinates
+   * @return true if the figure's bounding box is fully contained
+   */
+  bool
+  isFigureContainedInPolygon(std::shared_ptr<model::IFigure> figure,
+                             const std::vector<glm::vec2> &polygonWorld) const;
+
+  /**
+   * @brief Tests if a figure intersects a polygon
+   * @param figure Figure to test
+   * @param polygonWorld Polygon vertices in world coordinates
+   * @return true if the figure intersects the polygon
+   */
+  bool
+  doesFigureIntersectPolygon(std::shared_ptr<model::IFigure> figure,
+                             const std::vector<glm::vec2> &polygonWorld) const;
 
 private:
   /// Reference to the figures model
-  model::FlatFigures& model_;
+  model::FlatFigures &model_;
 
   /**
    * @brief Transforms screen coordinates to world coordinates
@@ -85,8 +142,8 @@ private:
    * @return World position as vec3 (z = 0 for 2D)
    */
   glm::vec3 screenToWorld(float screenX, float screenY, float viewportWidth,
-                          float viewportHeight, const glm::mat4& modelView,
-                          const glm::mat4& projection);
+                          float viewportHeight, const glm::mat4 &modelView,
+                          const glm::mat4 &projection);
 
   /**
    * @brief Tests if a point is inside a circle
@@ -96,8 +153,8 @@ private:
    * @param tolerance Hit tolerance in world units
    * @return true if the point is inside or within tolerance of the circle
    */
-  bool isPointInCircle(const glm::vec2& point, const glm::vec2& center,
-                       float radius, float tolerance);
+  static bool isPointInCircle(const glm::vec2 &point, const glm::vec2 &center,
+                              float radius, float tolerance);
 
   /**
    * @brief Tests if a point is inside a triangle using barycentric coordinates
@@ -108,9 +165,9 @@ private:
    * @param tolerance Hit tolerance in world units
    * @return true if the point is inside or within tolerance of the triangle
    */
-  bool isPointInTriangle(const glm::vec2& point, const glm::vec2& v0,
-                         const glm::vec2& v1, const glm::vec2& v2,
-                         float tolerance);
+  static bool isPointInTriangle(const glm::vec2 &point, const glm::vec2 &v0,
+                                const glm::vec2 &v1, const glm::vec2 &v2,
+                                float tolerance);
 
   /**
    * @brief Tests if a point is inside a convex polygon using ray casting
@@ -119,9 +176,10 @@ private:
    * @param tolerance Hit tolerance in world units
    * @return true if the point is inside or within tolerance of the polygon
    */
-  bool isPointInPolygon(const glm::vec2& point,
-                        const std::vector<glm::vec2>& vertices,
-                        float tolerance);
+  static bool
+  isPointInPolygonWithTolerance(const glm::vec2 &point,
+                                const std::vector<glm::vec2> &vertices,
+                                float tolerance);
 
   /**
    * @brief Tests if a point is near a line segment
@@ -131,8 +189,8 @@ private:
    * @param tolerance Hit tolerance in world units
    * @return true if the point is within tolerance of the line segment
    */
-  bool isPointNearLine(const glm::vec2& point, const glm::vec2& start,
-                       const glm::vec2& end, float tolerance);
+  static bool isPointNearLine(const glm::vec2 &point, const glm::vec2 &start,
+                              const glm::vec2 &end, float tolerance);
 
   /**
    * @brief Tests if a point is near a set of points
@@ -141,9 +199,9 @@ private:
    * @param tolerance Hit tolerance in world units
    * @return true if the point is within tolerance of any point
    */
-  bool isPointNearAnyPoint(const glm::vec2& point,
-                           const std::vector<glm::vec2>& points,
-                           float tolerance);
+  static bool isPointNearAnyPoint(const glm::vec2 &point,
+                                  const std::vector<glm::vec2> &points,
+                                  float tolerance);
 
   /**
    * @brief Tests if a box intersects a circle
@@ -153,8 +211,9 @@ private:
    * @param radius Circle radius
    * @return true if the box intersects the circle
    */
-  bool doesBoxIntersectCircle(const glm::vec2& boxMin, const glm::vec2& boxMax,
-                              const glm::vec2& center, float radius);
+  static bool doesBoxIntersectCircle(const glm::vec2 &boxMin,
+                                     const glm::vec2 &boxMax,
+                                     const glm::vec2 &center, float radius);
 
   /**
    * @brief Tests if a box intersects a triangle
@@ -165,9 +224,10 @@ private:
    * @param v2 Third triangle vertex
    * @return true if the box intersects the triangle
    */
-  bool doesBoxIntersectTriangle(const glm::vec2& boxMin,
-                                const glm::vec2& boxMax, const glm::vec2& v0,
-                                const glm::vec2& v1, const glm::vec2& v2);
+  static bool doesBoxIntersectTriangle(const glm::vec2 &boxMin,
+                                       const glm::vec2 &boxMax,
+                                       const glm::vec2 &v0, const glm::vec2 &v1,
+                                       const glm::vec2 &v2);
 
   /**
    * @brief Tests if a box intersects a convex polygon
@@ -176,9 +236,9 @@ private:
    * @param vertices Polygon vertices in order
    * @return true if the box intersects the polygon
    */
-  bool doesBoxIntersectPolygon(const glm::vec2& boxMin,
-                               const glm::vec2& boxMax,
-                               const std::vector<glm::vec2>& vertices);
+  static bool doesBoxIntersectPolygon(const glm::vec2 &boxMin,
+                                      const glm::vec2 &boxMax,
+                                      const std::vector<glm::vec2> &vertices);
 
   /**
    * @brief Tests if two line segments intersect
@@ -188,8 +248,8 @@ private:
    * @param p4 Second segment end
    * @return true if the segments intersect
    */
-  static bool segmentsIntersect(const glm::vec2& p1, const glm::vec2& p2,
-                                const glm::vec2& p3, const glm::vec2& p4);
+  static bool segmentsIntersect(const glm::vec2 &p1, const glm::vec2 &p2,
+                                const glm::vec2 &p3, const glm::vec2 &p4);
 
   /**
    * @brief Calculates the squared distance between two points
@@ -197,7 +257,7 @@ private:
    * @param b Second point
    * @return Squared distance (avoids sqrt for performance)
    */
-  static float distanceSquared(const glm::vec2& a, const glm::vec2& b);
+  static float distanceSquared(const glm::vec2 &a, const glm::vec2 &b);
 
   /// Default hit tolerance in pixels
   static constexpr float DEFAULT_TOLERANCE_PIXELS = 5.0f;

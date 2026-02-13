@@ -9,6 +9,9 @@ config_lib(ImGUIOpenGLView
         ../..
     PRIVATE_SOURCES
         ImGUI/ApplicationSettings.cpp
+        ImGUI/ContextMenu.cpp
+        ImGUI/CanvasContextMenu.cpp
+        ImGUI/ObjectContextMenu.cpp
         ImGUI/GUI.cpp
         ImGUI/ImGUI.cpp
         ImGUI/PropertiesPanel.cpp
@@ -18,6 +21,9 @@ config_lib(ImGUIOpenGLView
         ../Presets/ViewPresetManager.cpp
     PUBLIC_SOURCES
         ImGUI/ApplicationSettings.hpp
+        ImGUI/ContextMenu.hpp
+        ImGUI/CanvasContextMenu.hpp
+        ImGUI/ObjectContextMenu.hpp
         ImGUI/GUI.hpp
         ImGUI.hpp
         ImGUI/PropertiesPanel.hpp

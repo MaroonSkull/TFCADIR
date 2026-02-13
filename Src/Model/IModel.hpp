@@ -26,9 +26,9 @@ struct Appearance {
  * @details Stores layer assignment, visibility, and lock state
  */
 struct LayerProperties {
-  int layerIndex{0};    ///< Layer index (0 = default layer)
-  bool visible{true};   ///< Whether figure is visible
-  bool locked{false};   ///< Whether figure is locked (non-editable)
+  int layerIndex{0};  ///< Layer index (0 = default layer)
+  bool visible{true}; ///< Whether figure is visible
+  bool locked{false}; ///< Whether figure is locked (non-editable)
 };
 
 /**

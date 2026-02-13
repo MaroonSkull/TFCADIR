@@ -238,9 +238,7 @@ public:
 
   // === Appearance Properties ===
 
-  glm::vec3 getStrokeColor() const override {
-    return appearance_.strokeColor;
-  }
+  glm::vec3 getStrokeColor() const override { return appearance_.strokeColor; }
 
   void setStrokeColor(const glm::vec3 &color) override {
     appearance_.strokeColor = color;

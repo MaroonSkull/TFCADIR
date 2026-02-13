@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../SelectionManager.hpp"
-#include "../../UIFSMAdapter.hpp"
 #include "../../../Model/FlatFigure.hpp"
+#include "../../UIFSMAdapter.hpp"
+#include "../SelectionManager.hpp"
 
 #include <chrono>
 #include <memory>
@@ -24,10 +24,12 @@ public:
   /**
    * @brief Constructs an OutlinerPanel
    * @param fsmAdapter Reference to the UIFSMAdapter for state access
-   * @param selectionManager Reference to the SelectionManager for selection operations
+   * @param selectionManager Reference to the SelectionManager for selection
+   * operations
    * @param model Reference to the FlatFigures model for figure access
    */
-  OutlinerPanel(UIFSMAdapter& fsmAdapter, SelectionManager& selectionManager, model::FlatFigures& model);
+  OutlinerPanel(UIFSMAdapter &fsmAdapter, SelectionManager &selectionManager,
+                model::FlatFigures &model);
 
   /**
    * @brief Renders the outliner panel
@@ -64,7 +66,8 @@ private:
 
   /**
    * @brief Updates the cached tree data if needed
-   * @details Only rebuilds cache if invalid or 100ms has elapsed since last update
+   * @details Only rebuilds cache if invalid or 100ms has elapsed since last
+   * update
    */
   void updateCacheIfNeeded();
 
@@ -95,21 +98,21 @@ private:
    * @param node The tree node data to render
    * @return true if the item was clicked
    */
-  bool renderFigureItem(const TreeNodeData& node);
+  bool renderFigureItem(const TreeNodeData &node);
 
   /**
    * @brief Gets the icon for a figure type
    * @param typeName The name of the figure type
    * @return Icon character or emoji for the figure type
    */
-  const char* getTypeIcon(const std::string& typeName) const;
+  const char *getTypeIcon(const std::string &typeName) const;
 
   /**
    * @brief Checks if a figure matches the current filter
    * @param name The figure name to check
    * @return true if the figure matches the filter text
    */
-  bool matchesFilter(const std::string& name) const;
+  bool matchesFilter(const std::string &name) const;
 
   /**
    * @brief Handles selection state changes
@@ -117,7 +120,8 @@ private:
    * @param isCtrlPressed Whether Ctrl key is held (for multi-selection)
    * @param isShiftPressed Whether Shift key is held (for range selection)
    */
-  void handleSelection(uint32_t figureId, bool isCtrlPressed, bool isShiftPressed);
+  void handleSelection(uint32_t figureId, bool isCtrlPressed,
+                       bool isShiftPressed);
 
   /**
    * @brief Handles double-click to rename a figure
@@ -140,11 +144,11 @@ private:
    * @param figureId The ID of the figure that changed
    * @param propertyPath The path of the property that changed
    */
-  void onPropertyChanged(uint32_t figureId, const std::string& propertyPath);
+  void onPropertyChanged(uint32_t figureId, const std::string &propertyPath);
 
-  UIFSMAdapter& fsmAdapter_;
-  SelectionManager& selectionManager_;
-  model::FlatFigures& model_;
+  UIFSMAdapter &fsmAdapter_;
+  SelectionManager &selectionManager_;
+  model::FlatFigures &model_;
 
   OutlinerCache treeCache_;
   std::string filterText_;
@@ -152,7 +156,8 @@ private:
   uint32_t renamingFigureId_;
   bool showContextMenu_;
 
-  static constexpr std::chrono::milliseconds CACHE_UPDATE_INTERVAL = std::chrono::milliseconds(100);
+  static constexpr std::chrono::milliseconds CACHE_UPDATE_INTERVAL =
+      std::chrono::milliseconds(100);
 };
 
 } // namespace view
