@@ -9,10 +9,10 @@ UngroupFiguresCommand::UngroupFiguresCommand(UIFSMAdapter &fsmAdapter,
                                              uint32_t groupId)
     : fsmAdapter_(fsmAdapter), groupId_(groupId), executed_(false) {}
 
-bool UngroupFiguresCommand::execute() {
+void UngroupFiguresCommand::execute() {
   if (executed_) {
     spdlog::warn("UngroupFiguresCommand: Already executed");
-    return false;
+    return;
   }
 
   try {
@@ -24,17 +24,17 @@ bool UngroupFiguresCommand::execute() {
     spdlog::error(
         "UngroupFiguresCommand: Figure ungrouping not yet implemented. "
         "Requires UIFSMAdapter extensions for grouping functionality.");
-    return false;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("UngroupFiguresCommand: Failed to ungroup: {}", e.what());
-    return false;
+    return;
   }
 }
 
-bool UngroupFiguresCommand::undo() {
+void UngroupFiguresCommand::undo() {
   if (!executed_) {
     spdlog::warn("UngroupFiguresCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   try {
@@ -43,16 +43,16 @@ bool UngroupFiguresCommand::undo() {
 
     if (newGroupId == 0) {
       spdlog::error("UngroupFiguresCommand: Failed to re-group figures");
-      return false;
+      return;
     }
 
     executed_ = false;
     spdlog::info("UngroupFiguresCommand: Re-grouped {} figures into group {}",
                  releasedFigureIds_.size(), newGroupId);
-    return true;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("UngroupFiguresCommand: Failed to undo: {}", e.what());
-    return false;
+    return;
   }
 }
 

@@ -10,10 +10,10 @@ ScaleFigureCommand::ScaleFigureCommand(UIFSMAdapter &fsmAdapter,
     : fsmAdapter_(fsmAdapter), figureId_(figureId), scaleFactor_(scaleFactor),
       previousScale_(1.0f, 1.0f, 1.0f), executed_(false) {}
 
-bool ScaleFigureCommand::execute() {
+void ScaleFigureCommand::execute() {
   if (executed_) {
     spdlog::warn("ScaleFigureCommand: Already executed");
-    return false;
+    return;
   }
 
   try {
@@ -23,17 +23,17 @@ bool ScaleFigureCommand::execute() {
     spdlog::error(
         "ScaleFigureCommand: Figure scaling not yet implemented. "
         "Requires scale properties to be added to IFigure interface.");
-    return false;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("ScaleFigureCommand: Failed to scale figure: {}", e.what());
-    return false;
+    return;
   }
 }
 
-bool ScaleFigureCommand::undo() {
+void ScaleFigureCommand::undo() {
   if (!executed_) {
     spdlog::warn("ScaleFigureCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   try {
@@ -45,10 +45,10 @@ bool ScaleFigureCommand::undo() {
     executed_ = false;
     spdlog::info("ScaleFigureCommand: Restored figure {} to previous scale",
                  figureId_);
-    return true;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("ScaleFigureCommand: Failed to undo: {}", e.what());
-    return false;
+    return;
   }
 }
 

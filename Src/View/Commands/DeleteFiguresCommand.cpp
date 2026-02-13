@@ -10,10 +10,10 @@ DeleteFiguresCommand::DeleteFiguresCommand(model::FlatFigures &model,
     : model_(model), figureId_(figureId), deletedFigure_(nullptr),
       executed_(false) {}
 
-bool DeleteFiguresCommand::execute() {
+void DeleteFiguresCommand::execute() {
   if (executed_) {
     spdlog::warn("DeleteFiguresCommand: Already executed");
-    return false;
+    return;
   }
 
   try {
@@ -24,7 +24,7 @@ bool DeleteFiguresCommand::execute() {
     if (!deletedFigure_) {
       spdlog::error("DeleteFiguresCommand: Figure at vector index {} not found",
                     figureId_);
-      return false;
+      return;
     }
 
     // Remove the figure from the model using vector index
@@ -34,31 +34,31 @@ bool DeleteFiguresCommand::execute() {
       spdlog::info("DeleteFiguresCommand: Deleted figure at vector index {} "
                    "(unique ID: {})",
                    figureId_, deletedFigure_->getId());
-      return true;
+      return;
     } else {
       spdlog::error(
           "DeleteFiguresCommand: Failed to delete figure at vector index {}",
           figureId_);
       deletedFigure_ = nullptr;
-      return false;
+      return;
     }
   } catch (const std::exception &e) {
     spdlog::error("DeleteFiguresCommand: Failed to delete figure: {}",
                   e.what());
     deletedFigure_ = nullptr;
-    return false;
+    return;
   }
 }
 
-bool DeleteFiguresCommand::undo() {
+void DeleteFiguresCommand::undo() {
   if (!executed_) {
     spdlog::warn("DeleteFiguresCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   if (!deletedFigure_) {
     spdlog::error("DeleteFiguresCommand: No deleted figure to restore");
-    return false;
+    return;
   }
 
   try {
@@ -69,10 +69,10 @@ bool DeleteFiguresCommand::undo() {
     executed_ = false;
     spdlog::info("DeleteFiguresCommand: Restored figure (unique ID: {})",
                  deletedFigure_->getId());
-    return true;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("DeleteFiguresCommand: Failed to undo: {}", e.what());
-    return false;
+    return;
   }
 }
 

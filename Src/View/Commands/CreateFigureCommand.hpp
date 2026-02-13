@@ -17,7 +17,7 @@ namespace view {
  * complete JSON serialization for persistence and session recovery.
  * Supports the isScribed enum for inscribed/circumscribed figures.
  */
-class CreateFigureCommand : public ICommand {
+class CreateFigureCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to create a figure
@@ -36,13 +36,13 @@ public:
    * @brief Executes the command by adding the figure to the model
    * @return true if the figure was successfully added, false otherwise
    */
-  bool execute() override;
+  void execute() override;
 
   /**
    * @brief Undoes the command by removing the figure from the model
    * @return true if the figure was successfully removed, false otherwise
    */
-  bool undo() override;
+  void undo() override;
 
   /**
    * @brief Gets a human-readable description of the command

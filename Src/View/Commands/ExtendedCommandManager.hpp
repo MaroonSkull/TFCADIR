@@ -97,7 +97,7 @@ public:
    * Executes the command and adds it to the command history if successful.
    * The command must implement the ICommand interface.
    */
-  void executeCommand(std::unique_ptr<ICommand> command);
+  void executeCommand(std::unique_ptr<Commands::ICommand> command);
 
   /**
    * @brief Execute a macro command (composite command)
@@ -106,7 +106,7 @@ public:
    * Executes all sub-commands in the macro atomically.
    * If any sub-command fails, all executed commands are rolled back.
    */
-  void executeMacro(std::unique_ptr<ICommand> macro);
+  void executeMacro(std::unique_ptr<Commands::ICommand> macro);
 
   /**
    * @brief Undo the last command
@@ -263,7 +263,8 @@ private:
    * @param index The index of the command in history
    * @return CommandInfo structure with command metadata
    */
-  CommandInfo commandToInfo(const ICommand *command, size_t index) const;
+  CommandInfo commandToInfo(const Commands::ICommand *command,
+                            size_t index) const;
 };
 
 } // namespace view

@@ -11,15 +11,15 @@ CreateFigureCommand::CreateFigureCommand(model::FlatFigures &model,
     : model_(model), figure_(std::move(figure)), figureId_(0),
       executed_(false) {}
 
-bool CreateFigureCommand::execute() {
+void CreateFigureCommand::execute() {
   if (executed_) {
     spdlog::warn("CreateFigureCommand: Already executed");
-    return false;
+    return;
   }
 
   if (!figure_) {
     spdlog::error("CreateFigureCommand: Figure is null");
-    return false;
+    return;
   }
 
   try {
@@ -34,17 +34,17 @@ bool CreateFigureCommand::execute() {
     spdlog::info("CreateFigureCommand: Created figure at vector index {} "
                  "(unique ID: {})",
                  figureId_, figure_->getId());
-    return true;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("CreateFigureCommand: Failed to add figure: {}", e.what());
-    return false;
+    return;
   }
 }
 
-bool CreateFigureCommand::undo() {
+void CreateFigureCommand::undo() {
   if (!executed_) {
     spdlog::warn("CreateFigureCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   try {
@@ -54,16 +54,16 @@ bool CreateFigureCommand::undo() {
       executed_ = false;
       spdlog::info("CreateFigureCommand: Removed figure at vector index {}",
                    figureId_);
-      return true;
+      return;
     } else {
       spdlog::error(
           "CreateFigureCommand: Failed to remove figure at vector index {}",
           figureId_);
-      return false;
+      return;
     }
   } catch (const std::exception &e) {
     spdlog::error("CreateFigureCommand: Failed to undo: {}", e.what());
-    return false;
+    return;
   }
 }
 

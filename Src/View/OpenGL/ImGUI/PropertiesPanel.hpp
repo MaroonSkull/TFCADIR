@@ -26,6 +26,7 @@
 
 #include <Model/FlatFigure.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/OpenGL/ImGUI/ApplicationSettings.hpp>
 #include <View/UIFSMAdapter.hpp>
 #include <glm/glm.hpp>
 
@@ -137,6 +138,9 @@ private:
   UIFSMAdapter &fsmAdapter_;
   SelectionManager &selectionManager_;
   model::FlatFigures &model_;
+
+  /// Application settings for grid/snap persistence
+  ApplicationSettings appSettings_;
 
   PropertyCache propertyCache_;
 

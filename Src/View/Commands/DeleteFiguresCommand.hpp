@@ -16,7 +16,7 @@ namespace view {
  * model. Stores the deleted figure for undo functionality and supports JSON
  * serialization.
  */
-class DeleteFiguresCommand : public ICommand {
+class DeleteFiguresCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to delete a figure
@@ -30,8 +30,8 @@ public:
    */
   ~DeleteFiguresCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

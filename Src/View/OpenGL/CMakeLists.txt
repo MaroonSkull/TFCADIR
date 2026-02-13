@@ -8,6 +8,7 @@ config_lib(ImGUIOpenGLView
     BASE_DIR
         ../..
     PRIVATE_SOURCES
+        ImGUI/ApplicationSettings.cpp
         ImGUI/GUI.cpp
         ImGUI/ImGUI.cpp
         ImGUI/PropertiesPanel.cpp
@@ -16,6 +17,7 @@ config_lib(ImGUIOpenGLView
         ../Shortcuts/ShortcutManager.cpp
         ../Presets/ViewPresetManager.cpp
     PUBLIC_SOURCES
+        ImGUI/ApplicationSettings.hpp
         ImGUI/GUI.hpp
         ImGUI.hpp
         ImGUI/PropertiesPanel.hpp

@@ -17,7 +17,7 @@ namespace view {
  * Stores the previous position for undo functionality and supports
  * JSON serialization for persistence.
  */
-class MoveFigureCommand : public ICommand {
+class MoveFigureCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to move a figure
@@ -33,8 +33,8 @@ public:
    */
   ~MoveFigureCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

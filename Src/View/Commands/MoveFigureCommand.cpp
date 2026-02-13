@@ -10,16 +10,16 @@ MoveFigureCommand::MoveFigureCommand(model::FlatFigures &model,
     : model_(model), figureId_(figureId), delta_(delta),
       previousPosition_(0.0f, 0.0f, 0.0f), executed_(false) {}
 
-bool MoveFigureCommand::execute() {
+void MoveFigureCommand::execute() {
   if (executed_) {
     spdlog::warn("MoveFigureCommand: Already executed");
-    return false;
+    return;
   }
 
   auto figure = model_.getFigure(figureId_);
   if (!figure) {
     spdlog::error("MoveFigureCommand: Figure with ID {} not found", figureId_);
-    return false;
+    return;
   }
 
   try {
@@ -33,23 +33,23 @@ bool MoveFigureCommand::execute() {
     executed_ = true;
     spdlog::info("MoveFigureCommand: Moved figure {} by ({}, {}, {})",
                  figureId_, delta_.x, delta_.y, delta_.z);
-    return true;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("MoveFigureCommand: Failed to move figure: {}", e.what());
-    return false;
+    return;
   }
 }
 
-bool MoveFigureCommand::undo() {
+void MoveFigureCommand::undo() {
   if (!executed_) {
     spdlog::warn("MoveFigureCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   auto figure = model_.getFigure(figureId_);
   if (!figure) {
     spdlog::error("MoveFigureCommand: Figure with ID {} not found", figureId_);
-    return false;
+    return;
   }
 
   try {
@@ -59,10 +59,10 @@ bool MoveFigureCommand::undo() {
     executed_ = false;
     spdlog::info("MoveFigureCommand: Restored figure {} to previous position",
                  figureId_);
-    return true;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("MoveFigureCommand: Failed to undo: {}", e.what());
-    return false;
+    return;
   }
 }
 

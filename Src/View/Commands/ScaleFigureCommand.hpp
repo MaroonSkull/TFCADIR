@@ -17,7 +17,7 @@ namespace view {
  * Uses UIFSMAdapter to access and modify figure properties via the property
  * path system. Supports JSON serialization for persistence.
  */
-class ScaleFigureCommand : public ICommand {
+class ScaleFigureCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to scale a figure
@@ -33,8 +33,8 @@ public:
    */
   ~ScaleFigureCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

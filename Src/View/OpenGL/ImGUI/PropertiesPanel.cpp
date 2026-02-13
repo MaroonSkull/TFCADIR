@@ -118,23 +118,61 @@ void PropertiesPanel::renderAppSettings() {
   ImGui::Separator();
   ImGui::Spacing();
 
-  // Application settings placeholder
+  // Application settings with persistence
   if (ImGui::CollapsingHeader("Application Settings",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
+    // Grid settings
     ImGui::Text("Grid:");
     ImGui::Indent();
-    bool gridEnabled = true;
-    ImGui::Checkbox("Show Grid", &gridEnabled);
-    float gridSize = 1.0f;
-    ImGui::DragFloat("Grid Size", &gridSize, 0.1f, 0.1f, 10.0f);
+
+    bool gridVisible = appSettings_.isGridVisible();
+    if (ImGui::Checkbox("Show Grid", &gridVisible)) {
+      appSettings_.setGridVisible(gridVisible);
+    }
+
+    float gridSpacing = appSettings_.getGridMajorSpacing();
+    if (ImGui::DragFloat("Grid Size", &gridSpacing, 0.1f, 0.1f, 10.0f)) {
+      appSettings_.setGridMajorSpacing(gridSpacing);
+    }
+
+    bool showMinorLines = appSettings_.getGridSettings().showMinorLines;
+    if (ImGui::Checkbox("Show Minor Lines", &showMinorLines)) {
+      GridSettings settings = appSettings_.getGridSettings();
+      settings.showMinorLines = showMinorLines;
+      appSettings_.setGridSettings(settings);
+    }
+
+    bool showAxes = appSettings_.getGridSettings().showAxes;
+    if (ImGui::Checkbox("Show Axes", &showAxes)) {
+      GridSettings settings = appSettings_.getGridSettings();
+      settings.showAxes = showAxes;
+      appSettings_.setGridSettings(settings);
+    }
+
     ImGui::Unindent();
 
     ImGui::Spacing();
 
+    // Snap settings
     ImGui::Text("Snap:");
     ImGui::Indent();
-    bool snapEnabled = true;
-    ImGui::Checkbox("Enable Snap", &snapEnabled);
+
+    bool snapEnabled = appSettings_.isSnapEnabled();
+    if (ImGui::Checkbox("Enable Grid Snap", &snapEnabled)) {
+      appSettings_.setSnapEnabled(snapEnabled);
+    }
+
+    SnapSettings snapSettings = appSettings_.getSnapSettings();
+    if (ImGui::Checkbox("Endpoint Snap", &snapSettings.endpointEnabled)) {
+      appSettings_.setSnapSettings(snapSettings);
+    }
+    if (ImGui::Checkbox("Midpoint Snap", &snapSettings.midpointEnabled)) {
+      appSettings_.setSnapSettings(snapSettings);
+    }
+    if (ImGui::Checkbox("Center Snap", &snapSettings.centerEnabled)) {
+      appSettings_.setSnapSettings(snapSettings);
+    }
+
     ImGui::Unindent();
   }
 }
@@ -280,31 +318,52 @@ void PropertiesPanel::renderAppearanceGroup(
 
   uint32_t figureId = figure->getId();
 
-  // Stroke color (placeholder)
-  glm::vec3 strokeColor(1.0f, 1.0f, 1.0f);
+  // Get current appearance from figure
+  model::Appearance appearance = figure->getAppearance();
+
+  // Stroke color
+  glm::vec3 strokeColor = appearance.strokeColor;
   ImGui::Text("Stroke Color:");
   ImGui::SameLine();
-  ImGui::ColorEdit3("##strokeColor", glm::value_ptr(strokeColor),
-                    ImGuiColorEditFlags_NoInputs);
+  if (ImGui::ColorEdit3("##strokeColor", glm::value_ptr(strokeColor),
+                        ImGuiColorEditFlags_NoInputs)) {
+    figure->setStrokeColor(strokeColor);
+    fsmAdapter_.updateFigureProperty(figureId, "strokeColor", strokeColor);
+  }
 
-  // Fill color (placeholder)
-  glm::vec3 fillColor(0.5f, 0.5f, 0.5f);
+  // Fill color
+  glm::vec3 fillColor = appearance.fillColor;
   ImGui::Text("Fill Color:");
   ImGui::SameLine();
-  ImGui::ColorEdit3("##fillColor", glm::value_ptr(fillColor),
-                    ImGuiColorEditFlags_NoInputs);
+  if (ImGui::ColorEdit3("##fillColor", glm::value_ptr(fillColor),
+                        ImGuiColorEditFlags_NoInputs)) {
+    figure->setFillColor(fillColor);
+    fsmAdapter_.updateFigureProperty(figureId, "fillColor", fillColor);
+  }
 
   // Stroke toggle
-  bool stroke = true;
-  ImGui::Checkbox("Stroke", &stroke);
+  bool strokeEnabled = appearance.strokeEnabled;
+  if (ImGui::Checkbox("Stroke", &strokeEnabled)) {
+    appearance.strokeEnabled = strokeEnabled;
+    figure->setAppearance(appearance);
+    fsmAdapter_.updateFigureProperty(figureId, "strokeEnabled", strokeEnabled);
+  }
 
   // Fill toggle
-  bool fill = true;
-  ImGui::Checkbox("Fill", &fill);
+  bool fillEnabled = appearance.fillEnabled;
+  if (ImGui::Checkbox("Fill", &fillEnabled)) {
+    appearance.fillEnabled = fillEnabled;
+    figure->setAppearance(appearance);
+    fsmAdapter_.updateFigureProperty(figureId, "fillEnabled", fillEnabled);
+  }
 
   // Line width
-  float lineWidth = 1.0f;
-  ImGui::DragFloat("Line Width", &lineWidth, 0.1f, 0.1f, 10.0f, "%.1f");
+  float lineWidth = appearance.lineWidth;
+  if (ImGui::DragFloat("Line Width", &lineWidth, 0.1f, 0.1f, 10.0f, "%.1f")) {
+    appearance.lineWidth = lineWidth;
+    figure->setAppearance(appearance);
+    fsmAdapter_.updateFigureProperty(figureId, "lineWidth", lineWidth);
+  }
 }
 
 void PropertiesPanel::renderMaterialGroup(
@@ -333,18 +392,35 @@ void PropertiesPanel::renderLayerGroup(std::shared_ptr<model::IFigure> figure) {
     return;
   }
 
+  uint32_t figureId = figure->getId();
+
+  // Get current layer properties from figure
+  model::LayerProperties layerProps = figure->getLayerProperties();
+
   // Layer dropdown
   const char *layers[] = {"Default", "Layer 1", "Layer 2", "Layer 3"};
-  static int currentLayer = 0;
-  ImGui::Combo("Layer", &currentLayer, layers, IM_ARRAYSIZE(layers));
+  int currentLayer = layerProps.layerIndex;
+  if (currentLayer < 0 || currentLayer > 3) {
+    currentLayer = 0;
+  }
+  if (ImGui::Combo("Layer", &currentLayer, layers, IM_ARRAYSIZE(layers))) {
+    figure->setLayer(currentLayer);
+    fsmAdapter_.updateFigureProperty(figureId, "layer", currentLayer);
+  }
 
   // Visibility
-  bool visible = true;
-  ImGui::Checkbox("Visible", &visible);
+  bool visible = figure->isVisible();
+  if (ImGui::Checkbox("Visible", &visible)) {
+    figure->setVisible(visible);
+    fsmAdapter_.updateFigureProperty(figureId, "visible", visible);
+  }
 
   // Locked
-  bool locked = false;
-  ImGui::Checkbox("Locked", &locked);
+  bool locked = figure->isLocked();
+  if (ImGui::Checkbox("Locked", &locked)) {
+    figure->setLocked(locked);
+    fsmAdapter_.updateFigureProperty(figureId, "locked", locked);
+  }
 }
 
 void PropertiesPanel::renderInfoGroup(std::shared_ptr<model::IFigure> figure) {
@@ -369,9 +445,9 @@ void PropertiesPanel::renderInfoGroup(std::shared_ptr<model::IFigure> figure) {
                                      std::string(nameBuffer));
   }
 
-  // Created date (placeholder)
+  // Created date from figure
   ImGui::BeginDisabled();
-  ImGui::Text("Created: %s", "2025-02-13");
+  ImGui::Text("Created: %s", figure->getCreationDate().c_str());
   ImGui::EndDisabled();
 }
 
@@ -786,8 +862,151 @@ void PropertiesPanel::renderMultiSelectionActions(
 std::vector<PropertiesPanel::PropertyGroup>
 PropertiesPanel::buildCommonPropertyGroups(
     const std::vector<std::shared_ptr<model::IFigure>> &figures) {
-  // TODO: Implement common property detection for multi-selection
-  return {};
+  std::vector<PropertyGroup> groups;
+
+  if (figures.empty()) {
+    return groups;
+  }
+
+  // Check for common appearance properties
+  model::Appearance firstAppearance = figures[0]->getAppearance();
+  bool commonStrokeColor = true;
+  bool commonFillColor = true;
+  bool commonLineWidth = true;
+  bool commonStrokeEnabled = true;
+  bool commonFillEnabled = true;
+
+  for (size_t i = 1; i < figures.size(); ++i) {
+    model::Appearance appearance = figures[i]->getAppearance();
+    if (appearance.strokeColor != firstAppearance.strokeColor) {
+      commonStrokeColor = false;
+    }
+    if (appearance.fillColor != firstAppearance.fillColor) {
+      commonFillColor = false;
+    }
+    if (appearance.lineWidth != firstAppearance.lineWidth) {
+      commonLineWidth = false;
+    }
+    if (appearance.strokeEnabled != firstAppearance.strokeEnabled) {
+      commonStrokeEnabled = false;
+    }
+    if (appearance.fillEnabled != firstAppearance.fillEnabled) {
+      commonFillEnabled = false;
+    }
+  }
+
+  // Add appearance group if any common properties exist
+  if (commonStrokeColor || commonFillColor || commonLineWidth ||
+      commonStrokeEnabled || commonFillEnabled) {
+    PropertyGroup appearanceGroup;
+    appearanceGroup.name = "Appearance";
+
+    Property strokeColorProp;
+    strokeColorProp.label = "Stroke Color";
+    strokeColorProp.path = "strokeColor";
+    strokeColorProp.type = "color";
+    strokeColorProp.value.vec3Value = firstAppearance.strokeColor;
+    strokeColorProp.value.state = commonStrokeColor
+                                      ? PropertyValue::State::Normal
+                                      : PropertyValue::State::Mixed;
+    appearanceGroup.properties.push_back(strokeColorProp);
+
+    Property fillColorProp;
+    fillColorProp.label = "Fill Color";
+    fillColorProp.path = "fillColor";
+    fillColorProp.type = "color";
+    fillColorProp.value.vec3Value = firstAppearance.fillColor;
+    fillColorProp.value.state = commonFillColor ? PropertyValue::State::Normal
+                                                : PropertyValue::State::Mixed;
+    appearanceGroup.properties.push_back(fillColorProp);
+
+    Property lineWidthProp;
+    lineWidthProp.label = "Line Width";
+    lineWidthProp.path = "lineWidth";
+    lineWidthProp.type = "float";
+    lineWidthProp.value.floatValue = firstAppearance.lineWidth;
+    lineWidthProp.value.state = commonLineWidth ? PropertyValue::State::Normal
+                                                : PropertyValue::State::Mixed;
+    appearanceGroup.properties.push_back(lineWidthProp);
+
+    Property strokeEnabledProp;
+    strokeEnabledProp.label = "Stroke";
+    strokeEnabledProp.path = "strokeEnabled";
+    strokeEnabledProp.type = "bool";
+    strokeEnabledProp.value.boolValue = firstAppearance.strokeEnabled;
+    strokeEnabledProp.value.state = commonStrokeEnabled
+                                        ? PropertyValue::State::Normal
+                                        : PropertyValue::State::Mixed;
+    appearanceGroup.properties.push_back(strokeEnabledProp);
+
+    Property fillEnabledProp;
+    fillEnabledProp.label = "Fill";
+    fillEnabledProp.path = "fillEnabled";
+    fillEnabledProp.type = "bool";
+    fillEnabledProp.value.boolValue = firstAppearance.fillEnabled;
+    fillEnabledProp.value.state = commonFillEnabled
+                                      ? PropertyValue::State::Normal
+                                      : PropertyValue::State::Mixed;
+    appearanceGroup.properties.push_back(fillEnabledProp);
+
+    groups.push_back(appearanceGroup);
+  }
+
+  // Check for common layer properties
+  model::LayerProperties firstLayerProps = figures[0]->getLayerProperties();
+  bool commonLayer = true;
+  bool commonVisible = true;
+  bool commonLocked = true;
+
+  for (size_t i = 1; i < figures.size(); ++i) {
+    model::LayerProperties props = figures[i]->getLayerProperties();
+    if (props.layerIndex != firstLayerProps.layerIndex) {
+      commonLayer = false;
+    }
+    if (figures[i]->isVisible() != figures[0]->isVisible()) {
+      commonVisible = false;
+    }
+    if (figures[i]->isLocked() != figures[0]->isLocked()) {
+      commonLocked = false;
+    }
+  }
+
+  // Add layer group if any common properties exist
+  if (commonLayer || commonVisible || commonLocked) {
+    PropertyGroup layerGroup;
+    layerGroup.name = "Layer";
+
+    Property layerProp;
+    layerProp.label = "Layer";
+    layerProp.path = "layer";
+    layerProp.type = "int";
+    layerProp.value.intValue = firstLayerProps.layerIndex;
+    layerProp.value.state = commonLayer ? PropertyValue::State::Normal
+                                        : PropertyValue::State::Mixed;
+    layerGroup.properties.push_back(layerProp);
+
+    Property visibleProp;
+    visibleProp.label = "Visible";
+    visibleProp.path = "visible";
+    visibleProp.type = "bool";
+    visibleProp.value.boolValue = figures[0]->isVisible();
+    visibleProp.value.state = commonVisible ? PropertyValue::State::Normal
+                                            : PropertyValue::State::Mixed;
+    layerGroup.properties.push_back(visibleProp);
+
+    Property lockedProp;
+    lockedProp.label = "Locked";
+    lockedProp.path = "locked";
+    lockedProp.type = "bool";
+    lockedProp.value.boolValue = figures[0]->isLocked();
+    lockedProp.value.state = commonLocked ? PropertyValue::State::Normal
+                                          : PropertyValue::State::Mixed;
+    layerGroup.properties.push_back(lockedProp);
+
+    groups.push_back(layerGroup);
+  }
+
+  return groups;
 }
 
 // === Utility Functions ===

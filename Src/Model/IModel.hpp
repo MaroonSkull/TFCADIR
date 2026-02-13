@@ -10,6 +10,28 @@
 namespace model {
 
 /**
+ * @brief Appearance properties for a figure
+ * @details Stores stroke and fill colors, line width, and visibility flags
+ */
+struct Appearance {
+  glm::vec3 strokeColor{1.0f, 1.0f, 1.0f}; ///< Stroke color (RGB, 0-1 range)
+  glm::vec3 fillColor{0.5f, 0.5f, 0.5f};   ///< Fill color (RGB, 0-1 range)
+  float lineWidth{1.0f};                   ///< Line width in pixels
+  bool strokeEnabled{true};                ///< Whether stroke is visible
+  bool fillEnabled{true};                  ///< Whether fill is visible
+};
+
+/**
+ * @brief Layer properties for a figure
+ * @details Stores layer assignment, visibility, and lock state
+ */
+struct LayerProperties {
+  int layerIndex{0};    ///< Layer index (0 = default layer)
+  bool visible{true};   ///< Whether figure is visible
+  bool locked{false};   ///< Whether figure is locked (non-editable)
+};
+
+/**
  * @brief Abstract base interface for all figure types
  * @details Provides a common abstraction for geometric entities with position
  *          and identification capabilities. This interface follows the
@@ -56,6 +78,102 @@ public:
    * @note The first element is the minimum corner, second is the maximum corner
    */
   virtual std::pair<glm::vec3, glm::vec3> getBounds() const = 0;
+
+  // === Appearance Properties ===
+
+  /**
+   * @brief Gets the stroke color of this figure
+   * @return Stroke color as RGB vector (0-1 range)
+   */
+  virtual glm::vec3 getStrokeColor() const = 0;
+
+  /**
+   * @brief Sets the stroke color of this figure
+   * @param color Stroke color as RGB vector (0-1 range)
+   */
+  virtual void setStrokeColor(const glm::vec3 &color) = 0;
+
+  /**
+   * @brief Gets the fill color of this figure
+   * @return Fill color as RGB vector (0-1 range)
+   */
+  virtual glm::vec3 getFillColor() const = 0;
+
+  /**
+   * @brief Sets the fill color of this figure
+   * @param color Fill color as RGB vector (0-1 range)
+   */
+  virtual void setFillColor(const glm::vec3 &color) = 0;
+
+  /**
+   * @brief Gets the appearance properties of this figure
+   * @return Appearance struct with all appearance settings
+   */
+  virtual Appearance getAppearance() const = 0;
+
+  /**
+   * @brief Sets the appearance properties of this figure
+   * @param appearance Appearance struct with all appearance settings
+   */
+  virtual void setAppearance(const Appearance &appearance) = 0;
+
+  // === Layer Properties ===
+
+  /**
+   * @brief Gets the layer index of this figure
+   * @return Layer index (0 = default layer)
+   */
+  virtual int getLayer() const = 0;
+
+  /**
+   * @brief Sets the layer index of this figure
+   * @param layerIndex Layer index (0 = default layer)
+   */
+  virtual void setLayer(int layerIndex) = 0;
+
+  /**
+   * @brief Checks if this figure is visible
+   * @return true if visible, false if hidden
+   */
+  virtual bool isVisible() const = 0;
+
+  /**
+   * @brief Sets the visibility of this figure
+   * @param visible true to show, false to hide
+   */
+  virtual void setVisible(bool visible) = 0;
+
+  /**
+   * @brief Checks if this figure is locked
+   * @return true if locked (non-editable), false if editable
+   */
+  virtual bool isLocked() const = 0;
+
+  /**
+   * @brief Sets the lock state of this figure
+   * @param locked true to lock, false to unlock
+   */
+  virtual void setLocked(bool locked) = 0;
+
+  /**
+   * @brief Gets the layer properties of this figure
+   * @return LayerProperties struct with all layer settings
+   */
+  virtual LayerProperties getLayerProperties() const = 0;
+
+  /**
+   * @brief Sets the layer properties of this figure
+   * @param props LayerProperties struct with all layer settings
+   */
+  virtual void setLayerProperties(const LayerProperties &props) = 0;
+
+  // === Creation Date ===
+
+  /**
+   * @brief Gets the creation timestamp of this figure
+   * @return Creation time as ISO 8601 string
+   */
+  virtual std::string getCreationDate() const = 0;
 };
 
 /**

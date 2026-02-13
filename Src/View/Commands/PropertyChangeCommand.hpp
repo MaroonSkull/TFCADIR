@@ -17,7 +17,7 @@ namespace view {
  * using the UIFSMAdapter property path system. Stores the previous value for
  * undo functionality and supports JSON serialization.
  */
-class PropertyChangeCommand : public ICommand {
+class PropertyChangeCommand : public Commands::ICommand {
 public:
   /**
    * @brief Variant type for property values
@@ -40,8 +40,8 @@ public:
    */
   ~PropertyChangeCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

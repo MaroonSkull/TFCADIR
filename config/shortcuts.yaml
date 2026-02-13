@@ -1,0 +1,93 @@
+# TFCADIR Keyboard Shortcuts Configuration
+# This file can be edited manually or through the Shortcuts Dialog
+
+shortcuts:
+  # Drawing tools
+  line:
+    key: "L"
+    modifiers: 0
+  circle:
+    key: "C"
+    modifiers: 0
+  arc:
+    key: "A"
+    modifiers: 0
+  rectangle:
+    key: "R"
+    modifiers: 0
+  polygon:
+    key: "P"
+    modifiers: 0
+
+  # Selection and editing
+  select:
+    key: "Q"
+    modifiers: 0
+  move:
+    key: "M"
+    modifiers: 0
+  rotate:
+    key: "R"
+    modifiers: 2  # Shift+R
+  scale:
+    key: "X"
+    modifiers: 0
+  delete:
+    key: "Delete"
+    modifiers: 0
+
+  # Edit operations
+  undo:
+    key: "Z"
+    modifiers: 1  # Ctrl+Z
+  redo:
+    key: "Y"
+    modifiers: 1  # Ctrl+Y
+  copy:
+    key: "C"
+    modifiers: 1  # Ctrl+C
+  paste:
+    key: "V"
+    modifiers: 1  # Ctrl+V
+  cut:
+    key: "X"
+    modifiers: 1  # Ctrl+X
+  duplicate:
+    key: "D"
+    modifiers: 1  # Ctrl+D
+
+  # View operations
+  zoom_in:
+    key: "Equal"
+    modifiers: 1  # Ctrl+=
+  zoom_out:
+    key: "Minus"
+    modifiers: 1  # Ctrl+-
+  zoom_extents:
+    key: "E"
+    modifiers: 1  # Ctrl+E
+  toggle_grid:
+    key: "G"
+    modifiers: 0
+  toggle_snap:
+    key: "S"
+    modifiers: 0
+
+  # File operations
+  new:
+    key: "N"
+    modifiers: 1  # Ctrl+N
+  open:
+    key: "O"
+    modifiers: 1  # Ctrl+O
+  save:
+    key: "S"
+    modifiers: 1  # Ctrl+S
+  save_as:
+    key: "S"
+    modifiers: 3  # Ctrl+Shift+S
+
+  # Escape to cancel/deselect
+  escape:
+    key: "Escape"
+    modifiers: 0

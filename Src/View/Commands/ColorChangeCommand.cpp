@@ -10,10 +10,10 @@ ColorChangeCommand::ColorChangeCommand(UIFSMAdapter &fsmAdapter,
     : fsmAdapter_(fsmAdapter), figureId_(figureId), newColor_(newColor),
       previousColor_(1.0f, 1.0f, 1.0f, 1.0f), executed_(false) {}
 
-bool ColorChangeCommand::execute() {
+void ColorChangeCommand::execute() {
   if (executed_) {
     spdlog::warn("ColorChangeCommand: Already executed");
-    return false;
+    return;
   }
 
   try {
@@ -23,17 +23,17 @@ bool ColorChangeCommand::execute() {
     spdlog::error(
         "ColorChangeCommand: Figure color change not yet implemented. "
         "Requires color properties to be added to IFigure interface.");
-    return false;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("ColorChangeCommand: Failed to change color: {}", e.what());
-    return false;
+    return;
   }
 }
 
-bool ColorChangeCommand::undo() {
+void ColorChangeCommand::undo() {
   if (!executed_) {
     spdlog::warn("ColorChangeCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   try {
@@ -46,10 +46,8 @@ bool ColorChangeCommand::undo() {
     executed_ = false;
     spdlog::info("ColorChangeCommand: Restored figure {} to previous color",
                  figureId_);
-    return true;
   } catch (const std::exception &e) {
     spdlog::error("ColorChangeCommand: Failed to undo: {}", e.what());
-    return false;
   }
 }
 

@@ -16,7 +16,7 @@ namespace view {
  * Uses UIFSMAdapter for ungrouping functionality and stores the released
  * figure IDs for undo. Supports JSON serialization.
  */
-class UngroupFiguresCommand : public ICommand {
+class UngroupFiguresCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to ungroup figures
@@ -30,8 +30,8 @@ public:
    */
   ~UngroupFiguresCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

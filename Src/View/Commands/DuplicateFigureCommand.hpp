@@ -18,7 +18,7 @@ namespace view {
  * with a positional offset. Stores the new figure ID for undo functionality
  * and supports JSON serialization for persistence.
  */
-class DuplicateFigureCommand : public ICommand {
+class DuplicateFigureCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to duplicate a figure
@@ -34,8 +34,8 @@ public:
    */
   ~DuplicateFigureCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

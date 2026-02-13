@@ -17,7 +17,7 @@ namespace view {
  * Uses UIFSMAdapter to access and modify figure properties via the property
  * path system. Supports JSON serialization for persistence.
  */
-class ColorChangeCommand : public ICommand {
+class ColorChangeCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to change a figure's color
@@ -33,8 +33,8 @@ public:
    */
   ~ColorChangeCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

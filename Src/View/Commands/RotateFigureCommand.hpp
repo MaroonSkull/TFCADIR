@@ -16,7 +16,7 @@ namespace view {
  * Uses UIFSMAdapter to access and modify figure properties via the property
  * path system. Supports JSON serialization for persistence.
  */
-class RotateFigureCommand : public ICommand {
+class RotateFigureCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to rotate a figure
@@ -32,8 +32,8 @@ public:
    */
   ~RotateFigureCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

@@ -13,10 +13,10 @@ PropertyChangeCommand::PropertyChangeCommand(UIFSMAdapter &fsmAdapter,
     : fsmAdapter_(fsmAdapter), figureId_(figureId), propertyPath_(propertyPath),
       newValue_(newValue), previousValue_(0), executed_(false) {}
 
-bool PropertyChangeCommand::execute() {
+void PropertyChangeCommand::execute() {
   if (executed_) {
     spdlog::warn("PropertyChangeCommand: Already executed");
-    return false;
+    return;
   }
 
   try {
@@ -30,18 +30,18 @@ bool PropertyChangeCommand::execute() {
     // For now, this command is disabled.
     spdlog::error("PropertyChangeCommand: Property change not yet implemented. "
                   "Requires UIFSMAdapter extensions for property path system.");
-    return false;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("PropertyChangeCommand: Failed to change property: {}",
                   e.what());
-    return false;
+    return;
   }
 }
 
-bool PropertyChangeCommand::undo() {
+void PropertyChangeCommand::undo() {
   if (!executed_) {
     spdlog::warn("PropertyChangeCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   try {
@@ -69,10 +69,10 @@ bool PropertyChangeCommand::undo() {
     executed_ = false;
     spdlog::info("PropertyChangeCommand: Restored figure {} property {}",
                  figureId_, propertyPath_);
-    return true;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("PropertyChangeCommand: Failed to undo: {}", e.what());
-    return false;
+    return;
   }
 }
 

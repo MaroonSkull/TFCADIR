@@ -18,13 +18,14 @@ namespace view {
  *
  * This ensures that either all commands succeed, or none do (atomic behavior).
  */
-class MacroCommand : public ICommand {
+class MacroCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a macro command from a list of sub-commands
    * @param commands The list of commands to execute as a group
    */
-  explicit MacroCommand(std::vector<std::unique_ptr<ICommand>> commands);
+  explicit MacroCommand(
+      std::vector<std::unique_ptr<Commands::ICommand>> commands);
 
   /**
    * @brief Destructor
@@ -33,18 +34,18 @@ public:
 
   /**
    * @brief Executes all sub-commands atomically
-   * @return true if all commands executed successfully, false otherwise
    *
    * If any sub-command fails, all previously executed commands are undone
-   * in reverse order before returning false.
+   * in reverse order before throwing an exception.
+   * @throws std::runtime_error if execution fails
    */
-  bool execute() override;
+  void execute() override;
 
   /**
    * @brief Undoes all executed sub-commands in reverse order
-   * @return true if all commands were undone successfully, false otherwise
+   * @throws std::runtime_error if undo operation fails
    */
-  bool undo() override;
+  void undo() override;
 
   /**
    * @brief Returns a description of the macro command
@@ -72,7 +73,7 @@ public:
 
 private:
   /// The list of sub-commands to execute
-  std::vector<std::unique_ptr<ICommand>> commands_;
+  std::vector<std::unique_ptr<Commands::ICommand>> commands_;
 
   /// The number of commands that were successfully executed
   size_t executedCount_;

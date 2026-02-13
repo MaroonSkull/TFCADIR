@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace view::Commands {
 
@@ -50,6 +52,33 @@ public:
    * undo/redo menus, and tooltips. Should be concise but informative.
    */
   virtual std::string getDescription() const = 0;
+
+  /**
+   * @brief Get the type identifier of the command
+   * @return Type string for command identification
+   *
+   * This method returns a string identifier for the command type,
+   * used for serialization and command history display.
+   */
+  virtual std::string getType() const = 0;
+
+  /**
+   * @brief Serialize the command to JSON format
+   * @return JSON string representation of the command
+   *
+   * This method serializes the command's state to a JSON string
+   * for persistence and history saving.
+   */
+  virtual std::string serialize() const = 0;
+
+  /**
+   * @brief Get the list of figure IDs affected by this command
+   * @return Vector of figure IDs
+   *
+   * This method returns the list of figure IDs that were affected
+   * by the command execution, used for UI display and tracking.
+   */
+  virtual std::vector<uint32_t> getAffectedFigures() const = 0;
 };
 
 } // namespace view::Commands

@@ -6,9 +6,12 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
+#include <iomanip>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -83,6 +86,15 @@ private:
   inline static uint32_t counter_{0};
   glm::vec3 position_{0.0f, 0.0f, 0.0f};
 
+  /// Appearance properties (stroke/fill colors, line width)
+  Appearance appearance_{};
+
+  /// Layer properties (layer index, visibility, lock state)
+  LayerProperties layerProperties_{};
+
+  /// Creation timestamp (ISO 8601 format)
+  std::string creationDate_;
+
 public:
   /// Unique identifier for this figure instance
   uint32_t id_{};
@@ -105,6 +117,15 @@ public:
          isScribed scribed = isScribed::no)
       : position_(x, y, z), scribed_(scribed) {
     id_ = counter_++;
+    name_ = _T::name + " #" + std::to_string(id_);
+
+    // Set creation timestamp
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&time), "%Y-%m-%d");
+    creationDate_ = ss.str();
+
     if (scribed_ != isScribed::no) {
       if constexpr (std::is_same_v<_T, Triangle>) {
         spdlog::info("triangle by round");
@@ -214,6 +235,56 @@ public:
     // Default fallback
     return {position_, position_};
   }
+
+  // === Appearance Properties ===
+
+  glm::vec3 getStrokeColor() const override {
+    return appearance_.strokeColor;
+  }
+
+  void setStrokeColor(const glm::vec3 &color) override {
+    appearance_.strokeColor = color;
+  }
+
+  glm::vec3 getFillColor() const override { return appearance_.fillColor; }
+
+  void setFillColor(const glm::vec3 &color) override {
+    appearance_.fillColor = color;
+  }
+
+  Appearance getAppearance() const override { return appearance_; }
+
+  void setAppearance(const Appearance &appearance) override {
+    appearance_ = appearance;
+  }
+
+  // === Layer Properties ===
+
+  int getLayer() const override { return layerProperties_.layerIndex; }
+
+  void setLayer(int layerIndex) override {
+    layerProperties_.layerIndex = layerIndex;
+  }
+
+  bool isVisible() const override { return layerProperties_.visible; }
+
+  void setVisible(bool visible) override { layerProperties_.visible = visible; }
+
+  bool isLocked() const override { return layerProperties_.locked; }
+
+  void setLocked(bool locked) override { layerProperties_.locked = locked; }
+
+  LayerProperties getLayerProperties() const override {
+    return layerProperties_;
+  }
+
+  void setLayerProperties(const LayerProperties &props) override {
+    layerProperties_ = props;
+  }
+
+  // === Creation Date ===
+
+  std::string getCreationDate() const override { return creationDate_; }
 };
 
 /**

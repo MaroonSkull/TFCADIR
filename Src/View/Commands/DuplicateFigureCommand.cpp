@@ -11,10 +11,10 @@ DuplicateFigureCommand::DuplicateFigureCommand(model::FlatFigures &model,
     : model_(model), sourceFigureId_(sourceFigureId), newFigureId_(0),
       offset_(offset), executed_(false) {}
 
-bool DuplicateFigureCommand::execute() {
+void DuplicateFigureCommand::execute() {
   if (executed_) {
     spdlog::warn("DuplicateFigureCommand: Already executed");
-    return false;
+    return;
   }
 
   auto sourceFigure = model_.getFigure(sourceFigureId_);
@@ -22,7 +22,7 @@ bool DuplicateFigureCommand::execute() {
     spdlog::error(
         "DuplicateFigureCommand: Source figure with index {} not found",
         sourceFigureId_);
-    return false;
+    return;
   }
 
   try {
@@ -32,18 +32,18 @@ bool DuplicateFigureCommand::execute() {
     spdlog::error(
         "DuplicateFigureCommand: Figure duplication not yet implemented. "
         "Requires IFigure::clone() method to be added.");
-    return false;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("DuplicateFigureCommand: Failed to duplicate figure: {}",
                   e.what());
-    return false;
+    return;
   }
 }
 
-bool DuplicateFigureCommand::undo() {
+void DuplicateFigureCommand::undo() {
   if (!executed_) {
     spdlog::warn("DuplicateFigureCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   try {
@@ -53,16 +53,16 @@ bool DuplicateFigureCommand::undo() {
       executed_ = false;
       spdlog::info("DuplicateFigureCommand: Removed duplicated figure {}",
                    newFigureId_);
-      return true;
+      return;
     } else {
       spdlog::error(
           "DuplicateFigureCommand: Failed to remove duplicated figure {}",
           newFigureId_);
-      return false;
+      return;
     }
   } catch (const std::exception &e) {
     spdlog::error("DuplicateFigureCommand: Failed to undo: {}", e.what());
-    return false;
+    return;
   }
 }
 

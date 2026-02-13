@@ -16,7 +16,7 @@ namespace view {
  * group. Uses UIFSMAdapter for grouping functionality and stores the group ID
  * and released figure IDs for undo. Supports JSON serialization.
  */
-class GroupFiguresCommand : public ICommand {
+class GroupFiguresCommand : public Commands::ICommand {
 public:
   /**
    * @brief Constructs a command to group figures
@@ -31,8 +31,8 @@ public:
    */
   ~GroupFiguresCommand() override = default;
 
-  bool execute() override;
-  bool undo() override;
+  void execute() override;
+  void undo() override;
   std::string getDescription() const override;
   std::string serialize() const override;
   std::string getType() const override;

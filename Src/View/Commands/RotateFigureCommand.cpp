@@ -10,10 +10,10 @@ RotateFigureCommand::RotateFigureCommand(UIFSMAdapter &fsmAdapter,
     : fsmAdapter_(fsmAdapter), figureId_(figureId), angleDegrees_(angleDegrees),
       previousAngle_(0.0f), executed_(false) {}
 
-bool RotateFigureCommand::execute() {
+void RotateFigureCommand::execute() {
   if (executed_) {
     spdlog::warn("RotateFigureCommand: Already executed");
-    return false;
+    return;
   }
 
   try {
@@ -24,17 +24,17 @@ bool RotateFigureCommand::execute() {
     spdlog::error(
         "RotateFigureCommand: Figure rotation not yet implemented. "
         "Requires rotation properties to be added to IFigure interface.");
-    return false;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("RotateFigureCommand: Failed to rotate figure: {}", e.what());
-    return false;
+    return;
   }
 }
 
-bool RotateFigureCommand::undo() {
+void RotateFigureCommand::undo() {
   if (!executed_) {
     spdlog::warn("RotateFigureCommand: Not executed, cannot undo");
-    return false;
+    return;
   }
 
   try {
@@ -45,10 +45,10 @@ bool RotateFigureCommand::undo() {
     executed_ = false;
     spdlog::info("RotateFigureCommand: Restored figure {} to previous angle",
                  figureId_);
-    return true;
+    return;
   } catch (const std::exception &e) {
     spdlog::error("RotateFigureCommand: Failed to undo: {}", e.what());
-    return false;
+    return;
   }
 }
 

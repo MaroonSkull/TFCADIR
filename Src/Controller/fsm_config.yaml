@@ -180,17 +180,4 @@ transitions:
 # Performance events (triggered by PerformanceMonitor)
 # OnPerformanceUpdate - Fired when performance metrics are updated
 
-# Phase 9: Command Manager Toolbar Events
-# These events are triggered by CommandManager operations
-- event: OnUndo
-  description: User triggered undo operation
-  actions:
-    - log_undo_operation
-- event: OnRedo
-  description: User triggered redo operation
-  actions:
-    - log_redo_operation
-- event: OnCommandExecuted
-  description: A command was executed successfully
-  actions:
-    - log_command_executed
+

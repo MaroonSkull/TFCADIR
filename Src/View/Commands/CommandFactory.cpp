@@ -6,11 +6,12 @@ namespace view {
 
 void CommandFactory::registerCommand(
     const std::string &type,
-    std::function<std::unique_ptr<ICommand>(const nlohmann::json &)> factory) {
+    std::function<std::unique_ptr<Commands::ICommand>(const nlohmann::json &)>
+        factory) {
   factories_[type] = std::move(factory);
 }
 
-std::unique_ptr<ICommand>
+std::unique_ptr<Commands::ICommand>
 CommandFactory::deserialize(const std::string &jsonStr) const {
   try {
     nlohmann::json j = nlohmann::json::parse(jsonStr);
