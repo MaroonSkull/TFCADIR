@@ -9,12 +9,15 @@
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/OpenGL/ImGUI/PropertiesPanel.hpp>
+#include <View/OpenGL/ImGUI/ShortcutDialog.hpp>
 #include <View/Polish/ShortcutManager.hpp>
 #include <View/Precision/CoordinateInputWidget.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
 #include <View/Precision/MeasurementDisplay.hpp>
 #include <View/Precision/MeasurementManager.hpp>
 #include <View/Precision/SnapSettingsPanel.hpp>
+#include <View/Shortcuts/ShortcutManager.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <spdlog/spdlog.h>
@@ -45,6 +48,12 @@ void GUI::ShowMainMenuBar() {
     }
     if (MenuItem("Redo", "CTRL+Y", false, false)) {
     } // Disabled item
+    Separator();
+    if (MenuItem("Keyboard Shortcuts...")) {
+      if (shortcutDialog_) {
+        shortcutDialog_->open();
+      }
+    }
     EndMenu();
   }
   if (BeginMenu("Sketch")) {
@@ -310,6 +319,11 @@ void GUI::ShowViewPresetsPanel() {
   if (viewPresetsPanel_) {
     viewPresetsPanel_->render();
   }
+
+  // Phase 9.4: Also render the view preset buttons widget
+  if (viewPresetButtons_) {
+    viewPresetButtons_->render();
+  }
 }
 
 /**
@@ -367,6 +381,18 @@ void GUI::ShowMeasurementDisplay() {
 }
 
 /**
+ * @brief Render the enhanced properties panel
+ *
+ * Displays the context-aware properties panel that shows different properties
+ * based on selection state (empty, single, multiple).
+ */
+void GUI::ShowPropertiesPanel() {
+  if (propertiesPanel_) {
+    propertiesPanel_->render();
+  }
+}
+
+/**
  * @brief Shows sketch plane visualization overlay when in sketch mode
  */
 void GUI::ShowSketchPlaneOverlay() {
@@ -408,8 +434,7 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
           spdlog::get("logger") ? spdlog::get("logger")
                                 : spdlog::default_logger())),
       toolOptionsPanel_(
-          std::make_unique<view::ImGUI::ToolOptionsPanel>(*uiFSMAdapter_)),
-      commandManager_(std::make_unique<view::ImGUI::CommandManager>()) {
+          std::make_unique<view::ImGUI::ToolOptionsPanel>(*uiFSMAdapter_)) {
   // Get the model from the controller using dynamic_cast
   auto *openglController =
       dynamic_cast<controller::OpenglImguiController *>(sp_controller_.get());
@@ -484,6 +509,30 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   shortcutManager_->registerShortcut(
       "redo", {ImGuiKey_Y, view::KeyModifier::Ctrl}, "commandManager.redo",
       "Redo last undone action");
+
+  /// Phase 9.3: Create shortcut configuration manager for customization dialog
+  shortcutConfigManager_ =
+      std::make_shared<view::ShortcutConfigManager>("config/shortcuts.yaml");
+
+  /// Phase 9.3: Create shortcut customization dialog
+  shortcutDialog_ =
+      std::make_unique<view::ShortcutDialog>(shortcutConfigManager_);
+
+  /// Phase 9.4: Create view preset manager for camera positioning
+  viewPresetManager_ =
+      std::make_shared<view::ViewPresetManager>(*navigationManager_);
+
+  /// Phase 9.4: Create view preset buttons widget
+  viewPresetButtons_ =
+      std::make_unique<view::ViewPresetButtons>(viewPresetManager_);
+
+  /// Phase 9.4: Set up preset button click callback
+  viewPresetButtons_->setOnPresetClicked(
+      [this](view::ViewPreset preset) { applyViewPreset(preset); });
+
+  /// Phase 9.5: Create enhanced properties panel with context-aware display
+  propertiesPanel_ = std::make_unique<view::PropertiesPanel>(
+      *uiFSMAdapter_, *selectionManager_, *model);
 
   // Set up UIFSMAdapter callbacks
   uiFSMAdapter_->setUpdateStatusCallback(
@@ -579,6 +628,17 @@ GUI::DrawGUI(ImTextureID renderTexture) {
   // Phase 6: Render measurement display
   ShowMeasurementDisplay();
 
+  // Phase 9.5: Render enhanced properties panel
+  ShowPropertiesPanel();
+
+  // Phase 9.3: Render shortcut customization dialog
+  if (shortcutDialog_) {
+    shortcutDialog_->render();
+  }
+
+  // Phase 9.4: Handle view preset keyboard shortcuts
+  handleViewPresetShortcuts();
+
   // SshowDemoWindow();
   Render();
 
@@ -587,4 +647,60 @@ GUI::DrawGUI(ImTextureID renderTexture) {
                    canvasSize, momentWheel_, mousePositionRelative_)
              : std::tuple<ImVec2, float, std::optional<ImVec2>>(
                    canvasSize, momentWheel_, std::nullopt);
+}
+
+/**
+ * @brief Apply a view preset through the ViewPresetManager
+ * @param preset The view preset to apply
+ */
+void GUI::applyViewPreset(view::ViewPreset preset) {
+  if (viewPresetManager_) {
+    viewPresetManager_->applyPreset(preset);
+    spdlog::info("Applied view preset: {}",
+                 view::ViewPresetManager::getPresetName(preset));
+  }
+}
+
+/**
+ * @brief Handle keyboard shortcuts for view presets (NumPad keys)
+ */
+void GUI::handleViewPresetShortcuts() {
+  ImGuiIO &io = GetIO();
+
+  // Only handle shortcuts when canvas is hovered
+  if (!isCanvasHovered_) {
+    return;
+  }
+
+  // NumPad 7: Top view (or Bottom with Ctrl)
+  if (IsKeyPressed(ImGuiKey_Keypad7)) {
+    if (io.KeyCtrl) {
+      applyViewPreset(view::ViewPreset::Bottom);
+    } else {
+      applyViewPreset(view::ViewPreset::Top3D);
+    }
+  }
+
+  // NumPad 1: Front view (or Back with Ctrl)
+  if (IsKeyPressed(ImGuiKey_Keypad1)) {
+    if (io.KeyCtrl) {
+      applyViewPreset(view::ViewPreset::Back);
+    } else {
+      applyViewPreset(view::ViewPreset::Front);
+    }
+  }
+
+  // NumPad 3: Right view (or Left with Ctrl)
+  if (IsKeyPressed(ImGuiKey_Keypad3)) {
+    if (io.KeyCtrl) {
+      applyViewPreset(view::ViewPreset::Left);
+    } else {
+      applyViewPreset(view::ViewPreset::Right);
+    }
+  }
+
+  // NumPad 5: Isometric view
+  if (IsKeyPressed(ImGuiKey_Keypad5)) {
+    applyViewPreset(view::ViewPreset::Isometric);
+  }
 }

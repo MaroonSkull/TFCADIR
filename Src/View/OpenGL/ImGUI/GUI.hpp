@@ -11,12 +11,17 @@
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
 #include <View/ObjectManagement/ImGUI/PropertyInspectorPanel.hpp>
 #include <View/ObjectManagement/SelectionManager.hpp>
+#include <View/OpenGL/ImGUI/PropertiesPanel.hpp>
+#include <View/OpenGL/ImGUI/ShortcutDialog.hpp>
+#include <View/OpenGL/ImGUI/ViewPresetButtons.hpp>
 #include <View/Polish/ShortcutManager.hpp>
 #include <View/Precision/CoordinateInputWidget.hpp>
 #include <View/Precision/GridSettingsPanel.hpp>
 #include <View/Precision/MeasurementDisplay.hpp>
 #include <View/Precision/MeasurementManager.hpp>
 #include <View/Precision/SnapSettingsPanel.hpp>
+#include <View/Presets/ViewPresetManager.hpp>
+#include <View/Shortcuts/ShortcutManager.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <View/UIFSMAdapter.hpp>
@@ -70,12 +75,6 @@ private:
   /// Phase 2: Tool options panel for tool selection and configuration
   std::unique_ptr<view::ImGUI::ToolOptionsPanel> toolOptionsPanel_;
 
-  /// Phase 2: Tool options panel for tool selection and configuration
-  std::unique_ptr<view::ImGUI::ToolOptionsPanel> toolOptionsPanel_;
-
-  /// Phase 3: Selection manager for object selection operations
-  std::unique_ptr<view::SelectionManager> selectionManager_;
-
   /// Phase 3: Selection manager for object selection operations
   std::unique_ptr<view::SelectionManager> selectionManager_;
 
@@ -121,6 +120,21 @@ private:
   /// coordinator)
   std::unique_ptr<view::ShortcutManager> shortcutManager_;
 
+  /// Phase 9.3: Shortcut configuration manager for customization dialog
+  std::shared_ptr<view::ShortcutConfigManager> shortcutConfigManager_;
+
+  /// Phase 9.3: Shortcut customization dialog
+  std::unique_ptr<view::ShortcutDialog> shortcutDialog_;
+
+  /// Phase 9.4: View preset manager for camera positioning
+  std::shared_ptr<view::ViewPresetManager> viewPresetManager_;
+
+  /// Phase 9.4: View preset buttons widget
+  std::unique_ptr<view::ViewPresetButtons> viewPresetButtons_;
+
+  /// Phase 9.5: Enhanced properties panel with context-aware display
+  std::unique_ptr<view::PropertiesPanel> propertiesPanel_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -139,9 +153,23 @@ private:
   void ShowSnapSettingsPanel();     // Phase 6: Snap settings panel
   void ShowCoordinateInputWidget(); // Phase 6: Coordinate input widget
   void ShowMeasurementDisplay();    // Phase 6: Measurement display
+  void ShowPropertiesPanel();       // Phase 9.5: Enhanced properties panel
   // void ShowListPanel()
   void ShowSimpleOverlay(); // let it float after the mouse and show its
                             // coordinates if within canvas
+
+  /**
+   * @brief Apply a view preset through the ViewPresetManager
+   * @param preset The view preset to apply
+   */
+  void applyViewPreset(view::ViewPreset preset);
+
+  /**
+   * @brief Handle keyboard shortcuts for view presets (NumPad keys)
+   * @param io ImGuiIO for key state checking
+   */
+  void handleViewPresetShortcuts();
+
 public:
   GUI(std::shared_ptr<controller::IController> sp_controller);
   std::tuple<ImVec2, float, std::optional<ImVec2>>
