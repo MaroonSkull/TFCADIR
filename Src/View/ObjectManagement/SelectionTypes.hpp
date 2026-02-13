@@ -200,11 +200,13 @@ struct SelectionMemory {
     entry.name = name;
     entry.figureIds = figureIds;
 
-    /// Generate timestamp
+    /// Generate timestamp (thread-safe)
     auto now = std::chrono::system_clock::now();
     auto time = std::chrono::system_clock::to_time_t(now);
+    std::tm tmBuffer;
+    localtime_r(&time, &tmBuffer);
     std::stringstream ss;
-    ss << std::put_time(std::localtime(&time), "%Y-%m-%dT%H:%M:%S");
+    ss << std::put_time(&tmBuffer, "%Y-%m-%dT%H:%M:%S");
     entry.savedAt = ss.str();
 
     savedSelections.push_back(entry);

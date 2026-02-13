@@ -281,31 +281,24 @@ private:
                           const glm::mat4 &projection) const;
 
   /**
-   * @brief Test if a point is inside a polygon using ray casting
-   * @param point Point to test in world coordinates
-   * @param polygon Polygon vertices in world coordinates
-   * @return true if point is inside the polygon
-   */
-  static bool isPointInPolygon(const glm::vec2 &point,
-                               const std::vector<glm::vec2> &polygon);
-
-  /**
-   * @brief Test if a figure's bounding box intersects a polygon
-   * @param figure Figure to test
-   * @param polygonWorld Polygon vertices in world coordinates
-   * @return true if figure intersects the polygon
-   */
-  bool
-  doesFigureIntersectPolygon(std::shared_ptr<model::IFigure> figure,
-                             const std::vector<glm::vec2> &polygonWorld) const;
-
-  /**
    * @brief Get figure type filter from a figure
    * @param figure Figure to get type from
    * @return FigureTypeFilter corresponding to the figure type
    */
   static FigureTypeFilter
   getFigureTypeFilter(std::shared_ptr<model::IFigure> figure);
+
+  /**
+   * @brief Match a name against a pattern with wildcards
+   * @param name The name to match
+   * @param pattern The pattern (supports * and ? wildcards)
+   * @return true if the name matches the pattern
+   * @details Pattern matching is case-insensitive.
+   *          * matches zero or more characters.
+   *          ? matches exactly one character.
+   */
+  bool matchNamePattern(const std::string &name,
+                        const std::string &pattern) const;
 };
 
 } // namespace view

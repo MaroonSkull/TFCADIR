@@ -2,6 +2,7 @@
 #include <Model/FlatFigure.hpp>
 #include <View/ObjectManagement/CanvasHitTester.hpp>
 #include <algorithm>
+#include <cctype>
 #include <set>
 
 namespace view {
@@ -292,6 +293,33 @@ bool SelectionManager::passesFilter(uint32_t figureId,
     }
   }
 
+  /// Check area filters
+  if (filter.minArea > 0.0f || filter.maxArea > 0.0f) {
+    /// Calculate figure area from bounding box
+    auto [minBounds, maxBounds] = figure->getBounds();
+    float width = maxBounds.x - minBounds.x;
+    float height = maxBounds.y - minBounds.y;
+    float area = width * height;
+
+    /// Check minimum area filter
+    if (filter.minArea > 0.0f && area < filter.minArea) {
+      return false;
+    }
+
+    /// Check maximum area filter
+    if (filter.maxArea > 0.0f && area > filter.maxArea) {
+      return false;
+    }
+  }
+
+  /// Check name pattern filter (supports wildcards with * and ?)
+  if (!filter.namePattern.empty()) {
+    const std::string &figureName = figure->getName();
+    if (!matchNamePattern(figureName, filter.namePattern)) {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -394,103 +422,6 @@ glm::vec2 SelectionManager::screenToWorld(float screenX, float screenY,
   return glm::vec2(worldPos.x, worldPos.y);
 }
 
-bool SelectionManager::isPointInPolygon(const glm::vec2 &point,
-                                        const std::vector<glm::vec2> &polygon) {
-  /// Ray casting algorithm for point-in-polygon test
-  if (polygon.size() < 3) {
-    return false;
-  }
-
-  int intersections = 0;
-  size_t n = polygon.size();
-
-  for (size_t i = 0; i < n; ++i) {
-    const glm::vec2 &v1 = polygon[i];
-    const glm::vec2 &v2 = polygon[(i + 1) % n];
-
-    if ((v1.y > point.y) != (v2.y > point.y)) {
-      float xIntersection =
-          (v2.x - v1.x) * (point.y - v1.y) / (v2.y - v1.y) + v1.x;
-      if (point.x < xIntersection) {
-        ++intersections;
-      }
-    }
-  }
-
-  return (intersections % 2) == 1;
-}
-
-bool SelectionManager::doesFigureIntersectPolygon(
-    std::shared_ptr<model::IFigure> figure,
-    const std::vector<glm::vec2> &polygonWorld) const {
-  /// Check if figure intersects with polygon (simplified check)
-  if (!figure || polygonWorld.size() < 3) {
-    return false;
-  }
-
-  /// Get figure vertices based on type
-  std::vector<glm::vec2> figurePoints;
-
-  if (auto tri =
-          std::dynamic_pointer_cast<model::Figure<model::Triangle>>(figure)) {
-    figurePoints = {glm::vec2(tri->first.x, tri->first.y),
-                    glm::vec2(tri->second.x, tri->second.y),
-                    glm::vec2(tri->third.x, tri->third.y)};
-  } else if (auto quad = std::dynamic_pointer_cast<model::Figure<model::Quad>>(
-                 figure)) {
-    figurePoints = {glm::vec2(quad->first.x, quad->first.y),
-                    glm::vec2(quad->second.x, quad->second.y),
-                    glm::vec2(quad->third.x, quad->third.y),
-                    glm::vec2(quad->fourth.x, quad->fourth.y)};
-  } else if (auto circle =
-                 std::dynamic_pointer_cast<model::Figure<model::Circle>>(
-                     figure)) {
-    glm::vec2 center(circle->center.x, circle->center.y);
-    figurePoints.push_back(center);
-    /// Add points on circumference
-    for (int i = 0; i < 8; ++i) {
-      float angle = i * 3.14159f / 4.0f;
-      figurePoints.emplace_back(center.x + circle->radius * std::cos(angle),
-                                center.y + circle->radius * std::sin(angle));
-    }
-  } else if (auto ngon = std::dynamic_pointer_cast<model::Figure<model::Ngon>>(
-                 figure)) {
-    glm::vec2 center(ngon->center.x, ngon->center.y);
-    figurePoints.push_back(center);
-    int numSides = static_cast<int>(ngon->n);
-    float angle = std::atan2(ngon->first.y - ngon->center.y,
-                             ngon->first.x - ngon->center.x);
-    float angleStep = 2.0f * 3.14159f / numSides;
-    for (int i = 0; i < numSides; ++i) {
-      float a = angle + i * angleStep;
-      figurePoints.emplace_back(ngon->center.x + ngon->radius * std::cos(a),
-                                ngon->center.y + ngon->radius * std::sin(a));
-    }
-  } else if (auto curve =
-                 std::dynamic_pointer_cast<model::Figure<model::CurveBezier3>>(
-                     figure)) {
-    figurePoints = {glm::vec2(curve->start.x, curve->start.y),
-                    glm::vec2(curve->end.x, curve->end.y),
-                    glm::vec2(curve->first.x, curve->first.y)};
-  } else if (auto curve =
-                 std::dynamic_pointer_cast<model::Figure<model::CurveBezier4>>(
-                     figure)) {
-    figurePoints = {glm::vec2(curve->start.x, curve->start.y),
-                    glm::vec2(curve->end.x, curve->end.y),
-                    glm::vec2(curve->first.x, curve->first.y),
-                    glm::vec2(curve->second.x, curve->second.y)};
-  }
-
-  /// Check if any figure point is inside the polygon
-  for (const auto &point : figurePoints) {
-    if (isPointInPolygon(point, polygonWorld)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 FigureTypeFilter
 SelectionManager::getFigureTypeFilter(std::shared_ptr<model::IFigure> figure) {
   /// Get the figure type filter value for a figure
@@ -513,6 +444,49 @@ SelectionManager::getFigureTypeFilter(std::shared_ptr<model::IFigure> figure) {
     return FigureTypeFilter::CurveBezier4;
   }
   return FigureTypeFilter::None;
+}
+
+bool SelectionManager::matchNamePattern(const std::string &name,
+                                        const std::string &pattern) const {
+  /// Match name against a pattern with wildcards (* and ?)
+  /// Uses dynamic programming approach for pattern matching
+
+  const size_t nameLen = name.size();
+  const size_t patternLen = pattern.size();
+
+  /// dp[i][j] = true if name[0..i-1] matches pattern[0..j-1]
+  std::vector<std::vector<bool>> dp(nameLen + 1,
+                                    std::vector<bool>(patternLen + 1, false));
+
+  /// Empty pattern matches empty name
+  dp[0][0] = true;
+
+  /// Handle patterns like "*", "**", "***" etc.
+  for (size_t j = 1; j <= patternLen; ++j) {
+    if (pattern[j - 1] == '*') {
+      dp[0][j] = dp[0][j - 1];
+    }
+  }
+
+  /// Fill the DP table
+  for (size_t i = 1; i <= nameLen; ++i) {
+    for (size_t j = 1; j <= patternLen; ++j) {
+      if (pattern[j - 1] == '*') {
+        /// '*' can match zero or more characters
+        dp[i][j] = dp[i][j - 1] || dp[i - 1][j];
+      } else if (pattern[j - 1] == '?') {
+        /// '?' matches exactly one character
+        dp[i][j] = dp[i - 1][j - 1];
+      } else {
+        /// Exact character match (case-insensitive)
+        char nameChar = static_cast<char>(std::tolower(name[i - 1]));
+        char patternChar = static_cast<char>(std::tolower(pattern[j - 1]));
+        dp[i][j] = dp[i - 1][j - 1] && (nameChar == patternChar);
+      }
+    }
+  }
+
+  return dp[nameLen][patternLen];
 }
 
 } // namespace view

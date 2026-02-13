@@ -783,10 +783,12 @@ bool CanvasHitTester::doesFigureIntersectPolygon(
                              ngon->first.x - ngon->center.x);
     float angleStep = 2.0f * M_PI / numSides;
 
+    figureVertices.reserve(numSides);
     for (int i = 0; i < numSides; ++i) {
       float a = angle + i * angleStep;
       glm::vec2 vertex(ngon->center.x + ngon->radius * std::cos(a),
                        ngon->center.y + ngon->radius * std::sin(a));
+      figureVertices.push_back(vertex);
 
       // Check if vertex is inside polygon
       if (isPointInPolygon(vertex, polygonWorld)) {
