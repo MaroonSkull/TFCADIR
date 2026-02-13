@@ -63,6 +63,43 @@ states:
     actions:
       - log_polygon_selection_state
 
+  # Phase 11: Annotation tool states
+  LinearDimensionMode:
+    on_enter: on_linear_dimension_enter
+    on_exit: on_linear_dimension_exit
+    actions:
+      - log_linear_dimension_state
+
+  AngularDimensionMode:
+    on_enter: on_angular_dimension_enter
+    on_exit: on_angular_dimension_exit
+    actions:
+      - log_angular_dimension_state
+
+  RadialDimensionMode:
+    on_enter: on_radial_dimension_enter
+    on_exit: on_radial_dimension_exit
+    actions:
+      - log_radial_dimension_state
+
+  DiameterDimensionMode:
+    on_enter: on_diameter_dimension_enter
+    on_exit: on_diameter_dimension_exit
+    actions:
+      - log_diameter_dimension_state
+
+  LeaderLineMode:
+    on_enter: on_leader_line_enter
+    on_exit: on_leader_line_exit
+    actions:
+      - log_leader_line_state
+
+  TextAnnotationMode:
+    on_enter: on_text_annotation_enter
+    on_exit: on_text_annotation_exit
+    actions:
+      - log_text_annotation_state
+
 #Transition definitions
 transitions:
   #From Idle to DrawingProcessing on figure creation events
@@ -247,6 +284,105 @@ transitions:
     to: Idle
     event: OnSelectionCancel
     on_transition: on_cancel_selection
+
+  # Phase 11: Annotation tool transitions
+  # From Idle to LinearDimensionMode when activating linear dimension tool
+  - from: Idle
+    to: LinearDimensionMode
+    event: OnActivateLinearDimension
+    on_transition: on_activate_linear_dimension
+
+  # From Idle to AngularDimensionMode when activating angular dimension tool
+  - from: Idle
+    to: AngularDimensionMode
+    event: OnActivateAngularDimension
+    on_transition: on_activate_angular_dimension
+
+  # From Idle to RadialDimensionMode when activating radial dimension tool
+  - from: Idle
+    to: RadialDimensionMode
+    event: OnActivateRadialDimension
+    on_transition: on_activate_radial_dimension
+
+  # From Idle to DiameterDimensionMode when activating diameter dimension tool
+  - from: Idle
+    to: DiameterDimensionMode
+    event: OnActivateDiameterDimension
+    on_transition: on_activate_diameter_dimension
+
+  # From Idle to LeaderLineMode when activating leader line tool
+  - from: Idle
+    to: LeaderLineMode
+    event: OnActivateLeaderLine
+    on_transition: on_activate_leader_line
+
+  # From Idle to TextAnnotationMode when activating text annotation tool
+  - from: Idle
+    to: TextAnnotationMode
+    event: OnActivateTextAnnotation
+    on_transition: on_activate_text_annotation
+
+  # From any annotation mode back to Idle when complete
+  - from: LinearDimensionMode
+    to: Idle
+    event: OnAnnotationComplete
+    on_transition: on_complete_linear_dimension
+
+  - from: AngularDimensionMode
+    to: Idle
+    event: OnAnnotationComplete
+    on_transition: on_complete_angular_dimension
+
+  - from: RadialDimensionMode
+    to: Idle
+    event: OnAnnotationComplete
+    on_transition: on_complete_radial_dimension
+
+  - from: DiameterDimensionMode
+    to: Idle
+    event: OnAnnotationComplete
+    on_transition: on_complete_diameter_dimension
+
+  - from: LeaderLineMode
+    to: Idle
+    event: OnAnnotationComplete
+    on_transition: on_complete_leader_line
+
+  - from: TextAnnotationMode
+    to: Idle
+    event: OnAnnotationComplete
+    on_transition: on_complete_text_annotation
+
+  # From any annotation mode back to Idle when cancelled
+  - from: LinearDimensionMode
+    to: Idle
+    event: OnAnnotationCancel
+    on_transition: on_cancel_annotation
+
+  - from: AngularDimensionMode
+    to: Idle
+    event: OnAnnotationCancel
+    on_transition: on_cancel_annotation
+
+  - from: RadialDimensionMode
+    to: Idle
+    event: OnAnnotationCancel
+    on_transition: on_cancel_annotation
+
+  - from: DiameterDimensionMode
+    to: Idle
+    event: OnAnnotationCancel
+    on_transition: on_cancel_annotation
+
+  - from: LeaderLineMode
+    to: Idle
+    event: OnAnnotationCancel
+    on_transition: on_cancel_annotation
+
+  - from: TextAnnotationMode
+    to: Idle
+    event: OnAnnotationCancel
+    on_transition: on_cancel_annotation
 
 # Phase 7: Polish & Optimization Events
 # These events are triggered by Polish components and handled by the FSM

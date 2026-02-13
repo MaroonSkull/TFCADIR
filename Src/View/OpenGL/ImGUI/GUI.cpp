@@ -151,6 +151,12 @@ void GUI::ShowDockSpace() {
         DockBuilderSplitNode(dockIdCoordinateInput_, ImGuiDir_Down, 0.50f,
                              nullptr, &dockIdCoordinateInput_);
 
+    // Phase 11: Split selection settings dock to create space for annotation
+    // tools
+    dockIdAnnotationTools_ =
+        DockBuilderSplitNode(dockIdSelectionSettings_, ImGuiDir_Down, 0.50f,
+                             nullptr, &dockIdSelectionSettings_);
+
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
@@ -163,6 +169,7 @@ void GUI::ShowDockSpace() {
     DockBuilderDockWindow("Snap Settings", dockIdSnapSettings_);
     DockBuilderDockWindow("Coordinate Input", dockIdCoordinateInput_);
     DockBuilderDockWindow("Selection Settings", dockIdSelectionSettings_);
+    DockBuilderDockWindow("Annotation Tools", dockIdAnnotationTools_);
 
     DockBuilderFinish(dockId_);
   }
@@ -777,6 +784,9 @@ GUI::DrawGUI(ImTextureID renderTexture) {
   // Phase 10: Handle selection keyboard shortcuts
   handleSelectionShortcuts();
 
+  // Phase 11: Render annotation tools panel
+  ShowAnnotationToolsPanel();
+
   // SshowDemoWindow();
   Render();
 
@@ -1064,6 +1074,211 @@ void GUI::handleSelectionShortcuts() {
     if (IsKeyPressed(ImGuiKey_4)) {
       selectionSettings_.mode = view::SelectionMode::Polygon;
       spdlog::info("Selection mode: Polygon");
+    }
+  }
+}
+
+/**
+ * @brief Render the annotation tools panel for Phase 11 dimension tools
+ *
+ * Displays the annotation tool selection buttons and dimension style options.
+ */
+void GUI::ShowAnnotationToolsPanel() {
+  if (Begin("Annotation Tools")) {
+    // Tool selection section
+    if (CollapsingHeader("Dimension Tools", ImGuiTreeNodeFlags_DefaultOpen)) {
+      // Linear Dimension button
+      if (Button("Linear", ImVec2(80, 0))) {
+        activateAnnotationTool(view::DimensionTool::Type::LinearDimension);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Create linear dimensions between two points");
+      }
+      SameLine();
+
+      // Angular Dimension button
+      if (Button("Angular", ImVec2(80, 0))) {
+        activateAnnotationTool(view::DimensionTool::Type::AngularDimension);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Create angular dimensions between two lines");
+      }
+      SameLine();
+
+      // Radial Dimension button
+      if (Button("Radial", ImVec2(80, 0))) {
+        activateAnnotationTool(view::DimensionTool::Type::RadialDimension);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Create radial dimensions for circles/arcs");
+      }
+
+      // Diameter Dimension button
+      if (Button("Diameter", ImVec2(80, 0))) {
+        activateAnnotationTool(view::DimensionTool::Type::DiameterDimension);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Create diameter dimensions for circles/arcs");
+      }
+      SameLine();
+
+      // Leader Line button
+      if (Button("Leader", ImVec2(80, 0))) {
+        activateAnnotationTool(view::DimensionTool::Type::LeaderLine);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Create leader lines with text annotations");
+      }
+      SameLine();
+
+      // Text Annotation button
+      if (Button("Text", ImVec2(80, 0))) {
+        activateAnnotationTool(view::DimensionTool::Type::TextAnnotation);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Add text labels to the canvas");
+      }
+    }
+
+    Separator();
+
+    // Dimension style section
+    if (CollapsingHeader("Dimension Style", ImGuiTreeNodeFlags_DefaultOpen)) {
+      // Arrow style selection
+      Text("Arrow Style:");
+      int arrowStyle = static_cast<int>(dimensionStyle_.arrowStyle);
+      if (RadioButton("Filled##Arrow", &arrowStyle,
+                      static_cast<int>(view::ArrowStyle::Filled))) {
+        dimensionStyle_.arrowStyle = static_cast<view::ArrowStyle>(arrowStyle);
+      }
+      SameLine();
+      if (RadioButton("Open##Arrow", &arrowStyle,
+                      static_cast<int>(view::ArrowStyle::Open))) {
+        dimensionStyle_.arrowStyle = static_cast<view::ArrowStyle>(arrowStyle);
+      }
+      SameLine();
+      if (RadioButton("Closed##Arrow", &arrowStyle,
+                      static_cast<int>(view::ArrowStyle::Closed))) {
+        dimensionStyle_.arrowStyle = static_cast<view::ArrowStyle>(arrowStyle);
+      }
+
+      // Arrow size
+      SliderFloat("Arrow Size", &dimensionStyle_.arrowSize, 2.0f, 20.0f, "%.1f");
+
+      // Text position selection
+      Text("Text Position:");
+      int textPos = static_cast<int>(dimensionStyle_.textPosition);
+      if (RadioButton("Above##Text", &textPos,
+                      static_cast<int>(view::TextPosition::AboveLine))) {
+        dimensionStyle_.textPosition = static_cast<view::TextPosition>(textPos);
+      }
+      SameLine();
+      if (RadioButton("On Line##Text", &textPos,
+                      static_cast<int>(view::TextPosition::OnLine))) {
+        dimensionStyle_.textPosition = static_cast<view::TextPosition>(textPos);
+      }
+      SameLine();
+      if (RadioButton("Below##Text", &textPos,
+                      static_cast<int>(view::TextPosition::BelowLine))) {
+        dimensionStyle_.textPosition = static_cast<view::TextPosition>(textPos);
+      }
+
+      // Text alignment selection
+      Text("Text Alignment:");
+      int textAlign = static_cast<int>(dimensionStyle_.textAlignment);
+      if (RadioButton("Start##Align", &textAlign,
+                      static_cast<int>(view::TextAlignment::Start))) {
+        dimensionStyle_.textAlignment =
+            static_cast<view::TextAlignment>(textAlign);
+      }
+      SameLine();
+      if (RadioButton("Center##Align", &textAlign,
+                      static_cast<int>(view::TextAlignment::Center))) {
+        dimensionStyle_.textAlignment =
+            static_cast<view::TextAlignment>(textAlign);
+      }
+      SameLine();
+      if (RadioButton("End##Align", &textAlign,
+                      static_cast<int>(view::TextAlignment::End))) {
+        dimensionStyle_.textAlignment =
+            static_cast<view::TextAlignment>(textAlign);
+      }
+
+      // Text size
+      SliderFloat("Text Size", &dimensionStyle_.textSize, 8.0f, 32.0f, "%.0f");
+
+      // Line weight
+      SliderFloat("Line Weight", &dimensionStyle_.lineWeight, 0.5f, 5.0f,
+                  "%.1f");
+
+      // Extension line offset
+      SliderFloat("Extension Offset", &dimensionStyle_.extensionLineOffset, 0.0f,
+                  20.0f, "%.1f");
+
+      // Precision
+      SliderInt("Precision", &dimensionStyle_.precision, 0, 6, "%d");
+    }
+
+    Separator();
+
+    // Active tool info section
+    if (CollapsingHeader("Active Tool", ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (activeAnnotationTool_) {
+        Text("Tool: %s", activeAnnotationTool_->getDisplayName().c_str());
+        TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Status: Active");
+
+        // Show tool-specific info
+        Text("Points: %zu / %zu", 
+             activeAnnotationTool_->getCollectedPointsCount(),
+             activeAnnotationTool_->getRequiredPoints());
+
+        // Show formatted value if complete
+        if (activeAnnotationTool_->isComplete()) {
+          Text("Value: %s", activeAnnotationTool_->getFormattedValue().c_str());
+        }
+
+        // Cancel button
+        if (Button("Cancel Tool", ImVec2(-FLT_MIN, 0))) {
+          activeAnnotationTool_->cancel();
+          activeAnnotationTool_.reset();
+          spdlog::info("Annotation tool cancelled");
+        }
+      } else {
+        TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No tool active");
+        Text("Select a tool above to begin");
+      }
+    }
+  }
+  End();
+}
+
+/**
+ * @brief Handle annotation tool activation (Phase 11)
+ * @param toolType The type of annotation tool to activate
+ */
+void GUI::activateAnnotationTool(view::DimensionTool::Type toolType) {
+  // Deactivate current tool if any
+  if (activeAnnotationTool_) {
+    activeAnnotationTool_->cancel();
+    activeAnnotationTool_.reset();
+  }
+
+  // Create the appropriate tool using the factory
+  if (uiFSMAdapter_) {
+    activeAnnotationTool_ = view::DimensionToolFactory::createTool(toolType, *uiFSMAdapter_);
+    
+    if (activeAnnotationTool_) {
+      // Apply current style
+      activeAnnotationTool_->setStyle(dimensionStyle_);
+      
+      // Activate the tool
+      activeAnnotationTool_->activate();
+      
+      spdlog::info("Activated {} tool", 
+                   view::DimensionToolFactory::getToolDisplayName(toolType));
+    } else {
+      spdlog::warn("Failed to create annotation tool type: {}",
+                   static_cast<int>(toolType));
     }
   }
 }

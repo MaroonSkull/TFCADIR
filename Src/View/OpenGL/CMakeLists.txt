@@ -19,6 +19,12 @@ config_lib(ImGUIOpenGLView
         ImGUI/ViewPresetButtons.cpp
         ../Shortcuts/ShortcutManager.cpp
         ../Presets/ViewPresetManager.cpp
+        ../Annotation/LinearDimensionTool.cpp
+        ../Annotation/AngularDimensionTool.cpp
+        ../Annotation/RadialDimensionTool.cpp
+        ../Annotation/DiameterDimensionTool.cpp
+        ../Annotation/LeaderTool.cpp
+        ../Annotation/TextAnnotationTool.cpp
     PUBLIC_SOURCES
         ImGUI/ApplicationSettings.hpp
         ImGUI/ContextMenu.hpp
@@ -31,6 +37,7 @@ config_lib(ImGUIOpenGLView
         ImGUI/ViewPresetButtons.hpp
         ../Shortcuts/ShortcutManager.hpp
         ../Presets/ViewPresetManager.hpp
+        ../Annotation/DimensionTool.hpp
     PUBLIC_DEPENDENCIES
         Model
         ImGUIOpenGLController

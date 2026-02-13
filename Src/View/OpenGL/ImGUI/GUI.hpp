@@ -27,6 +27,7 @@
 #include <View/Presets/ViewPresetManager.hpp>
 #include <View/Shortcuts/ShortcutManager.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
+#include <View/Annotation/DimensionTool.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <View/UIFSMAdapter.hpp>
 #include <glfwpp/glfwpp.h>
@@ -54,6 +55,7 @@ private:
   ImGuiID dockIdCoordinateInput_{}; // Phase 6: Coordinate input widget dock ID
   ImGuiID
       dockIdSelectionSettings_{}; // Phase 10: Selection settings panel dock ID
+  ImGuiID dockIdAnnotationTools_{}; // Phase 11: Annotation tools panel dock ID
   ImVec2 mouseOverlayPosition_{};
   ImVec2 mousePositionAbsolute_{};
   ImTextureID textureId_{};
@@ -159,6 +161,12 @@ private:
   /// Phase 10: Flag indicating active selection drag operation
   bool isSelectionDragActive_{false};
 
+  /// Phase 11: Current active annotation tool (nullptr if none active)
+  std::unique_ptr<view::DimensionTool> activeAnnotationTool_;
+
+  /// Phase 11: Current dimension style for annotation tools
+  view::DimensionStyle dimensionStyle_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -206,7 +214,20 @@ private:
    */
   void handleSelectionShortcuts();
 
-public:
+  /**
+   * @brief Render the annotation tools panel for Phase 11 dimension tools
+   *
+   * Displays the annotation tool selection and dimension style options.
+   */
+  void ShowAnnotationToolsPanel();
+
+  /**
+   * @brief Handle annotation tool activation (Phase 11)
+   * @param toolType The type of annotation tool to activate
+   */
+  void activateAnnotationTool(view::DimensionTool::Type toolType);
+
+ public:
   GUI(std::shared_ptr<controller::IController> sp_controller);
   std::tuple<ImVec2, float, std::optional<ImVec2>>
   DrawGUI(ImTextureID renderTexture);
