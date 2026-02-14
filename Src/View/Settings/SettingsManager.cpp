@@ -6,6 +6,7 @@
 #include "SettingsManager.hpp"
 #include "DisplaySettings.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -25,6 +26,29 @@ SettingsManager::SettingsManager() : gridConfig_(), displayConfig_() {
 }
 
 void SettingsManager::LoadFromFile(const std::string &filepath) {
+  // Check if file exists
+  if (!std::filesystem::exists(filepath)) {
+    spdlog::warn("Settings file not found: {}. Creating default settings.",
+                 filepath);
+
+    // Ensure parent directory exists
+    std::filesystem::path path(filepath);
+    std::filesystem::path parentPath = path.parent_path();
+    if (!parentPath.empty() && !std::filesystem::exists(parentPath)) {
+      std::error_code ec;
+      if (!std::filesystem::create_directories(parentPath, ec)) {
+        throw std::runtime_error("Failed to create settings directory: " +
+                                 parentPath.string() + " - " + ec.message());
+      }
+      spdlog::info("Created settings directory: {}", parentPath.string());
+    }
+
+    // Create default settings file
+    SaveToFile(filepath);
+    spdlog::info("Created default settings file: {}", filepath);
+    return;
+  }
+
   std::ifstream file(filepath);
   if (!file.is_open()) {
     throw std::runtime_error("Failed to open settings file: " + filepath);

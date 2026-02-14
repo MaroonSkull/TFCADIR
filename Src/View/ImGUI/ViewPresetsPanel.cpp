@@ -9,19 +9,22 @@ ViewPresetsPanel::ViewPresetsPanel(NavigationManager &navigationManager)
       lastUpdateTime_(std::chrono::steady_clock::now()) {}
 
 void ViewPresetsPanel::render() {
-  /// Rate limiting: only update if at least 100ms has passed (max 10 Hz)
-  if (!shouldUpdate()) {
-    return;
-  }
+  /// ALWAYS call Begin/End every frame to prevent window flickering
+  /// Rate limiting is applied to content updates only, not rendering
+  ImGui::Begin("View Presets");
 
-  lastUpdateTime_ = std::chrono::steady_clock::now();
+  /// Rate limiting: only update content if at least 100ms has passed (max 10
+  /// Hz)
+  if (shouldUpdate()) {
+    lastUpdateTime_ = std::chrono::steady_clock::now();
+  }
 
   /// Get current view preset from NavigationManager (which queries
   /// UIFSMAdapter)
   ViewPreset currentPreset = navigationManager_.getCurrentViewPreset();
 
-  /// Begin view presets panel
-  if (ImGui::Begin("View Presets")) {
+  /// Render panel content
+  {
     /// 2D Presets Section
     if (ImGui::CollapsingHeader("2D Views", ImGuiTreeNodeFlags_DefaultOpen)) {
       ImGui::PushStyleColor(ImGuiCol_Button,
