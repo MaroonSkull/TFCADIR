@@ -204,98 +204,107 @@ void OpenglImguiView::draw() {
   // todo observer would be useful here. If model and view haven't changed,
   // don't render new texture
 
-  // Render on the whole framebuffer
-  glViewport(0, 0, frameWidth_, frameHeight_);
-  // Render to our framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-  // Rescale binded framebuffer
-  if (frameWidth_ != frameSizes.x || frameHeight_ != frameSizes.y) {
-    frameWidth_ = frameSizes.x;
-    frameHeight_ = frameSizes.y;
-    rescale_framebuffer();
-  }
+  /// Skip OpenGL rendering when canvas is hidden/collapsed (zero dimensions)
+  /// This prevents GL_INVALID_FRAMEBUFFER_OPERATION errors (GLAD error 1286)
+  /// that occur when attempting to render to a framebuffer with invalid
+  /// dimensions
+  const bool canvasVisible = (frameSizes.x > 0 && frameSizes.y > 0);
 
-  // handling direct input operations via canvas
-  // maybe wrap in lambda, create callback
-  if (mousePosition.has_value()) {
-    const auto &[x, y] = mousePosition.value();
-    // to ndc and to model
-    // sp_model_->camera_
-
-    sp_controller_->updateWorkspaceHoverState(
-        controller::state::Workspace::
-            hovered /*, x / frameWidth_, y / frameHeight_ */);
-
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-      sp_controller_->updateLeftMouseButtonState(
-          controller::state::Button::down);
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-      sp_controller_->updateLeftMouseButtonState(
-          controller::state::Button::released);
-
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
-      sp_controller_->updateRightMouseButtonState(
-          controller::state::Button::down);
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-      sp_controller_->updateRightMouseButtonState(
-          controller::state::Button::released);
-
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
-      sp_controller_->updateWheelMouseButtonState(
-          controller::state::Button::down);
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
-      sp_controller_->updateWheelMouseButtonState(
-          controller::state::Button::released);
-
-    if (momentWheel != 0.0f)
-      sp_controller_->updateScroll(momentWheel);
-
-    // convert to normalised coords via glm
-  } else
-    sp_controller_->updateWorkspaceHoverState(
-        controller::state::Workspace::unhovered);
-
-  glClearColor(0.9f, 0.1f, 0.1f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT);
-
-  Pipeline_->useProgram();
-
-  // TODO: remove, temporary raw operations
-  sp_model_->model_ =
-      glm::rotate(sp_model_->model_, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-  const auto view =
-      glm::lookAt(sp_model_->camera_.position, sp_model_->camera_.target,
-                  sp_model_->camera_.up);
-  sp_model_->projection_ =
-      glm::perspective(glm::radians(45.0f), 1.33f, 0.1f, 100.0f);
-
-  auto setUniformMatrix = [&](const std::string &name,
-                              const glm::mat4 &matrix) {
-    if (const auto loc = Pipeline_->getUniformLocation(name); loc.has_value()) {
-      glUniformMatrix4fv(loc.value(), 1, GL_FALSE, glm::value_ptr(matrix));
+  if (canvasVisible) {
+    // Render on the whole framebuffer
+    glViewport(0, 0, frameWidth_, frameHeight_);
+    // Render to our framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
+    // Rescale binded framebuffer
+    if (frameWidth_ != frameSizes.x || frameHeight_ != frameSizes.y) {
+      frameWidth_ = frameSizes.x;
+      frameHeight_ = frameSizes.y;
+      rescale_framebuffer();
     }
-  };
 
-  setUniformMatrix("model", sp_model_->model_);
-  setUniformMatrix("view", view);
-  setUniformMatrix("projection", sp_model_->projection_);
+    // handling direct input operations via canvas
+    // maybe wrap in lambda, create callback
+    if (mousePosition.has_value()) {
+      const auto &[x, y] = mousePosition.value();
+      // to ndc and to model
+      // sp_model_->camera_
 
-  glBindVertexArray(VAO_);
+      sp_controller_->updateWorkspaceHoverState(
+          controller::state::Workspace::
+              hovered /*, x / frameWidth_, y / frameHeight_ */);
 
-  if (mousePosition) {
-    // get data from model and send to opengl
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_);
-    // glBufferSubData(GL_ARRAY_BUFFER, 0, vertices_.size() *
-    // sizeof(vertices_.at(0)), vertices_.data());
-    glBufferData(GL_ARRAY_BUFFER, vertices_.size() * sizeof(vertices_.at(0)),
-                 vertices_.data(), GL_DYNAMIC_DRAW);
+      if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        sp_controller_->updateLeftMouseButtonState(
+            controller::state::Button::down);
+      if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        sp_controller_->updateLeftMouseButtonState(
+            controller::state::Button::released);
+
+      if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+        sp_controller_->updateRightMouseButtonState(
+            controller::state::Button::down);
+      if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+        sp_controller_->updateRightMouseButtonState(
+            controller::state::Button::released);
+
+      if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+        sp_controller_->updateWheelMouseButtonState(
+            controller::state::Button::down);
+      if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
+        sp_controller_->updateWheelMouseButtonState(
+            controller::state::Button::released);
+
+      if (momentWheel != 0.0f)
+        sp_controller_->updateScroll(momentWheel);
+
+      // convert to normalised coords via glm
+    } else
+      sp_controller_->updateWorkspaceHoverState(
+          controller::state::Workspace::unhovered);
+
+    glClearColor(0.9f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    Pipeline_->useProgram();
+
+    // TODO: remove, temporary raw operations
+    sp_model_->model_ =
+        glm::rotate(sp_model_->model_, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+    const auto view =
+        glm::lookAt(sp_model_->camera_.position, sp_model_->camera_.target,
+                    sp_model_->camera_.up);
+    sp_model_->projection_ =
+        glm::perspective(glm::radians(45.0f), 1.33f, 0.1f, 100.0f);
+
+    auto setUniformMatrix = [&](const std::string &name,
+                                const glm::mat4 &matrix) {
+      if (const auto loc = Pipeline_->getUniformLocation(name);
+          loc.has_value()) {
+        glUniformMatrix4fv(loc.value(), 1, GL_FALSE, glm::value_ptr(matrix));
+      }
+    };
+
+    setUniformMatrix("model", sp_model_->model_);
+    setUniformMatrix("view", view);
+    setUniformMatrix("projection", sp_model_->projection_);
+
+    glBindVertexArray(VAO_);
+
+    if (mousePosition) {
+      // get data from model and send to opengl
+      glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+      // glBufferSubData(GL_ARRAY_BUFFER, 0, vertices_.size() *
+      // sizeof(vertices_.at(0)), vertices_.data());
+      glBufferData(GL_ARRAY_BUFFER, vertices_.size() * sizeof(vertices_.at(0)),
+                   vertices_.data(), GL_DYNAMIC_DRAW);
+    }
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices_.size() / 3));
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
-  glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices_.size() / 3));
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-  glUseProgram(0);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
