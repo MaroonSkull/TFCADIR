@@ -1,5 +1,6 @@
 add_library(Renderer
     AxesRenderer.cpp
+    GridRenderer.cpp
 )
 
 target_include_directories(Renderer PUBLIC
