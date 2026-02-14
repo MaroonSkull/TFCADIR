@@ -55,7 +55,6 @@ private:
                      // be attached
   ImGuiID dockIdTools_{};
   ImGuiID dockIdLog_{};
-  ImGuiID dockIdMouse_{};
   ImGuiID dockIdOutliner_{};        // Phase 3: Outliner panel dock ID
   ImGuiID dockIdProperties_{};      // Phase 3: Property inspector dock ID
   ImGuiID dockIdCommandHistory_{};  // Phase 4: Command history panel dock ID

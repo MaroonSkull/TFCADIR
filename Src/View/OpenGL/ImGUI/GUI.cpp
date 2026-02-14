@@ -235,8 +235,8 @@ void GUI::ShowDockSpace() {
 
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
+    DockBuilderDockWindow("Tool Options", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
-    DockBuilderDockWindow("Mouse coords", dockIdMouse_);
     DockBuilderDockWindow("Outliner", dockIdOutliner_);
     DockBuilderDockWindow("Properties", dockIdProperties_);
     DockBuilderDockWindow("Command History", dockIdCommandHistory_);
@@ -261,14 +261,10 @@ void GUI::ShowLog() {
 }
 
 void GUI::ShowSidePanel() {
+  // Render "Tools" window
   if (Begin("Tools")) {
-    // Render the Phase 2 ToolOptionsPanel
-    if (toolOptionsPanel_) {
-      ImVec2 panelSize = GetContentRegionAvail();
-      toolOptionsPanel_->render(panelSize);
-    } else {
-      // Fallback: original simple tool buttons if ToolOptionsPanel not
-      // available
+    // Fallback: original simple tool buttons if ToolOptionsPanel not available
+    if (!toolOptionsPanel_) {
       Text("Side panel with tools");
       // todo: add buttons for addLine, addTriangleByCorners and addCircle
       if (Button("Add Line")) {
@@ -289,6 +285,13 @@ void GUI::ShowSidePanel() {
     }
   }
   End();
+
+  // Render "Tool Options" separately (no parent-child relationship with "Tools"
+  // window)
+  if (toolOptionsPanel_) {
+    ImVec2 panelSize = ImVec2(0, 0); // Let ImGui auto-size the window
+    toolOptionsPanel_->render(panelSize);
+  }
 }
 
 ImVec2 GUI::ShowCanvas(ImTextureID renderTexture) {
