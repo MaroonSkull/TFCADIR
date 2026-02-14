@@ -938,6 +938,160 @@ ctest --output-on-failure
 
 ---
 
+## UI Layout
+
+### Final Application Layout (Phase 18)
+
+The TFCADIR application uses ImGUI's docking system to provide a flexible, professional CAD interface:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  Menu Bar: File | Edit | View | Draw | Modify | Annotate | Settings | Help     │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ ┌──────────────┐ ┌───────────────────────────────────┐ ┌──────────────────────┐ │
+│ │              │ │                                   │ │                      │ │
+│ │   Tools      │ │                                   │ │   Properties         │ │
+│ │   Panel      │ │                                   │ │   Panel              │ │
+│ │              │ │                                   │ │                      │ │
+│ │ ┌──────────┐ │ │                                   │ │ ┌──────────────────┐ │ │
+│ │ │ Select   │ │ │                                   │ │ │ Position: X, Y   │ │ │
+│ │ │ Line     │ │ │                                   │ │ │ Size: W, H       │ │ │
+│ │ │ Rectangle│ │ │          Main Canvas              │ │ │ Rotation: °      │ │ │
+│ │ │ Circle   │ │ │        (2D/3D View)               │ │ │ Color: RGB       │ │ │
+│ │ │ Polygon  │ │ │                                   │ │ └──────────────────┘ │ │
+│ │ │ Triangle │ │ │     [Grid] [Snap] [Measurement]   │ │                      │ │
+│ │ │ Arc      │ │ │                                   │ │ ──────────────────── │ │
+│ │ │ Ellipse  │ │ │                                   │ │   Outliner Panel    │ │
+│ │ └──────────┘ │ │                                   │ │   (Scene Tree)      │ │
+│ │              │ │                                   │ │                      │ │
+│ │ ──────────── │ │                                   │ │ ┌──────────────────┐ │ │
+│ │   Modify     │ │                                   │ │ │ ▼ Layer 1        │ │ │
+│ │ ┌──────────┐ │ │                                   │ │ │   □ Rectangle 1  │ │ │
+│ │ │ Move     │ │ │                                   │ │ │   □ Circle 1     │ │ │
+│ │ │ Rotate   │ │ │                                   │ │ │   □ Line 1       │ │ │
+│ │ │ Scale    │ │ │                                   │ │ └──────────────────┘ │ │
+│ │ │ Mirror   │ │ │                                   │ │                      │ │
+│ │ │ Fillet   │ │ │                                   │ │                      │ │
+│ │ └──────────┘ │ │                                   │ │                      │ │
+│ │              │ │                                   │ │                      │ │
+│ │ ──────────── │ │                                   │ │                      │ │
+│ │   Measure    │ │                                   │ │                      │ │
+│ │ ┌──────────┐ │ │                                   │ │                      │ │
+│ │ │ Distance │ │ │                                   │ │                      │ │
+│ │ │ Angle    │ │ │                                   │ │                      │ │
+│ │ │ Area     │ │ │                                   │ │                      │ │
+│ │ └──────────┘ │ │                                   │ │                      │ │
+│ └──────────────┘ └───────────────────────────────────┘ └──────────────────────┘ │
+│ ┌──────────────────────────────────────────────────────────────────────────────┐ │
+│ │  Log Panel                                                                   │ │
+│ │  [Info] Application started                                                  │ │
+│ │  [Info] Grid enabled, spacing: 10.0                                          │ │
+│ │  [Info] Figure created: Rectangle at (100, 100)                              │ │
+│ └──────────────────────────────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  Status Bar: Mode: 2D | Tool: Select | Zoom: 100% | Pos: (0, 0) | FPS: 60      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Panel Descriptions
+
+| Panel | Location | Purpose | Phase |
+|-------|----------|---------|-------|
+| **Tools Panel** | Left | Tool selection (drawing, modify, measure) | Phase 2, 11 |
+| **Properties Panel** | Right | Context-aware property editing | Phase 4 |
+| **Outliner Panel** | Right (tabbed) | Scene hierarchy and layer management | Phase 5, 13 |
+| **Log Panel** | Bottom | Application messages and debugging | Phase 1 |
+| **Main Canvas** | Center | 2D/3D rendering area with grid | Phase 1, 3, 15 |
+| **Status Bar** | Bottom | Current state, coordinates, FPS | Phase 7 |
+| **Menu Bar** | Top | Application menus | Phase 1 |
+
+### Keyboard Shortcuts Overlay (F9)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Keyboard Shortcuts                                    [X]      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  File Operations          View Operations                       │
+│  ──────────────────       ──────────────────                    │
+│  Ctrl+N  New              F2         2D Mode                    │
+│  Ctrl+O  Open             F3         3D Mode                    │
+│  Ctrl+S  Save             Ctrl+=     Zoom In                    │
+│  Ctrl+Shift+S Save As     Ctrl+-     Zoom Out                   │
+│                           Ctrl+F     Fit View                   │
+│  Edit Operations          G          Toggle Grid                │
+│  ──────────────────       Shift+G    Toggle Snap                │
+│  Ctrl+Z  Undo                                                  │
+│  Ctrl+Y  Redo            Drawing Tools                          │
+│  Ctrl+X  Cut             ──────────────────                     │
+│  Ctrl+C  Copy             Q          Select                     │
+│  Ctrl+V  Paste            L          Line                       │
+│  Delete  Delete           R          Rectangle                  │
+│  Ctrl+D  Duplicate        C          Circle                     │
+│                           P          Polygon                    │
+│  Help                     T          Triangle                   │
+│  ──────────────────       A          Arc                        │
+│  F1     Context Help      E          Ellipse                    │
+│  F9     Shortcuts                                              │
+│                                                                 │
+│                              [Customize...]                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Help Panel (F1)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Help - Select Tool                                     [X]     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  SELECT TOOL                                                    │
+│  ────────────                                                   │
+│                                                                 │
+│  The Select tool allows you to pick and manipulate objects.     │
+│                                                                 │
+│  USAGE:                                                         │
+│  • Click on an object to select it                              │
+│  • Hold Shift to add to selection                               │
+│  • Drag to move selected objects                                │
+│  • Press Delete to remove selected objects                      │
+│                                                                 │
+│  KEYBOARD SHORTCUTS:                                            │
+│  • Q - Activate Select tool                                     │
+│  • Ctrl+A - Select all                                          │
+│  • Escape - Deselect all                                        │
+│                                                                 │
+│  RELATED TOPICS:                                                │
+│  • Multi-Selection                                              │
+│  • Object Properties                                            │
+│  • Layer Management                                             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Context Menu (Right-Click)
+
+```
+┌─────────────────────────┐
+│  Cut                    │
+│  Copy                   │
+│  Paste                  │
+│  ─────────────────────  │
+│  Duplicate              │
+│  Delete                 │
+│  ─────────────────────  │
+│  Bring to Front         │
+│  Send to Back           │
+│  ─────────────────────  │
+│  Group                  │
+│  Ungroup                │
+│  ─────────────────────  │
+│  Properties...          │
+└─────────────────────────┘
+```
+
+---
+
 ## References
 
 - [API Reference](../api_reference.md) - Detailed API documentation
@@ -948,6 +1102,6 @@ ctest --output-on-failure
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2026-02-11*
-*Phase: 8.7 - Architecture Documentation*
+*Document Version: 2.0*
+*Last Updated: 2026-02-14*
+*Phase: 18 - Final Integration & Testing*
