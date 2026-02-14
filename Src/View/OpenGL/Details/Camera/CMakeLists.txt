@@ -1,5 +1,5 @@
 add_library(Camera
-    Camera3d.cpp
+    Camera3D.cpp
     OrbitControls.cpp
 )
 

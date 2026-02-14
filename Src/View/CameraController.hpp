@@ -6,21 +6,14 @@
 #include <memory>
 #include <optional>
 
-#include "OpenGL/Details/Camera/Camera3d.hpp"
+#include "OpenGL/Details/Camera/Camera3D.hpp"
+#include "View/WorkMode.hpp"
 
 namespace model {
 class SketchPlane;
 } // namespace model
 
 namespace view {
-
-/**
- * @brief Working mode for the camera controller
- */
-enum class WorkMode {
-  TwoD,  ///< 2D sketching mode
-  ThreeD ///< 3D navigation mode
-};
 
 /**
  * @brief Controls camera positioning and state management for sketch mode
@@ -39,6 +32,7 @@ public:
     glm::vec3 up{0.0f, 1.0f, 0.0f};
     glm::mat4 projection{1.0f};
     glm::mat4 model{1.0f};
+    float zoom{1.0f};
   };
 
   /**

@@ -65,8 +65,7 @@ void CameraController::setCameraState(const glm::vec3 &position,
   currentState_.position = position;
   currentState_.target = target;
   currentState_.up = up;
-  /// Note: zoom parameter is not currently used in CameraState
-  /// but could be stored for future use
+  currentState_.zoom = zoom;
 }
 
 void CameraController::getCameraState(glm::vec3 &position, glm::vec3 &target,
@@ -74,9 +73,7 @@ void CameraController::getCameraState(glm::vec3 &position, glm::vec3 &target,
   position = currentState_.position;
   target = currentState_.target;
   up = currentState_.up;
-  /// Note: zoom is not currently stored in CameraState
-  /// Return a default value for now
-  zoom = 1.0f;
+  zoom = currentState_.zoom;
 }
 
 bool CameraController::is2DMode() const { return workMode_ == WorkMode::TwoD; }

@@ -1,24 +1,7 @@
 #include "OrbitControls.hpp"
 
+#include <GLFW/glfw3.h>
 #include <algorithm>
-
-// GLFW key codes
-#ifndef GLFW_KEY_LEFT
-#define GLFW_KEY_LEFT 263
-#define GLFW_KEY_RIGHT 262
-#define GLFW_KEY_UP 265
-#define GLFW_KEY_DOWN 264
-#define GLFW_KEY_W 87
-#define GLFW_KEY_S 83
-#define GLFW_KEY_A 65
-#define GLFW_KEY_D 68
-#define GLFW_KEY_R 82
-#define GLFW_PRESS 1
-#define GLFW_REPEAT 2
-#define GLFW_RELEASE 0
-#define GLFW_MOUSE_BUTTON_LEFT 0
-#define GLFW_MOUSE_BUTTON_MIDDLE 2
-#endif
 
 namespace view {
 

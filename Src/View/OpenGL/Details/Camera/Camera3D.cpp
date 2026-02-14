@@ -1,4 +1,4 @@
-#include "Camera3d.hpp"
+#include "Camera3D.hpp"
 
 #include <algorithm>
 #include <cmath>

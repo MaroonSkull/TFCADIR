@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Camera3d.hpp"
+#include "Camera3D.hpp"
 
 #include <glm/glm.hpp>
 

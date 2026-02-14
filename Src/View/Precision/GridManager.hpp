@@ -1,15 +1,11 @@
 #pragma once
 
 #include <View/UIFSMAdapter.hpp>
+#include <View/WorkMode.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 
 namespace view {
-
-/**
- * @brief Work mode enumeration for grid rendering
- */
-enum class WorkMode { TwoD, ThreeD };
 
 /**
  * @brief Grid geometry structure for rendering
