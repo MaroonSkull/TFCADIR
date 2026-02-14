@@ -30,7 +30,8 @@ void ExtendedCommandManager::setCommandHistoryPanel(
 // Phase 4 Typed Command API
 // ==========================================================================
 
-void ExtendedCommandManager::executeCommand(std::unique_ptr<ICommand> command) {
+void ExtendedCommandManager::executeCommand(
+    std::unique_ptr<Commands::ICommand> command) {
   spdlog::debug(
       "[ExtendedCommandManager] executeCommand (Phase 4 typed): type={}",
       command->getType());
@@ -40,7 +41,8 @@ void ExtendedCommandManager::executeCommand(std::unique_ptr<ICommand> command) {
   notifyCommandExecuted();
 }
 
-void ExtendedCommandManager::executeMacro(std::unique_ptr<ICommand> macro) {
+void ExtendedCommandManager::executeMacro(
+    std::unique_ptr<Commands::ICommand> macro) {
   spdlog::debug("[ExtendedCommandManager] executeMacro (Phase 4)");
 
   // Delegate to UIFSMAdapter for execution and history management
@@ -79,7 +81,7 @@ std::vector<CommandInfo> ExtendedCommandManager::getCommandHistory() const {
   size_t historySize = uiFSMAdapter_.getHistorySize();
 
   for (size_t i = 0; i < historySize; ++i) {
-    const ICommand *cmd = uiFSMAdapter_.getCommandAt(i);
+    const Commands::ICommand *cmd = uiFSMAdapter_.getCommandAt(i);
     if (cmd) {
       CommandInfo info = commandToInfo(cmd, i);
       result.push_back(info);
@@ -97,7 +99,7 @@ CommandInfo ExtendedCommandManager::getCurrentCommand() const {
     return CommandInfo{};
   }
 
-  const ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex - 1);
+  const Commands::ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex - 1);
   if (cmd) {
     return commandToInfo(cmd, currentIndex - 1);
   }
@@ -113,7 +115,7 @@ CommandInfo ExtendedCommandManager::getUndoCommand() const {
   }
 
   size_t currentIndex = uiFSMAdapter_.getCurrentCommandIndex();
-  const ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex - 1);
+  const Commands::ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex - 1);
   if (cmd) {
     return commandToInfo(cmd, currentIndex - 1);
   }
@@ -129,7 +131,7 @@ CommandInfo ExtendedCommandManager::getRedoCommand() const {
   }
 
   size_t currentIndex = uiFSMAdapter_.getCurrentCommandIndex();
-  const ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex);
+  const Commands::ICommand *cmd = uiFSMAdapter_.getCommandAt(currentIndex);
   if (cmd) {
     return commandToInfo(cmd, currentIndex);
   }
@@ -192,7 +194,7 @@ void ExtendedCommandManager::saveHistory(const std::string &filepath) {
     size_t historySize = uiFSMAdapter_.getHistorySize();
 
     for (size_t i = 0; i < historySize; ++i) {
-      const ICommand *cmd = uiFSMAdapter_.getCommandAt(i);
+      const Commands::ICommand *cmd = uiFSMAdapter_.getCommandAt(i);
       if (cmd) {
         try {
           nlohmann::json cmdJson = nlohmann::json::parse(cmd->serialize());
@@ -201,6 +203,7 @@ void ExtendedCommandManager::saveHistory(const std::string &filepath) {
           spdlog::warn(
               "[ExtendedCommandManager] Failed to parse command JSON: {}",
               e.what());
+          continue; // Skip invalid commands instead of corrupting history
         }
       }
     }
@@ -326,8 +329,9 @@ void ExtendedCommandManager::notifyHistoryCleared() {
 // Private Helper Methods
 // ==========================================================================
 
-CommandInfo ExtendedCommandManager::commandToInfo(const ICommand *command,
-                                                  size_t index) const {
+CommandInfo
+ExtendedCommandManager::commandToInfo(const Commands::ICommand *command,
+                                      size_t index) const {
   CommandInfo info;
   info.index = index;
   info.type = command->getType();

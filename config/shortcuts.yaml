@@ -1,0 +1,149 @@
+# TFCADIR Keyboard Shortcuts Configuration
+# This file can be edited manually or through the Shortcuts Dialog
+# 
+# Modifier flags: Ctrl=1, Shift=2, Alt=4
+# Examples: Ctrl+Shift=3, Ctrl+Alt=5, Shift+Alt=6
+
+shortcuts:
+  # ==========================================================================
+  # File Operations
+  # ==========================================================================
+  new:
+    key: "N"
+    modifiers: 1  # Ctrl+N
+  open:
+    key: "O"
+    modifiers: 1  # Ctrl+O
+  save:
+    key: "S"
+    modifiers: 1  # Ctrl+S
+  save_as:
+    key: "S"
+    modifiers: 3  # Ctrl+Shift+S
+
+  # ==========================================================================
+  # Edit Operations
+  # ==========================================================================
+  undo:
+    key: "Z"
+    modifiers: 1  # Ctrl+Z
+  redo:
+    key: "Y"
+    modifiers: 1  # Ctrl+Y
+  cut:
+    key: "X"
+    modifiers: 1  # Ctrl+X
+  copy:
+    key: "C"
+    modifiers: 1  # Ctrl+C
+  paste:
+    key: "V"
+    modifiers: 1  # Ctrl+V
+  delete:
+    key: "Delete"
+    modifiers: 0
+  duplicate:
+    key: "D"
+    modifiers: 1  # Ctrl+D
+
+  # ==========================================================================
+  # View Operations
+  # ==========================================================================
+  mode_2d:
+    key: "F2"
+    modifiers: 0
+  mode_3d:
+    key: "F3"
+    modifiers: 0
+  zoom_in:
+    key: "Equal"
+    modifiers: 1  # Ctrl+=
+  zoom_out:
+    key: "Minus"
+    modifiers: 1  # Ctrl+-
+  zoom_fit:
+    key: "F"
+    modifiers: 1  # Ctrl+F
+  toggle_grid:
+    key: "G"
+    modifiers: 0
+  toggle_snap:
+    key: "G"
+    modifiers: 2  # Shift+G
+
+  # ==========================================================================
+  # Drawing Tools
+  # ==========================================================================
+  select:
+    key: "Q"
+    modifiers: 0
+  line:
+    key: "L"
+    modifiers: 0
+  rectangle:
+    key: "R"
+    modifiers: 0
+  circle:
+    key: "C"
+    modifiers: 0
+  polygon:
+    key: "P"
+    modifiers: 0
+  triangle:
+    key: "T"
+    modifiers: 0
+  arc:
+    key: "A"
+    modifiers: 0
+  ellipse:
+    key: "E"
+    modifiers: 0
+  spline:
+    key: "S"
+    modifiers: 0
+
+  # ==========================================================================
+  # Modify Tools
+  # ==========================================================================
+  move:
+    key: "M"
+    modifiers: 0
+  rotate:
+    key: "R"
+    modifiers: 2  # Shift+R
+  scale:
+    key: "X"
+    modifiers: 0
+  mirror:
+    key: "M"
+    modifiers: 2  # Shift+M
+  fillet:
+    key: "F"
+    modifiers: 0
+
+  # ==========================================================================
+  # Annotation
+  # ==========================================================================
+  dimension:
+    key: "D"
+    modifiers: 0
+  measure:
+    key: "M"
+    modifiers: 4  # Alt+M
+
+  # ==========================================================================
+  # Help and Dialogs
+  # ==========================================================================
+  help:
+    key: "F1"
+    modifiers: 0
+  shortcuts_dialog:
+    key: "F9"
+    modifiers: 0
+
+  # ==========================================================================
+  # Escape to cancel/deselect
+  # ==========================================================================
+  escape:
+    key: "Escape"
+    modifiers: 0

@@ -1,268 +1,252 @@
 #pragma once
 
-#include <View/Precision/SnapManager.hpp>
+#include <View/Precision/ExpressionEvaluator.hpp>
 #include <View/UIFSMAdapter.hpp>
 #include <glm/glm.hpp>
 #include <optional>
 #include <string>
+#include <variant>
 
 namespace view {
 
+// ==========================================================================
+// Phase 6: Precision & Snapping - CoordinateInputManager
+// ==========================================================================
+
 /**
- * @brief Input mode enumeration for coordinate input
+ * @brief Coordinate axis enumeration
  *
- * Defines the types of coordinate input that can be processed
- * by the CoordinateInputManager.
+ * Defines the coordinate axes for individual coordinate input.
  */
-enum class InputMode {
-  /// Absolute coordinates (e.g., "100.5, 50.0")
-  Absolute,
-  /// Relative coordinates (e.g., "@25.5, 10.0")
-  Relative
+enum class CoordinateAxis {
+  X, ///< X axis
+  Y, ///< Y axis
+  Z  ///< Z axis (for 3D coordinates)
 };
 
 /**
- * @brief Expression parser for mathematical expressions
+ * @brief Coordinate input result structure
  *
- * Evaluates mathematical expressions in coordinate input strings.
- * Supports basic arithmetic operations (addition, subtraction,
- * multiplication, division). Full TinyExpr integration will be
- * implemented in Subtask 10/10.
+ * Contains the result of parsing coordinate input, including
+ * the parsed coordinates and any error message if parsing failed.
  */
-class ExpressionParser {
-public:
-  ExpressionParser() = default;
-  ~ExpressionParser() = default;
+struct CoordinateInputResult {
+  /// Parsed coordinate value (if successful)
+  std::optional<float> value;
 
-  /**
-   * @brief Evaluates a mathematical expression string
-   * @param expr Expression to evaluate (e.g., "100+50", "200*2")
-   * @return std::optional<float> with result or std::nullopt on failure
-   *
-   * Evaluates basic arithmetic expressions. Returns std::nullopt
-   * if the expression is invalid or cannot be parsed.
-   */
-  std::optional<float> evaluate(const std::string &expr) const;
+  /// Error message (if parsing failed)
+  std::string errorMessage;
 
-private:
-  /**
-   * @brief Validates expression string format
-   * @param expr Expression to validate
-   * @return true if expression format is valid
-   */
-  bool isValidExpression(const std::string &expr) const;
-
-  /**
-   * @brief Evaluates basic arithmetic expression
-   * @param expr Expression to evaluate
-   * @return std::optional<float> with result or std::nullopt on failure
-   */
-  std::optional<float> evaluateBasic(const std::string &expr) const;
+  /// Whether the result is valid
+  bool isValid() const { return value.has_value(); }
 };
 
 /**
- * @brief Manager for coordinate input parsing and validation
+ * @brief Coordinate input manager for precise coordinate entry
  *
- * Provides coordinate input functionality for parsing user input strings,
- * validating coordinate values, and formatting coordinates for display.
- * Follows the stateless coordinator pattern - no local domain state storage.
+ * CoordinateInputManager provides coordinate input functionality with
+ * expression parsing support for precise drawing operations. It manages
+ * coordinate input settings, provides coordinate parsing methods, and
+ * maintains a dirty flag for caching optimization.
  *
- * CoordinateInputManager is responsible for:
- * - Parsing coordinate input strings (absolute, relative, expressions)
- * - Validating coordinate values
- * - Converting between coordinate systems
- * - Supporting mathematical expressions (basic implementation)
- * - Formatting coordinates for display
+ * DESIGN RATIONALE:
+ *
+ * 1. Stateless Coordinator Pattern:
+ *    - CoordinateInputManager maintains no coordinate input state itself
+ *    - All coordinate input settings are stored in UIFSMAdapter
+ *    - This follows the same pattern as GridManager, SnapManager, and
+ * MeasurementManager
+ *
+ * 2. Caching with Dirty Flag:
+ *    - coordinateInputDirty_ flag tracks when cached calculations need refresh
+ *    - Set to true when coordinate input settings change
+ *    - Cleared after UI panels query the current state
+ *    - This prevents expensive recalculations on every frame
+ *
+ * 3. Callback Registration:
+ *    - Constructor registers callback with UIFSMAdapter
+ *    - Callback sets coordinateInputDirty_ = true when settings change
+ *    - This ensures UI panels always know when to refresh coordinate input
+ *
+ * 4. State Query Delegation:
+ *    - All state query methods delegate to UIFSMAdapter
+ *    - UIFSMAdapter is the single source of truth for coordinate input settings
+ *    - This maintains consistency across the application
+ *
+ * 5. Expression Parsing:
+ *    - Uses TinyExpr library for expression evaluation
+ *    - Supports operators: +, -, *, /, ^
+ *    - Supports parentheses for grouping
+ *    - Supports functions: sin, cos, tan, sqrt, abs, ln, log, exp
+ *    - Supports constants: pi, e
+ *    - All trigonometric functions use degrees
+ *
+ * USAGE:
+ *
+ * UI panels should:
+ * 1. Check isCoordinateInputDirty() to see if refresh is needed
+ * 2. Call getCoordinateInputSettings() and other query methods
+ * 3. Call clearCoordinateInputDirty() after updating display
+ * 4. Use parseAbsoluteCoordinate(), parseRelativeCoordinate(), and
+ *    parseExpression() for coordinate parsing
+ *
+ * @note UI panels should query coordinate input state through UIFSMAdapter,
+ * not directly
  */
 class CoordinateInputManager {
 public:
   /**
-   * @brief Construct a new Coordinate Input Manager object
-   * @param fsmAdapter Reference to UIFSMAdapter for state queries
-   * @param snapManager Reference to SnapManager for snap operations
+   * @brief Constructs a CoordinateInputManager
+   * @param uiFSMAdapter Reference to the UI FSM adapter
    *
-   * All references are stored for state queries. CoordinateInputManager
-   * does not manage the lifecycle of these components.
+   * Registers a callback with UIFSMAdapter to set coordinateInputDirty_
+   * when coordinate input settings change.
    */
-  CoordinateInputManager(UIFSMAdapter &fsmAdapter, SnapManager &snapManager);
+  explicit CoordinateInputManager(UIFSMAdapter &uiFSMAdapter);
 
   /**
-   * @brief Destroy the Coordinate Input Manager object
+   * @brief Destructor
    */
   ~CoordinateInputManager() = default;
 
-  // Coordinate parsing
+  // ==========================================================================
+  // State Query Methods (delegate to UIFSMAdapter)
+  // ==========================================================================
 
   /**
-   * @brief Parse coordinate input string
-   * @param input Input string (e.g., "100.5, 50.0" or "100.5 50.0")
-   * @param result Output parsed coordinate (X, Y, Z=0)
-   * @return true if parsing succeeded, false otherwise
-   *
-   * Parses the input string as absolute coordinates in "X,Y" or "X Y" format.
-   * Supports decimal numbers and validates the range.
+   * @brief Get the current coordinate input settings
+   * @return Current coordinate input settings from UIFSMAdapter
    */
-  bool parseCoordinateInput(const std::string &input, glm::vec3 &result) const;
+  [[nodiscard]] CoordinateInputSettings getCoordinateInputSettings() const;
+
+  /**
+   * @brief Check if expression parsing is enabled
+   * @return true if expression parsing is enabled
+   */
+  [[nodiscard]] bool isExpressionParsingEnabled() const;
+
+  /**
+   * @brief Get the coordinate precision
+   * @return Number of decimal places for coordinate display
+   */
+  [[nodiscard]] int getPrecision() const;
+
+  /**
+   * @brief Get the angular precision
+   * @return Number of decimal places for angular display
+   */
+  [[nodiscard]] int getAngularPrecision() const;
+
+  /**
+   * @brief Get the coordinate input mode
+   * @return Current coordinate input mode
+   */
+  [[nodiscard]] CoordinateInputMode getInputMode() const;
+
+  // ==========================================================================
+  // Dirty Flag Management
+  // ==========================================================================
+
+  /**
+   * @brief Check if coordinate input settings are dirty (need refresh)
+   * @return true if cached coordinate input data needs to be refreshed
+   */
+  [[nodiscard]] bool isCoordinateInputDirty() const;
+
+  /**
+   * @brief Clear the coordinate input dirty flag
+   *
+   * Should be called by UI panels after they have refreshed their display.
+   */
+  void clearCoordinateInputDirty();
+
+  // ==========================================================================
+  // Coordinate Parsing Methods
+  // ==========================================================================
+
+  /**
+   * @brief Parse absolute coordinate input
+   * @param input Input string to parse (e.g., "100.5", "100+25.5")
+   * @param axis Coordinate axis being parsed
+   * @return CoordinateInputResult with parsed value or error message
+   *
+   * Parses absolute coordinate input. Supports:
+   * - Simple numeric values: "100.5"
+   * - Expressions (if enabled): "100+25.5", "50*2"
+   * - Functions (if enabled): "sin(45)", "sqrt(100)"
+   */
+  [[nodiscard]] CoordinateInputResult
+  parseAbsoluteCoordinate(const std::string &input, CoordinateAxis axis);
 
   /**
    * @brief Parse relative coordinate input
-   * @param input Input string starting with '@' (e.g., "@25.5, 10.0")
-   * @param reference Reference point for relative calculation
-   * @param result Output parsed coordinate (X, Y, Z=0)
-   * @return true if parsing succeeded, false otherwise
+   * @param input Input string to parse (e.g., "@25.0", "@10+5")
+   * @param axis Coordinate axis being parsed
+   * @param baseValue Base value for relative calculation
+   * @return CoordinateInputResult with parsed value or error message
    *
-   * Parses the input string as relative coordinates starting with '@'.
-   * Adds the offset to the reference point and validates the result.
+   * Parses relative coordinate input. The @ prefix indicates relative mode.
+   * Supports the same expression syntax as absolute coordinates.
    */
-  bool parseRelativeCoordinate(const std::string &input,
-                               const glm::vec3 &reference,
-                               glm::vec3 &result) const;
-
-  // Input parsing (stateless) - Required by architecture
+  [[nodiscard]] CoordinateInputResult
+  parseRelativeCoordinate(const std::string &input, CoordinateAxis axis,
+                          float baseValue);
 
   /**
-   * @brief Parse expression string to coordinate
-   * @param input Input string (e.g., "100+50, 200*2")
-   * @return std::optional<glm::vec3> with result or std::nullopt on failure
+   * @brief Parse mathematical expression
+   * @param expression Expression string to parse
+   * @return CoordinateInputResult with evaluated result or error message
    *
-   * Parses expression string using ExpressionParser for evaluation.
-   * Supports basic arithmetic operations in coordinate input.
-   */
-  std::optional<glm::vec3> parseExpression(const std::string &input) const;
-
-  /**
-   * @brief Evaluate input string with reference point
-   * @param input Input string (absolute, relative, or expression)
-   * @param referencePoint Reference point for relative coordinates
-   * @return std::optional<glm::vec3> with result or std::nullopt on failure
+   * Parses and evaluates mathematical expressions. Supports:
+   * - Operators: +, -, *, /
+   * - Parentheses: (100 + 25) * 2
+   * - Functions: sin(x), cos(x), tan(x), sqrt(x), abs(x)
+   * - Constants: pi, e
    *
-   * Evaluates input string based on format:
-   * - Absolute: "100, 200"
-   * - Relative: "@50, 100"
-   * - Expression: "100+50, 200*2"
+   * All trigonometric functions use degrees.
    */
-  std::optional<glm::vec3> evaluateInput(const std::string &input,
-                                         const glm::vec3 &referencePoint) const;
-
-  /**
-   * @brief Validate input format before parsing
-   * @param input Input string to validate
-   * @return true if input format is valid, false otherwise
-   *
-   * Checks for valid characters, format, and structure.
-   * Validates against multiple commas, invalid characters, etc.
-   */
-  bool validateInput(const std::string &input) const;
-
-  // Coordinate conversion - Required by architecture
-
-  /**
-   * @brief Convert relative coordinates to absolute
-   * @param relative Relative coordinate offset
-   * @param reference Reference point
-   * @return Absolute coordinate
-   *
-   * Adds relative offset to reference point.
-   */
-  glm::vec3 relativeToAbsolute(const glm::vec3 &relative,
-                               const glm::vec3 &reference) const;
-
-  /**
-   * @brief Convert absolute coordinates to relative
-   * @param absolute Absolute coordinate
-   * @param reference Reference point
-   * @return Relative coordinate offset
-   *
-   * Subtracts reference point from absolute coordinate.
-   */
-  glm::vec3 absoluteToRelative(const glm::vec3 &absolute,
-                               const glm::vec3 &reference) const;
-
-  // Coordinate validation
-
-  /**
-   * @brief Validate coordinate value
-   * @param value Coordinate value to validate
-   * @return true if value is valid, false otherwise
-   *
-   * Checks if the value is finite and within a reasonable range.
-   */
-  bool validateCoordinate(float value) const;
-
-  // Coordinate formatting
-
-  /**
-   * @brief Format coordinate for display
-   * @param value Coordinate value to format
-   * @param precision Number of decimal places (1-6, default 4)
-   * @return Formatted string (e.g., "100.5")
-   *
-   * Formats the float value to a string with specified precision.
-   * Removes trailing zeros for cleaner display.
-   */
-  std::string formatCoordinate(float value, int precision = 4) const;
-
-  // Input mode management
-
-  /**
-   * @brief Set the input mode
-   * @param mode New input mode (Absolute or Relative)
-   *
-   * Updates the input mode and notifies FSM of the state change.
-   */
-  void setInputMode(InputMode mode);
-
-  /**
-   * @brief Get the current input mode
-   * @return Current input mode
-   */
-  InputMode getInputMode() const;
-
-  // Precision management
-
-  /**
-   * @brief Set the precision for coordinate display
-   * @param precision Number of decimal places (1-6)
-   *
-   * Validates the range and updates the precision setting.
-   */
-  void setPrecision(int precision);
-
-  /**
-   * @brief Get the current precision
-   * @return Current precision (number of decimal places)
-   */
-  int getPrecision() const;
+  [[nodiscard]] CoordinateInputResult
+  parseExpression(const std::string &expression);
 
 private:
-  /// Reference to UIFSMAdapter for state queries
-  UIFSMAdapter &fsmAdapter_;
+  /**
+   * @name State Caching
+   * @brief CoordinateInputManager maintains caching state for performance
+   * optimization
+   * @details
+   * CoordinateInputManager is NOT purely stateless - it maintains a dirty flag
+   * for caching. This is an intentional architectural decision for performance:
+   * - Expression parsing is expensive (requires tokenization and evaluation)
+   * - Coordinate input settings change infrequently compared to frame rate
+   * - Caching avoids re-parsing expressions every frame
+   *
+   * The dirty flag is set via callback from UIFSMAdapter when settings change.
+   * This pattern is similar to GridManager's grid geometry caching.
+   */
+  ///@{
+  /// Reference to UIFSMAdapter (non-owning)
+  UIFSMAdapter &uiFSMAdapter_;
 
-  /// Reference to SnapManager for snap operations
-  SnapManager &snapManager_;
+  /// Flag to track if coordinate input settings have changed
+  mutable bool coordinateInputDirty_;
 
-  /// Expression parser for mathematical expressions
-  ExpressionParser parser_;
-
-  /// Current input mode (UI state, not domain state)
-  InputMode inputMode_;
-
-  /// Precision for coordinate display (UI state, not domain state)
-  int precision_;
+  /// Expression evaluator for parsing mathematical expressions
+  ExpressionEvaluator expressionEvaluator_;
+  ///@}
 
   /**
-   * @brief Trims whitespace from both ends of a string
+   * @brief Check if a string is a valid number
+   * @param str String to check
+   * @return true if string represents a valid number
+   */
+  [[nodiscard]] static bool isValidNumber(const std::string &str);
+
+  /**
+   * @brief Trim whitespace from string
    * @param str String to trim
    * @return Trimmed string
    */
-  std::string trimString(const std::string &str) const;
-
-  /**
-   * @brief Validate precision value
-   * @param precision Precision value to validate
-   * @return true if precision is in valid range (1-6), false otherwise
-   */
-  static bool isValidPrecision(int precision);
+  [[nodiscard]] static std::string trim(const std::string &str);
 };
 
 } // namespace view

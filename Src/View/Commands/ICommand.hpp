@@ -5,77 +5,80 @@
 #include <string>
 #include <vector>
 
-namespace view {
+namespace view::Commands {
 
 /**
- * @brief Interface for all command objects in the command system
+ * @brief Interface for command objects in the Command pattern
+ * @details Provides undo/redo capability for user actions
  *
- * ICommand defines the contract for all reversible operations in TFCADIR.
- * Each command encapsulates a single user action (create figure, move, rotate,
- * etc.) and provides both execution and undo functionality.
+ * This interface defines the contract for all executable commands
+ * in the TFCADIR application. Commands encapsulate user actions
+ * and provide undo functionality through the Command pattern.
  *
- * All commands support JSON serialization for persistence and session recovery.
+ * @note Implementations must be exception-safe in execute() and undo()
  */
 class ICommand {
 public:
   /**
-   * @brief Virtual destructor for proper cleanup of derived classes
+   * @brief Virtual destructor for proper cleanup
    */
   virtual ~ICommand() = default;
 
   /**
    * @brief Execute the command
-   * @return true if successful, false otherwise
+   * @throws std::runtime_error if execution fails
    *
-   * Performs the primary action of the command. If execution fails,
-   * the command should not modify any state and should return false.
+   * This method performs the primary action of the command.
+   * Implementations should handle all error conditions and
+   * ensure the application state is consistent after execution.
    */
-  virtual bool execute() = 0;
+  virtual void execute() = 0;
 
   /**
    * @brief Undo the command
-   * @return true if successful, false otherwise
+   * @throws std::runtime_error if undo operation fails
    *
-   * Reverses the effects of execute(), restoring the application
-   * to the state before the command was executed.
+   * This method reverses the action performed by execute().
+   * Implementations should restore the application to the exact
+   * state before execute() was called.
    */
-  virtual bool undo() = 0;
+  virtual void undo() = 0;
 
   /**
-   * @brief Get command description for UI display
-   * @return Human-readable command description
+   * @brief Get human-readable description of the command
+   * @return Description string suitable for UI display
    *
-   * Returns a brief description suitable for display in the
-   * command history panel (e.g., "Create Triangle", "Move Circle").
+   * This description is shown in command history panels,
+   * undo/redo menus, and tooltips. Should be concise but informative.
    */
   virtual std::string getDescription() const = 0;
 
   /**
-   * @brief Serialize command to JSON for persistence
-   * @return JSON string representation of command
+   * @brief Get the type identifier of the command
+   * @return Type string for command identification
    *
-   * Serializes the complete command state to JSON format
-   * for saving to disk and later deserialization.
-   */
-  virtual std::string serialize() const = 0;
-
-  /**
-   * @brief Get command type identifier
-   * @return Type string for deserialization factory
-   *
-   * Returns the command type name used by CommandFactory
-   * to deserialize commands from JSON (e.g., "CreateFigure", "MoveFigure").
+   * This method returns a string identifier for the command type,
+   * used for serialization and command history display.
    */
   virtual std::string getType() const = 0;
 
   /**
-   * @brief Get figure IDs affected by this command
+   * @brief Serialize the command to JSON format
+   * @return JSON string representation of the command
+   *
+   * This method serializes the command's state to a JSON string
+   * for persistence and history saving.
+   */
+  virtual std::string serialize() const = 0;
+
+  /**
+   * @brief Get the list of figure IDs affected by this command
    * @return Vector of figure IDs
    *
-   * Returns a list of all figure IDs that this command
-   * modifies or creates. Used for tracking and validation.
+   * This method returns the list of figure IDs that were affected
+   * by the command execution, used for UI display and tracking.
    */
   virtual std::vector<uint32_t> getAffectedFigures() const = 0;
 };
 
-} // namespace view
+} // namespace view::Commands

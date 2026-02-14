@@ -1,12 +1,16 @@
 #pragma once
 
 #include <Model/IModel.hpp>
+#include <View/ObjectManagement/SelectionTypes.hpp>
 #include <View/UIFSMAdapter.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <vector>
 
 namespace view {
+
+class CanvasHitTester;
 
 /**
  * @brief Stateless coordinator for figure selection management
@@ -15,6 +19,13 @@ namespace view {
  *          and managed by UIFSMAdapter, which serves as the single source of
  *          truth for selection state. This implements the Stateless Coordinator
  *          pattern from Phase 3 architecture.
+ *
+ * Phase 10 extends this with advanced selection features:
+ * - Box selection (rectangle drag)
+ * - Lasso selection (freeform)
+ * - Polygon selection (click to add vertices)
+ * - Selection filters (by type, layer, properties)
+ * - Selection modifiers (Shift, Ctrl, Alt)
  */
 class SelectionManager {
 public:
@@ -63,8 +74,8 @@ public:
 
   /**
    * @brief Get the primary selection index
-   * @return Index of primary selection in the selected figures list, or -1 if no
-   * selection
+   * @return Index of primary selection in the selected figures list, or -1 if
+   * no selection
    */
   int getPrimarySelectionIndex() const;
 
@@ -120,10 +131,119 @@ public:
   /**
    * @brief Set the primary selection by index
    * @param index The index in the selected figures list to set as primary
-   * @note This allows changing which selected figure is primary without changing
-   *       the selection
+   * @note This allows changing which selected figure is primary without
+   * changing the selection
    */
   void setPrimarySelection(int index);
+
+  // ==========================================================================
+  // Phase 10: Advanced Selection Methods
+  // ==========================================================================
+
+  /**
+   * @brief Select figures within a rectangular box
+   * @param hitTester Reference to CanvasHitTester for hit testing
+   * @param geometry Selection geometry containing box coordinates
+   * @param modifier Selection modifier (None, Add, Toggle, Remove)
+   * @param filter Selection filter criteria
+   * @param viewportWidth Viewport width in pixels
+   * @param viewportHeight Viewport height in pixels
+   * @param modelView Model-view matrix
+   * @param projection Projection matrix
+   * @return Number of figures selected
+   * @details Box selection supports two modes:
+   *          - Left-to-right: selects figures that intersect the box
+   *          - Right-to-left: selects figures fully contained in the box
+   */
+  size_t selectByBox(CanvasHitTester &hitTester,
+                     const SelectionGeometry &geometry,
+                     SelectionModifier modifier, const SelectionFilter &filter,
+                     float viewportWidth, float viewportHeight,
+                     const glm::mat4 &modelView, const glm::mat4 &projection);
+
+  /**
+   * @brief Select figures within a lasso region
+   * @param hitTester Reference to CanvasHitTester for hit testing
+   * @param geometry Selection geometry containing lasso points
+   * @param modifier Selection modifier (None, Add, Toggle, Remove)
+   * @param filter Selection filter criteria
+   * @param viewportWidth Viewport width in pixels
+   * @param viewportHeight Viewport height in pixels
+   * @param modelView Model-view matrix
+   * @param projection Projection matrix
+   * @return Number of figures selected
+   * @details Lasso selection uses point-in-polygon testing for each figure
+   */
+  size_t selectByLasso(CanvasHitTester &hitTester,
+                       const SelectionGeometry &geometry,
+                       SelectionModifier modifier,
+                       const SelectionFilter &filter, float viewportWidth,
+                       float viewportHeight, const glm::mat4 &modelView,
+                       const glm::mat4 &projection);
+
+  /**
+   * @brief Select figures within a polygon region
+   * @param hitTester Reference to CanvasHitTester for hit testing
+   * @param geometry Selection geometry containing polygon vertices
+   * @param modifier Selection modifier (None, Add, Toggle, Remove)
+   * @param filter Selection filter criteria
+   * @param viewportWidth Viewport width in pixels
+   * @param viewportHeight Viewport height in pixels
+   * @param modelView Model-view matrix
+   * @param projection Projection matrix
+   * @return Number of figures selected
+   * @details Polygon selection is similar to lasso but with discrete vertices
+   */
+  size_t selectByPolygon(CanvasHitTester &hitTester,
+                         const SelectionGeometry &geometry,
+                         SelectionModifier modifier,
+                         const SelectionFilter &filter, float viewportWidth,
+                         float viewportHeight, const glm::mat4 &modelView,
+                         const glm::mat4 &projection);
+
+  /**
+   * @brief Apply selection modifier to a set of figure IDs
+   * @param figureIds Figure IDs to apply the modifier to
+   * @param modifier Selection modifier (None, Add, Toggle, Remove)
+   * @details Handles the interaction between new selection and existing:
+   *          - None: Replace current selection with new IDs
+   *          - Add: Add new IDs to current selection
+   *          - Toggle: Toggle selection state of each ID
+   *          - Remove: Remove new IDs from current selection
+   */
+  void applySelectionModifier(const std::vector<uint32_t> &figureIds,
+                              SelectionModifier modifier);
+
+  /**
+   * @brief Filter a set of figure IDs by selection criteria
+   * @param figureIds Figure IDs to filter
+   * @param filter Selection filter criteria
+   * @return Filtered vector of figure IDs
+   */
+  std::vector<uint32_t> filterFigures(const std::vector<uint32_t> &figureIds,
+                                      const SelectionFilter &filter) const;
+
+  /**
+   * @brief Check if a figure passes the selection filter
+   * @param figureId Figure ID to check
+   * @param filter Selection filter criteria
+   * @return true if the figure passes the filter
+   */
+  bool passesFilter(uint32_t figureId, const SelectionFilter &filter) const;
+
+  /**
+   * @brief Invert the current selection
+   * @param filter Optional filter to apply to inverted selection
+   * @details Selects all unselected figures and deselects all selected figures
+   */
+  void invertSelection(const SelectionFilter &filter = SelectionFilter{});
+
+  /**
+   * @brief Select figures similar to the currently selected figures
+   * @param filter Criteria for similarity (type, layer, etc.)
+   * @return Number of figures added to selection
+   */
+  size_t selectSimilar(const SelectionFilter &filter);
 
   // ==========================================================================
   // Validation (DEBUG builds only)
@@ -145,6 +265,40 @@ private:
 
   /// Reference to the figure model (no ownership)
   model::FlatFigures &model_;
+
+  /**
+   * @brief Convert screen coordinates to world coordinates
+   * @param screenX Screen X coordinate in pixels
+   * @param screenY Screen Y coordinate in pixels
+   * @param viewportWidth Viewport width in pixels
+   * @param viewportHeight Viewport height in pixels
+   * @param modelView Model-view matrix
+   * @param projection Projection matrix
+   * @return World position as vec2
+   */
+  glm::vec2 screenToWorld(float screenX, float screenY, float viewportWidth,
+                          float viewportHeight, const glm::mat4 &modelView,
+                          const glm::mat4 &projection) const;
+
+  /**
+   * @brief Get figure type filter from a figure
+   * @param figure Figure to get type from
+   * @return FigureTypeFilter corresponding to the figure type
+   */
+  static FigureTypeFilter
+  getFigureTypeFilter(std::shared_ptr<model::IFigure> figure);
+
+  /**
+   * @brief Match a name against a pattern with wildcards
+   * @param name The name to match
+   * @param pattern The pattern (supports * and ? wildcards)
+   * @return true if the name matches the pattern
+   * @details Pattern matching is case-insensitive.
+   *          * matches zero or more characters.
+   *          ? matches exactly one character.
+   */
+  bool matchNamePattern(const std::string &name,
+                        const std::string &pattern) const;
 };
 
 } // namespace view

@@ -1,4 +1,6 @@
 #include "CommandHistoryPanel.hpp"
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <format>
 #include <imgui.h>
@@ -17,6 +19,18 @@ void CommandHistoryPanel::render() const {
 
   // Render toolbar
   renderToolbar();
+  ImGui::Separator();
+
+  // Search/Filter input
+  char filterText[256];
+  ::strncpy(filterText, filterText_.c_str(), sizeof(filterText) - 1);
+  filterText[sizeof(filterText) - 1] = '\0';
+  if (ImGui::InputText("##Filter", filterText, sizeof(filterText))) {
+    filterText_ = filterText;
+    historyCache_.dirty = true;
+  }
+  ImGui::SameLine();
+  ImGui::TextDisabled("Filter commands");
   ImGui::Separator();
 
   // Performance: Only update if dirty or > 100ms elapsed
@@ -75,15 +89,18 @@ void CommandHistoryPanel::renderRedoStack() const {
     headerText = "Redo Stack (Empty)";
   }
 
-  // Fix: Only update expanded state on click, not hover
-  if (ImGui::CollapsingHeader(
-          headerText.c_str(),
-          showRedoStackExpanded_ ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
-    // Update state only when header is actually clicked (expanded/collapsed)
-    if (ImGui::IsItemClicked()) {
-      showRedoStackExpanded_ = !showRedoStackExpanded_;
-    }
+  // Fix: Check IsItemClicked OUTSIDE the CollapsingHeader block
+  // to properly detect both expand and collapse actions
+  ImGuiTreeNodeFlags headerFlags =
+      showRedoStackExpanded_ ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+  bool headerVisible = ImGui::CollapsingHeader(headerText.c_str(), headerFlags);
 
+  // Update expanded state when header is clicked (both expand and collapse)
+  if (ImGui::IsItemClicked()) {
+    showRedoStackExpanded_ = !showRedoStackExpanded_;
+  }
+
+  if (headerVisible) {
     if (redoCount == 0) {
       ImGui::TextDisabled("No commands to redo");
     } else {
@@ -92,11 +109,6 @@ void CommandHistoryPanel::renderRedoStack() const {
         const auto &info = historyCache_.cachedRedoStack[i];
         renderCommandItem(info, false, info.index);
       }
-    }
-  } else {
-    // Also update when header is clicked to collapse
-    if (ImGui::IsItemClicked()) {
-      showRedoStackExpanded_ = !showRedoStackExpanded_;
     }
   }
 }
@@ -130,15 +142,17 @@ void CommandHistoryPanel::renderUndoStack() const {
     headerText = "Undo Stack (Empty)";
   }
 
-  // Fix: Only update expanded state on click, not hover
-  if (ImGui::CollapsingHeader(
-          headerText.c_str(),
-          showUndoStackExpanded_ ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
-    // Update state only when header is actually clicked (expanded/collapsed)
-    if (ImGui::IsItemClicked()) {
-      showUndoStackExpanded_ = !showUndoStackExpanded_;
-    }
+  // Fix: Check IsItemClicked OUTSIDE of CollapsingHeader block
+  // to properly detect both expand and collapse actions
+  ImGuiTreeNodeFlags headerFlags =
+      showUndoStackExpanded_ ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+  bool headerVisible = ImGui::CollapsingHeader(headerText.c_str(), headerFlags);
+  // Update expanded state when header is clicked (both expand and collapse)
+  if (ImGui::IsItemClicked()) {
+    showUndoStackExpanded_ = !showUndoStackExpanded_;
+  }
 
+  if (headerVisible) {
     if (undoCount == 0) {
       ImGui::TextDisabled("No commands to undo");
     } else {
@@ -148,11 +162,6 @@ void CommandHistoryPanel::renderUndoStack() const {
         bool isCurrent = (info.index == historyCache_.cachedCurrentIndex);
         renderCommandItem(info, isCurrent, info.index);
       }
-    }
-  } else {
-    // Also update when header is clicked to collapse
-    if (ImGui::IsItemClicked()) {
-      showUndoStackExpanded_ = !showUndoStackExpanded_;
     }
   }
 }
@@ -242,14 +251,41 @@ void CommandHistoryPanel::updateHistoryCache() const {
   size_t currentIndex = historyCache_.cachedCurrentIndex;
   const auto &commands = historyCache_.cachedCommands;
 
+  // Filter commands based on filterText
+  std::string filterTextLower = filterText_;
+  std::transform(filterTextLower.begin(), filterTextLower.end(),
+                 filterTextLower.begin(), ::tolower);
+
   // Commands from 0 to currentIndex are in undo stack (can be undone)
   for (size_t i = 0; i <= currentIndex && i < commands.size(); ++i) {
-    historyCache_.cachedUndoStack.push_back(commands[i]);
+    const auto &cmd = commands[i];
+    // Apply filter if specified
+    if (filterTextLower.empty()) {
+      historyCache_.cachedUndoStack.push_back(cmd);
+    } else {
+      std::string descLower = cmd.description;
+      std::transform(descLower.begin(), descLower.end(), descLower.begin(),
+                     ::tolower);
+      if (descLower.find(filterTextLower) != std::string::npos) {
+        historyCache_.cachedUndoStack.push_back(cmd);
+      }
+    }
   }
 
   // Commands after currentIndex are in redo stack (can be redone)
   for (size_t i = currentIndex + 1; i < commands.size(); ++i) {
-    historyCache_.cachedRedoStack.push_back(commands[i]);
+    const auto &cmd = commands[i];
+    // Apply filter if specified
+    if (filterTextLower.empty()) {
+      historyCache_.cachedRedoStack.push_back(cmd);
+    } else {
+      std::string descLower = cmd.description;
+      std::transform(descLower.begin(), descLower.end(), descLower.begin(),
+                     ::tolower);
+      if (descLower.find(filterTextLower) != std::string::npos) {
+        historyCache_.cachedRedoStack.push_back(cmd);
+      }
+    }
   }
 }
 

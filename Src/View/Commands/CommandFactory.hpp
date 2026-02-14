@@ -28,7 +28,8 @@ public:
    */
   void registerCommand(
       const std::string &type,
-      std::function<std::unique_ptr<ICommand>(const nlohmann::json &)> factory);
+      std::function<std::unique_ptr<Commands::ICommand>(const nlohmann::json &)>
+          factory);
 
   /**
    * @brief Deserialize a command from JSON string
@@ -39,7 +40,8 @@ public:
    * based on the "type" field. Returns nullptr if type is not registered
    * or deserialization fails.
    */
-  std::unique_ptr<ICommand> deserialize(const std::string &json) const;
+  std::unique_ptr<Commands::ICommand>
+  deserialize(const std::string &json) const;
 
   /**
    * @brief Check if a command type is registered
@@ -50,9 +52,11 @@ public:
 
 private:
   /// Map of command type identifiers to factory functions
-  std::unordered_map<std::string, std::function<std::unique_ptr<ICommand>(
-                                      const nlohmann::json &)>>
+  std::unordered_map<std::string,
+                     std::function<std::unique_ptr<Commands::ICommand>(
+                         const nlohmann::json &)>>
       factories_;
-};
+
+}; // class CommandFactory
 
 } // namespace view

@@ -1,4 +1,8 @@
 #include "UIFSMAdapter.hpp"
+#include "Polish/PerformanceMonitor.hpp"
+#include <memory>
+#include <optional>
+#include <tinyexpr.h>
 
 namespace view {
 
@@ -7,8 +11,70 @@ UIFSMAdapter::UIFSMAdapter(fsm::Machine &fsm,
                            std::shared_ptr<spdlog::logger> logger)
     : fsm_(fsm), cameraController_(cameraController),
       logger_(std::move(logger)), currentState_(fsm.get_current_state()),
-      primarySelectionIndex_(-1) {
+      primarySelectionIndex_(-1), tooltipSettings_{},
+      performanceMonitor_(std::make_unique<View::PerformanceMonitor>()) {
   logger_->info("UIFSMAdapter initialized");
+
+  // Initialize default help topics
+  helpTopics_ = {
+      {"welcome",
+       "Welcome to TFCADIR",
+       "Welcome to TFCADIR - a powerful CAD application.\n\nThis help "
+       "system provides context-sensitive assistance for all tools and "
+       "features.",
+       "getting-started",
+       {"welcome", "tutorial", "basics", "introduction"},
+       "tools"},
+      {"tools",
+       "Drawing Tools",
+       "TFCADIR provides a comprehensive set of drawing tools for 3D "
+       "modeling.\n\n## Available Tools\n- Line3D: Draw 3D lines\n- Circle3D: "
+       "Draw "
+       "3D circles\n- Arc3D: Draw 3D arcs\n- Rectangle3D: Draw 3D "
+       "rectangles\n- "
+       "Polygon3D: Draw 3D polygons\n- NGon3D: Draw regular polygons",
+       "tools",
+       {"line", "circle", "arc", "rectangle", "polygon", "drawing", "tools"},
+       "getting-started"},
+      {"shortcuts",
+       "Keyboard Shortcuts",
+       "Keyboard shortcuts provide quick access to frequently used "
+       "commands.\n\n"
+       "## Common Shortcuts\n- Ctrl+Z: Undo\n- Ctrl+Y: Redo\n- Ctrl+S: "
+       "Save\n- Escape: Cancel current operation\n- F1: Show context-sensitive "
+       "help",
+       "reference",
+       {"keyboard", "shortcuts", "hotkeys", "commands"},
+       ""},
+      {"navigation",
+       "3D Navigation",
+       "Navigate the 3D viewport using mouse and keyboard.\n\n## Mouse "
+       "Controls\n"
+       "- Left Click + Drag: Rotate view\n- Right Click + Drag: Pan view\n- "
+       "Scroll Wheel: Zoom in/out\n- Middle Click + Drag: Pan view",
+       "reference",
+       {"navigation", "viewport", "camera", "view"},
+       "tools"},
+      {"grid",
+       "Grid and Snapping",
+       "Use grid and snap tools for precise drawing.\n\n## Grid Settings\n- "
+       "Major Spacing: Distance between major grid lines\n- Minor Divisions: "
+       "Number of divisions between major lines\n\n## Snap Modes\n- Grid: Snap "
+       "to grid intersections\n- Endpoint: Snap to line endpoints\n- Midpoint: "
+       "Snap to line midpoints\n- Center: Snap to circle/arc centers",
+       "reference",
+       {"grid", "snap", "precision", "snapping"},
+       "tools"},
+      {"selection",
+       "Selection and Editing",
+       "Select and edit geometry using various tools.\n\n## Selection Modes\n"
+       "- Click: Select single object\n- Shift+Click: Add to selection\n- "
+       "Ctrl+Click: Toggle selection\n- Drag: Box selection\n\n## Editing\n- "
+       "Delete: Remove selected objects\n- Ctrl+D: Duplicate selection",
+       "tools",
+       {"selection", "editing", "modify", "objects"},
+       "tools"},
+  };
 }
 
 UIFSMAdapter::~UIFSMAdapter() { logger_->info("UIFSMAdapter destroyed"); }
@@ -167,30 +233,52 @@ void UIFSMAdapter::activateTool(const std::string &toolId) {
   collectedPoints_.clear();
 
   // Map tool IDs to their corresponding FSM event names
+  // These events are defined in fsm_config.yaml Phase 16: Keyboard Shortcut
+  // Events
   std::string eventName;
-  if (toolId == "Line3D") {
-    eventName = "OnActivateLine3D";
-  } else if (toolId == "Circle3D") {
-    eventName = "OnActivateCircle3D";
-  } else if (toolId == "Arc3D") {
-    eventName = "OnActivateArc3D";
-  } else if (toolId == "Rectangle3D") {
-    eventName = "OnActivateRectangle3D";
-  } else if (toolId == "Polygon3D") {
-    eventName = "OnActivatePolygon3D";
-  } else if (toolId == "NGon3D") {
-    eventName = "OnActivateNGon3D";
+  if (toolId == "Line3D" || toolId == "Line") {
+    eventName = "OnShortcutLine";
+  } else if (toolId == "Circle3D" || toolId == "Circle") {
+    eventName = "OnShortcutCircle";
+  } else if (toolId == "Arc3D" || toolId == "Arc") {
+    eventName = "OnShortcutArc";
+  } else if (toolId == "Rectangle3D" || toolId == "Rectangle") {
+    eventName = "OnShortcutRectangle";
+  } else if (toolId == "Polygon3D" || toolId == "Polygon") {
+    eventName = "OnShortcutPolygon";
+  } else if (toolId == "Triangle") {
+    eventName = "OnShortcutTriangle";
+  } else if (toolId == "Ellipse") {
+    eventName = "OnShortcutEllipse";
+  } else if (toolId == "Spline") {
+    eventName = "OnShortcutSpline";
+  } else if (toolId == "Select") {
+    eventName = "OnShortcutSelect";
+  } else if (toolId == "Move") {
+    eventName = "OnShortcutMove";
+  } else if (toolId == "Rotate") {
+    eventName = "OnShortcutRotate";
+  } else if (toolId == "Scale") {
+    eventName = "OnShortcutScale";
+  } else if (toolId == "Mirror") {
+    eventName = "OnShortcutMirror";
+  } else if (toolId == "Fillet") {
+    eventName = "OnShortcutFillet";
+  } else if (toolId == "Dimension") {
+    eventName = "OnShortcutDimension";
+  } else if (toolId == "Measure") {
+    eventName = "OnShortcutMeasure";
   } else if (toolId == "LineInSketch") {
-    eventName = "OnActivateLineInSketch";
+    eventName = "OnAddLineInSketch";
   } else if (toolId == "CircleInSketch") {
-    eventName = "OnActivateCircleInSketch";
+    eventName = "OnAddCircleByCenterInSketch";
   } else {
     logger_->warn("Unknown tool ID requested: {}", toolId);
     return;
   }
 
   /// Trigger the FSM event via FSMConfig's string-based event system
-  /// Note: These events need to be defined in the FSM YAML configuration
+  /// Note: These events are defined in fsm_config.yaml
   if (fsmconfig::StateMachine *fsm = fsm_.get_fsm()) {
     try {
       fsm->triggerEvent(eventName);
@@ -404,29 +492,27 @@ std::vector<uint32_t> UIFSMAdapter::ungroupFigures(uint32_t groupId) {
 // UIFSMAdapter is the single source of truth for command history storage
 // ==========================================================================
 
-void UIFSMAdapter::executeCommand(std::unique_ptr<ICommand> command) {
+void UIFSMAdapter::executeCommand(std::unique_ptr<Commands::ICommand> command) {
   /// Execute the command
-  if (command->execute()) {
-    /// Remove any commands after the current index (clear redo chain)
-    if (currentCommandIndex_ < commandHistory_.size()) {
-      commandHistory_.resize(currentCommandIndex_);
-    }
+  command->execute();
 
-    /// Add the command to history
-    commandHistory_.push_back(std::move(command));
-    currentCommandIndex_ = commandHistory_.size();
-
-    /// Enforce maximum history size
-    if (commandHistory_.size() > MAX_HISTORY_SIZE) {
-      commandHistory_.erase(commandHistory_.begin());
-      currentCommandIndex_ = commandHistory_.size();
-    }
-
-    logger_->info("Executed command, history size: {}, index: {}",
-                  commandHistory_.size(), currentCommandIndex_);
-  } else {
-    logger_->warn("Command execution failed");
+  /// Remove any commands after the current index (clear redo chain)
+  if (currentCommandIndex_ < commandHistory_.size()) {
+    commandHistory_.resize(currentCommandIndex_);
   }
+
+  /// Add the command to history
+  commandHistory_.push_back(std::move(command));
+  currentCommandIndex_ = commandHistory_.size();
+
+  /// Enforce maximum history size
+  if (commandHistory_.size() > MAX_HISTORY_SIZE) {
+    commandHistory_.erase(commandHistory_.begin());
+    currentCommandIndex_ = commandHistory_.size();
+  }
+
+  logger_->info("Executed command, history size: {}, index: {}",
+                commandHistory_.size(), currentCommandIndex_);
 }
 
 bool UIFSMAdapter::undoCommand() {
@@ -437,15 +523,9 @@ bool UIFSMAdapter::undoCommand() {
 
   /// Decrement index and undo the command
   currentCommandIndex_--;
-  if (commandHistory_[currentCommandIndex_]->undo()) {
-    logger_->info("Undone command, new index: {}", currentCommandIndex_);
-    return true;
-  } else {
-    logger_->error("Undo failed for command at index: {}",
-                   currentCommandIndex_);
-    currentCommandIndex_++; /// Restore index on failure
-    return false;
-  }
+  commandHistory_[currentCommandIndex_]->undo();
+  logger_->info("Undone command, new index: {}", currentCommandIndex_);
+  return true;
 }
 
 bool UIFSMAdapter::redoCommand() {
@@ -455,15 +535,10 @@ bool UIFSMAdapter::redoCommand() {
   }
 
   /// Redo the command at current index (execute again) and increment
-  if (commandHistory_[currentCommandIndex_]->execute()) {
-    currentCommandIndex_++;
-    logger_->info("Redone command, new index: {}", currentCommandIndex_);
-    return true;
-  } else {
-    logger_->error("Redo failed for command at index: {}",
-                   currentCommandIndex_);
-    return false;
-  }
+  commandHistory_[currentCommandIndex_]->execute();
+  currentCommandIndex_++;
+  logger_->info("Redone command, new index: {}", currentCommandIndex_);
+  return true;
 }
 
 void UIFSMAdapter::clearCommandHistory() {
@@ -498,7 +573,7 @@ size_t UIFSMAdapter::getCurrentCommandIndex() const {
   return currentCommandIndex_;
 }
 
-const ICommand *UIFSMAdapter::getCommandAt(size_t index) const {
+const Commands::ICommand *UIFSMAdapter::getCommandAt(size_t index) const {
   if (index < commandHistory_.size()) {
     return commandHistory_[index].get();
   }
@@ -585,14 +660,51 @@ void UIFSMAdapter::setGridSettings(const GridSettings &settings) {
       onGridGeometryDirty_();
     }
 
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnGridSettingsChanged{});
-
     /// Notify listeners of grid settings change
     if (onGridSettingsChanged_) {
       onGridSettingsChanged_();
     }
   }
+}
+
+bool UIFSMAdapter::getGridSettingsPanelVisible() const {
+  /// Return the grid settings panel visibility from local storage
+  return gridSettingsPanelVisible_;
+}
+
+void UIFSMAdapter::setGridSettingsPanelVisible(bool visible) {
+  /// Update grid settings panel visibility
+  gridSettingsPanelVisible_ = visible;
+}
+
+bool UIFSMAdapter::getSnapSettingsPanelVisible() const {
+  /// Return the snap settings panel visibility from local storage
+  return snapSettingsPanelVisible_;
+}
+
+void UIFSMAdapter::setSnapSettingsPanelVisible(bool visible) {
+  /// Update snap settings panel visibility
+  snapSettingsPanelVisible_ = visible;
+}
+
+bool UIFSMAdapter::getCoordinateInputWidgetVisible() const {
+  /// Return the coordinate input widget visibility from local storage
+  return coordinateInputWidgetVisible_;
+}
+
+void UIFSMAdapter::setCoordinateInputWidgetVisible(bool visible) {
+  /// Update coordinate input widget visibility
+  coordinateInputWidgetVisible_ = visible;
+}
+
+bool UIFSMAdapter::getMeasurementDisplayVisible() const {
+  /// Return the measurement display visibility from local storage
+  return measurementDisplayVisible_;
+}
+
+void UIFSMAdapter::setMeasurementDisplayVisible(bool visible) {
+  /// Update measurement display visibility
+  measurementDisplayVisible_ = visible;
 }
 
 SnapSettings UIFSMAdapter::getSnapSettings() const {
@@ -605,9 +717,6 @@ void UIFSMAdapter::setSnapSettings(const SnapSettings &settings) {
   if (snapSettings_ != settings) {
     snapSettings_ = settings;
     logger_->info("Snap settings updated");
-
-    /// Trigger FSM event to notify components
-    fsm_.process_event(fsm::events::OnSnapSettingsChanged{});
 
     /// Notify listeners of snap settings change
     if (onSnapSettingsChanged_) {
@@ -823,6 +932,249 @@ bool UIFSMAdapter::isShowPerimeterEnabled() const {
 int UIFSMAdapter::getMeasurementPrecision() const {
   /// Return the measurement precision from local storage
   return measurementSettings_.precision;
+}
+
+// ==========================================================================
+// Coordinate Input Settings Methods
+// These methods provide access to coordinate input settings
+// ==========================================================================
+
+CoordinateInputSettings UIFSMAdapter::getCoordinateInputSettings() const {
+  /// Return the current coordinate input settings from local storage
+  return coordinateInputSettings_;
+}
+
+void UIFSMAdapter::setCoordinateInputSettings(
+    const CoordinateInputSettings &settings) {
+  /// Update coordinate input settings and notify listeners
+  if (coordinateInputSettings_ != settings) {
+    coordinateInputSettings_ = settings;
+    logger_->info("Coordinate input settings updated");
+
+    /// Notify listeners of coordinate input settings change
+    if (onCoordinateInputSettingsChanged_) {
+      onCoordinateInputSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setCoordinateInputSettingsChangedCallback(
+    CoordinateInputSettingsCallback callback) {
+  onCoordinateInputSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Coordinate Input State Query Methods (for CoordinateInputManager)
+// These methods provide access to individual coordinate input settings
+// properties
+// ==========================================================================
+
+bool UIFSMAdapter::isExpressionParsingEnabled() const {
+  /// Return the expression parsing enabled flag from local storage
+  return coordinateInputSettings_.expressionParsingEnabled;
+}
+
+void UIFSMAdapter::setExpressionParsingEnabled(bool enabled) {
+  /// Update expression parsing enabled state
+  if (coordinateInputSettings_.expressionParsingEnabled != enabled) {
+    coordinateInputSettings_.expressionParsingEnabled = enabled;
+    logger_->info("Expression parsing {}", enabled ? "enabled" : "disabled");
+
+    /// Notify listeners of coordinate input settings change
+    if (onCoordinateInputSettingsChanged_) {
+      onCoordinateInputSettingsChanged_();
+    }
+  }
+}
+
+int UIFSMAdapter::getCoordinatePrecision() const {
+  /// Return the coordinate precision from local storage
+  return coordinateInputSettings_.precision;
+}
+
+int UIFSMAdapter::getAngularPrecision() const {
+  /// Return the angular precision from local storage
+  return coordinateInputSettings_.angularPrecision;
+}
+
+CoordinateInputMode UIFSMAdapter::getCoordinateInputMode() const {
+  /// Return the coordinate input mode from local storage
+  return coordinateInputSettings_.inputMode;
+}
+
+// ==========================================================================
+// Phase 7: Shortcut Settings Methods
+// These methods provide access to keyboard shortcut settings
+// ==========================================================================
+
+ShortcutSettings UIFSMAdapter::getShortcutSettings() const {
+  /// Return the current shortcut settings from local storage
+  return shortcutSettings_;
+}
+
+void UIFSMAdapter::setShortcutSettings(const ShortcutSettings &settings) {
+  /// Update shortcut settings and notify listeners
+  if (shortcutSettings_ != settings) {
+    shortcutSettings_ = settings;
+    logger_->info("Shortcut settings updated");
+
+    /// Notify listeners of shortcut settings change
+    if (onShortcutSettingsChanged_) {
+      onShortcutSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setShortcutSettingsChangedCallback(
+    ShortcutSettingsCallback callback) {
+  onShortcutSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Theme Settings Methods
+// These methods provide access to theme settings
+// ==========================================================================
+
+ThemeSettings UIFSMAdapter::getThemeSettings() const {
+  /// Return the current theme settings from local storage
+  return themeSettings_;
+}
+
+void UIFSMAdapter::setThemeSettings(const ThemeSettings &settings) {
+  /// Update theme settings and notify listeners
+  if (themeSettings_ != settings) {
+    themeSettings_ = settings;
+    logger_->info("Theme settings updated");
+
+    /// Notify listeners of theme settings change
+    if (onThemeSettingsChanged_) {
+      onThemeSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setThemeSettingsChangedCallback(
+    ThemeSettingsCallback callback) {
+  onThemeSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Tooltip Settings Methods
+// These methods provide access to tooltip settings
+// ==========================================================================
+
+TooltipSettings UIFSMAdapter::getTooltipSettings() const {
+  /// Return the current tooltip settings from local storage
+  return tooltipSettings_;
+}
+
+void UIFSMAdapter::setTooltipSettings(const TooltipSettings &settings) {
+  /// Update tooltip settings and notify listeners
+  if (tooltipSettings_ != settings) {
+    tooltipSettings_ = settings;
+    logger_->info("Tooltip settings updated");
+
+    /// Notify listeners of tooltip settings change
+    if (onTooltipSettingsChanged_) {
+      onTooltipSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setTooltipSettingsChangedCallback(
+    TooltipSettingsCallback callback) {
+  onTooltipSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Help Settings Methods
+// These methods provide access to help system
+// ==========================================================================
+
+std::vector<HelpTopic> UIFSMAdapter::getHelpTopics() const {
+  /// Return the help topics from local storage
+  return helpTopics_;
+}
+
+HelpSettings UIFSMAdapter::getHelpSettings() const {
+  /// Return the current help settings from local storage
+  return helpSettings_;
+}
+
+void UIFSMAdapter::setHelpSettings(const HelpSettings &settings) {
+  /// Update help settings and notify listeners
+  if (helpSettings_ != settings) {
+    helpSettings_ = settings;
+    logger_->info("Help settings updated");
+
+    /// Notify listeners of help settings change
+    if (onHelpSettingsChanged_) {
+      onHelpSettingsChanged_();
+    }
+  } else {
+    /// Even if settings are the same, notify listeners to ensure consistency
+    if (onHelpSettingsChanged_) {
+      onHelpSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setHelpSettingsChangedCallback(
+    HelpSettingsCallback callback) {
+  onHelpSettingsChanged_ = std::move(callback);
+}
+
+/// Get the current shortcut settings
+ShortcutSettings UIFSMAdapter::getShortcuts() const {
+  /// Return the shortcut settings from local storage
+  return shortcutSettings_;
+}
+
+// ==========================================================================
+// Phase 7: Performance Monitor Methods
+// These methods provide access to performance monitoring
+// ==========================================================================
+
+/**
+ * @brief Get performance monitor instance
+ * @return View::PerformanceMonitor Pointer to the performance monitor
+ */
+View::PerformanceMonitor *UIFSMAdapter::getPerformanceMonitor() {
+  /// Return the performance monitor from local storage
+  return performanceMonitor_.get();
+}
+
+/**
+ * @brief Get performance statistics
+ * @return View::PerformanceStats Current performance statistics
+ */
+View::PerformanceStats UIFSMAdapter::getPerformanceStats() const {
+  /// Return the performance stats from the monitor, or default if not available
+  return performanceMonitor_ ? performanceMonitor_->getStats()
+                             : View::PerformanceStats{};
+}
+
+/**
+ * @brief Get performance display configuration
+ * @return View::PerformanceDisplayConfig Current display configuration
+ */
+View::PerformanceDisplayConfig
+UIFSMAdapter::getPerformanceDisplayConfig() const {
+  /// Return the display config from the monitor, or default if not available
+  return performanceMonitor_ ? performanceMonitor_->getDisplayConfig()
+                             : View::PerformanceDisplayConfig{};
+}
+
+/**
+ * @brief Set performance display configuration
+ * @param config New display configuration
+ */
+void UIFSMAdapter::setPerformanceDisplayConfig(
+    const View::PerformanceDisplayConfig &config) {
+  /// Update the display config if the monitor is available
+  if (performanceMonitor_) {
+    performanceMonitor_->setDisplayConfig(config);
+  }
 }
 
 } // namespace view

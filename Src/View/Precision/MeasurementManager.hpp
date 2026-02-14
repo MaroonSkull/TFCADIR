@@ -1,215 +1,238 @@
 #pragma once
 
-#include <View/Precision/GridManager.hpp>
+#include <Model/IModel.hpp>
 #include <View/UIFSMAdapter.hpp>
 #include <glm/glm.hpp>
-#include <string>
+#include <optional>
 #include <vector>
 
 namespace view {
 
-/**
- * @brief Measurement type enumeration
- *
- * Defines the types of measurements that can be calculated
- * by the MeasurementManager.
- */
-enum class Type { Distance, Angle, Area };
+// ==========================================================================
+// Phase 6: Precision & Snapping - MeasurementManager
+// ==========================================================================
 
 /**
- * @brief Measurement result structure
- *
- * Contains all information about a calculated measurement,
- * including its type, value, units, and formatted display string.
- * Used by UI components to display measurement information to users.
+ * @brief Figure type enumeration for measurement calculations
  */
-struct MeasurementResult {
-  /// Type of measurement (distance, angle, area)
-  Type type;
-
-  /// Measured value in the appropriate units
-  float value;
-
-  /// Unit string (e.g., "mm", "deg", "mm²")
-  std::string unit;
-
-  /// Points used for the measurement
-  std::vector<glm::vec3> points;
-
-  /// Whether the measurement is valid
-  bool isValid;
-
-  /// Formatted string for display (e.g., "50.00 mm")
-  std::string formattedString;
-
-  /// Default constructor
-  MeasurementResult() : type(Type::Distance), value(0.0f), isValid(false) {}
-
-  /// Full constructor with all fields
-  MeasurementResult(Type t, float v, const std::string &u,
-                    const std::vector<glm::vec3> &p, bool valid,
-                    const std::string &f)
-      : type(t), value(v), unit(u), points(p), isValid(valid),
-        formattedString(f) {}
+enum class FigureType {
+  Triangle, ///< Triangle figure
+  Quad,     ///< Quadrilateral figure
+  Circle,   ///< Circle figure
+  Ngon,     ///< N-sided polygon figure
+  Line,     ///< Line figure
+  Unknown   ///< Unknown figure type
 };
 
 /**
- * @brief Manager for measurement calculations
+ * @brief Result structure for real-time measurement calculations
+ */
+struct MeasurementResult {
+  /// Distance measurement (if applicable)
+  std::optional<float> distance;
+
+  /// Angle measurement in degrees (if applicable)
+  std::optional<float> angle;
+
+  /// Area measurement (if applicable)
+  std::optional<float> area;
+
+  /// Perimeter measurement (if applicable)
+  std::optional<float> perimeter;
+
+  /// Whether the result contains valid data
+  bool isValid = false;
+};
+
+/**
+ * @brief Coordinates measurement calculations for precision drawing
  *
- * Provides measurement functionality for distance, angle, and area
- * calculations. Follows the stateless coordinator pattern - no local
- * state storage beyond performance cache.
+ * DESIGN RATIONALE:
  *
- * MeasurementManager is responsible for:
- * - Calculating distance between points
- * - Calculating angles between three points
- * - Calculating area of polygons
- * - Providing real-time measurement feedback
- * - Formatting measurements for display
+ * 1. Stateless Coordinator Pattern:
+ *    - MeasurementManager maintains no measurement state itself
+ *    - All measurement settings are stored in UIFSMAdapter
+ *    - This follows the same pattern as GridManager and SnapManager
+ *
+ * 2. Caching with Dirty Flag:
+ *    - measurementsDirty_ flag tracks when cached calculations need refresh
+ *    - Set to true when measurement settings change
+ *    - Cleared after UI panels query the current state
+ *    - This prevents expensive recalculations on every frame
+ *
+ * 3. Callback Registration:
+ *    - Constructor registers callback with UIFSMAdapter
+ *    - Callback sets measurementsDirty_ = true when settings change
+ *    - This ensures UI panels always know when to refresh measurements
+ *
+ * 4. State Query Delegation:
+ *    - All state query methods delegate to UIFSMAdapter
+ *    - UIFSMAdapter is the single source of truth for measurement settings
+ *    - This maintains consistency across the application
+ *
+ * USAGE:
+ *
+ * UI panels should:
+ * 1. Check isMeasurementsDirty() to see if refresh is needed
+ * 2. Call getMeasurementSettings() and other query methods
+ * 3. Call clearMeasurementsDirty() after updating display
+ * 4. Use calculateDistance(), calculateAngle(), etc. for calculations
  */
 class MeasurementManager {
+private:
+  /// Reference to the UI FSM adapter (non-owning)
+  UIFSMAdapter &uiFSMAdapter_;
+
+  /// Cache invalidation flag for measurement calculations
+  mutable bool measurementsDirty_;
+
 public:
   /**
-   * @brief Construct a new Measurement Manager object
-   * @param fsmAdapter Reference to UIFSMAdapter for state queries
-   * @param gridManager Reference to GridManager for grid calculations
+   * @brief Constructs a MeasurementManager
+   * @param uiFSMAdapter Reference to the UI FSM adapter
    *
-   * All references are stored for state queries. MeasurementManager
-   * does not manage the lifecycle of these components.
+   * Registers a callback with UIFSMAdapter to set measurementsDirty_ when
+   * measurement settings change.
    */
-  MeasurementManager(UIFSMAdapter &fsmAdapter, GridManager &gridManager);
+  explicit MeasurementManager(UIFSMAdapter &uiFSMAdapter);
+
+  // ==========================================================================
+  // State Query Methods (delegate to UIFSMAdapter)
+  // ==========================================================================
 
   /**
-   * @brief Destroy the Measurement Manager object
+   * @brief Get the current measurement settings
+   * @return Current measurement settings from UIFSMAdapter
    */
-  ~MeasurementManager() = default;
-
-  // Distance measurements
+  [[nodiscard]] MeasurementSettings getMeasurementSettings() const;
 
   /**
-   * @brief Measure distance between two points
-   * @param p1 First point
-   * @param p2 Second point
-   * @return Distance in millimeters
-   *
-   * Calculates Euclidean distance between two 3D points.
+   * @brief Check if show measurements is enabled
+   * @return true if measurements should be displayed
    */
-  float measureDistance(const glm::vec3 &p1, const glm::vec3 &p2) const;
-
-  // Angle measurements
+  [[nodiscard]] bool isShowMeasurementsEnabled() const;
 
   /**
-   * @brief Measure angle at vertex between two points
-   * @param p1 First point defining one arm of angle
-   * @param p2 Vertex point (center of angle)
-   * @param p3 Second point defining other arm of angle
-   * @return Angle in degrees (0-180)
-   *
-   * Calculates the angle between two vectors formed by
-   * (p1 - p2) and (p3 - p2).
-   *
-   * To measure the angle at p2 formed by three points (p1, p2, p3),
-   * call: measureAngle(p1, p2, p3)
+   * @brief Check if real-time measurement is enabled
+   * @return true if real-time measurement feedback should be shown
    */
-  float measureAngle(const glm::vec3 &p1, const glm::vec3 &p2,
-                     const glm::vec3 &p3) const;
+  [[nodiscard]] bool isRealTimeMeasurementEnabled() const;
 
-  // Area measurements
+  // ==========================================================================
+  // Dirty Flag Management
+  // ==========================================================================
 
   /**
-   * @brief Measure area of polygon defined by points
-   * @param points Vector of points defining polygon vertices
-   * @return Area in square millimeters
-   *
-   * Uses the Shoelace formula to calculate polygon area.
-   * Returns 0.0f if points vector has fewer than 3 elements.
+   * @brief Check if measurements are dirty (need recalculation)
+   * @return true if cached measurements need to be refreshed
    */
-  float measureArea(const std::vector<glm::vec3> &points) const;
-
-  // Real-time measurement feedback
+  [[nodiscard]] bool isMeasurementsDirty() const;
 
   /**
-   * @brief Get real-time measurement during drawing operations
-   * @param collectedPoints Points already collected by the tool
-   * @param currentCursorPos Current cursor position in world coordinates
-   * @param toolId Identifier of the current tool (e.g., "Line3D", "Circle3D")
-   * @return MeasurementResult with calculated measurement
+   * @brief Clear the measurements dirty flag
    *
-   * Calculates appropriate measurement based on tool type and collected points.
-   * Uses cache for performance optimization.
+   * Should be called by UI panels after they have refreshed their display.
    */
-  MeasurementResult
-  getRealtimeMeasurement(const std::vector<glm::vec3> &collectedPoints,
-                         const glm::vec3 &currentCursorPos,
-                         const std::string &toolId) const;
+  void clearMeasurementsDirty();
+
+  // ==========================================================================
+  // Distance Calculation
+  // ==========================================================================
 
   /**
-   * @brief Format a measurement value with units
-   * @param value Measurement value
-   * @param unit Unit string
-   * @return Formatted string (e.g., "50.00 mm")
-   *
-   * Formats the measurement value with default precision
-   * and appends the unit string.
+   * @brief Calculate Euclidean distance between two points
+   * @param from Starting point
+   * @param to Ending point
+   * @return Distance in world units
    */
-  std::string formatMeasurement(float value, const std::string &unit) const;
+  [[nodiscard]] float calculateDistance(const glm::vec2 &from,
+                                        const glm::vec2 &to) const;
+
+  // ==========================================================================
+  // Angle Calculation
+  // ==========================================================================
+
+  /**
+   * @brief Calculate angle between two lines
+   * @param line1Start Starting point of first line
+   * @param line1End Ending point of first line
+   * @param line2Start Starting point of second line
+   * @param line2End Ending point of second line
+   * @return Angle in degrees (0-180°)
+   */
+  [[nodiscard]] float calculateAngle(const glm::vec2 &line1Start,
+                                     const glm::vec2 &line1End,
+                                     const glm::vec2 &line2Start,
+                                     const glm::vec2 &line2End) const;
+
+  // ==========================================================================
+  // Area Calculation
+  // ==========================================================================
+
+  /**
+   * @brief Calculate area of a figure
+   * @param figure Shared pointer to the figure
+   * @return Area in square world units
+   *
+   * Supports Triangle, Quad, Circle, and Ngon figure types.
+   * Uses appropriate formula for each figure type.
+   */
+  [[nodiscard]] float
+  calculateArea(const std::shared_ptr<model::IFigure> &figure) const;
+
+  // ==========================================================================
+  // Perimeter Calculation
+  // ==========================================================================
+
+  /**
+   * @brief Calculate perimeter of a figure
+   * @param figure Shared pointer to the figure
+   * @return Perimeter in world units
+   *
+   * Supports all figure types.
+   * For Circle, returns circumference (2 * PI * radius).
+   */
+  [[nodiscard]] float
+  calculatePerimeter(const std::shared_ptr<model::IFigure> &figure) const;
+
+  // ==========================================================================
+  // Real-time Measurement During Drawing
+  // ==========================================================================
+
+  /**
+   * @brief Calculate measurements for partial figure during drawing
+   * @param points Vector of points collected so far
+   * @param type Type of figure being drawn
+   * @return MeasurementResult with all applicable measurements
+   *
+   * Provides real-time feedback during drawing operations.
+   * Returns distance, angle, area, and perimeter based on available points.
+   */
+  [[nodiscard]] MeasurementResult
+  calculateRealTimeMeasurement(const std::vector<glm::vec2> &points,
+                               FigureType type) const;
+
+  // ==========================================================================
+  // Last Measurement Storage (for MeasurementDisplay)
+  // ==========================================================================
+
+  /**
+   * @brief Set the last measurement result
+   * @param result The measurement result to store
+   *
+   * Stores the most recent measurement result for display purposes.
+   */
+  void setLastMeasurement(const MeasurementResult &result);
+
+  /**
+   * @brief Get the last measurement result
+   * @return The most recent measurement result
+   */
+  [[nodiscard]] const MeasurementResult &getLastMeasurement() const;
 
 private:
-  /// Reference to UIFSMAdapter for state queries
-  UIFSMAdapter &fsmAdapter_;
-
-  /// Reference to GridManager for grid calculations
-  GridManager &gridManager_;
-
-  // NO local state (all calculations are stateless)
-  // Performance cache for real-time measurements
-  mutable struct MeasurementCache {
-    MeasurementResult result;
-    std::vector<glm::vec3> lastPoints;
-    bool valid = false;
-  } measurementCache_;
-
-  /**
-   * @brief Invalidate the measurement cache
-   *
-   * Called when collected points change or tool changes.
-   * Forces recalculation on next getRealtimeMeasurement call.
-   */
-  void invalidateCache();
-
-  // Helper methods
-
-  /**
-   * @brief Calculate distance between two points
-   * @param a First point
-   * @param b Second point
-   * @return Euclidean distance
-   */
-  static float distance(const glm::vec3 &a, const glm::vec3 &b);
-
-  /**
-   * @brief Convert radians to degrees
-   * @param radians Angle in radians
-   * @return Angle in degrees
-   */
-  static float toDegrees(float radians);
-
-  /**
-   * @brief Calculate polygon area using Shoelace formula
-   * @param points Vector of points defining polygon vertices
-   * @return Area in square millimeters
-   *
-   * Projects points onto XY plane and applies Shoelace formula.
-   * Returns 0.0f if points vector has fewer than 3 elements.
-   */
-  float calculatePolygonArea(const std::vector<glm::vec3> &points) const;
-
-  /**
-   * @brief Get unit string for measurement type
-   * @param type Measurement type
-   * @return Unit string (e.g., "mm", "deg", "mm²")
-   */
-  static std::string getUnitForType(Type type);
+  /// Last measurement result for display
+  mutable MeasurementResult lastMeasurement_;
 };
 
 } // namespace view

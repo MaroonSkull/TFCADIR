@@ -14,8 +14,24 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+namespace View {
+
+// Forward declarations for Phase 7 Polish components
+struct PerformanceStats;
+struct PerformanceDisplayConfig;
+class PerformanceMonitor;
+class ShortcutManager;
+class ContextMenuManager;
+class SettingsDialog;
+class ThemeManager;
+class TooltipManager;
+class HelpBrowser;
+
+} // namespace View
 
 namespace view {
 
@@ -167,6 +183,563 @@ struct MeasurementSettings {
   bool operator==(const MeasurementSettings &other) const = default;
 };
 
+/**
+ * @brief Coordinate input mode enumeration
+ *
+ * Defines the available coordinate input modes for precise drawing operations.
+ */
+enum class CoordinateInputMode {
+  Absolute, ///< Absolute coordinates (X: 100.5, Y: 50.0)
+  Relative  ///< Relative coordinates (@X: 25.0, @Y: 10.0)
+};
+
+/**
+ * @brief Coordinate input settings for precise coordinate entry
+ *
+ * Contains configuration for coordinate input behavior, including
+ * input mode, precision settings, and expression parsing options.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct CoordinateInputSettings {
+  /// Current coordinate input mode
+  CoordinateInputMode inputMode = CoordinateInputMode::Absolute;
+
+  /// Number of decimal places for coordinate display (0-6)
+  int precision = 2;
+
+  /// Number of decimal places for angular display (0-4)
+  int angularPrecision = 2;
+
+  /// Whether expression parsing is enabled
+  bool expressionParsingEnabled = true;
+
+  /// Whether to snap to precision grid
+  bool snapToPrecisionGrid = false;
+
+  /**
+   * @brief Equality operator for CoordinateInputSettings
+   * @param other The other CoordinateInputSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const CoordinateInputSettings &other) const = default;
+};
+
+// ==========================================================================
+// Phase 7: Theme Data Structures
+// ==========================================================================
+
+/**
+ * @brief Theme preset enumeration
+ *
+ * Defines the available predefined theme presets for the application.
+ */
+enum class ThemePreset {
+  Dark,         ///< Professional dark theme (default CAD theme)
+  Light,        ///< Light theme for bright environments
+  HighContrast, ///< High contrast theme for accessibility
+  Custom        ///< User-defined custom theme
+};
+
+/**
+ * @brief Complete color scheme for ImGUI theme
+ *
+ * Contains all colors used throughout the UI including ImGUI colors,
+ * CAD-specific colors (grid, axes, selection), and application colors.
+ */
+struct ColorScheme {
+  // ==========================================================================
+  // ImGUI Core Colors
+  // ==========================================================================
+
+  /// Main window background color
+  glm::vec4 windowBg;
+
+  /// Child window/panel background color
+  glm::vec4 panelBg;
+
+  /// Primary text color
+  glm::vec4 text;
+
+  /// Disabled text color
+  glm::vec4 textDisabled;
+
+  /// Primary accent color (buttons, active elements)
+  glm::vec4 accent;
+
+  /// Hover state color for interactive elements
+  glm::vec4 accentHover;
+
+  /// Border color for windows and elements
+  glm::vec4 border;
+
+  /// Border color for active/hovered elements
+  glm::vec4 borderActive;
+
+  /// Background color for buttons
+  glm::vec4 buttonBg;
+
+  /// Background color for hovered buttons
+  glm::vec4 buttonBgHovered;
+
+  /// Background color for active buttons
+  glm::vec4 buttonBgActive;
+
+  /// Header background color (collapsing headers, menu bars)
+  glm::vec4 headerBg;
+
+  /// Header background color when hovered
+  glm::vec4 headerBgHovered;
+
+  /// Header background color when active
+  glm::vec4 headerBgActive;
+
+  /// Background color for input fields
+  glm::vec4 frameBg;
+
+  /// Background color for hovered input fields
+  glm::vec4 frameBgHovered;
+
+  /// Background color for active input fields
+  glm::vec4 frameBgActive;
+
+  /// Title bar background color
+  glm::vec4 titleBg;
+
+  /// Title bar background color when active
+  glm::vec4 titleBgActive;
+
+  /// Title bar text color
+  glm::vec4 titleText;
+
+  /// Title bar text color when active
+  glm::vec4 titleTextActive;
+
+  /// Background color for menu bars
+  glm::vec4 menuBarBg;
+
+  /// Scrollbar background color
+  glm::vec4 scrollbarBg;
+
+  /// Scrollbar grab color
+  glm::vec4 scrollbarGrab;
+
+  /// Scrollbar grab color when hovered
+  glm::vec4 scrollbarGrabHovered;
+
+  /// Scrollbar grab color when active
+  glm::vec4 scrollbarGrabActive;
+
+  /// Check mark color for checkboxes and radio buttons
+  glm::vec4 checkMark;
+
+  /// Slider grab color
+  glm::vec4 sliderGrab;
+
+  /// Slider grab color when active
+  glm::vec4 sliderGrabActive;
+
+  /// Background color for tables
+  glm::vec4 tableBg;
+
+  /// Background color for table headers
+  glm::vec4 tableHeaderBg;
+
+  /// Background color for alternating table rows
+  glm::vec4 tableRowBgAlt;
+
+  /// Border color for table headers
+  glm::vec4 tableBorderStrong;
+
+  /// Background color for selected items
+  glm::vec4 selectionBg;
+
+  /// Text color for selected items
+  glm::vec4 selectionText;
+
+  /// Color for drag and drop preview
+  glm::vec4 dragDropTarget;
+
+  /// Color for navigation highlight
+  glm::vec4 navHighlight;
+
+  /// Color for navigation windowing highlight
+  glm::vec4 navWindowingHighlight;
+
+  /// Color for navigation windowing dim background
+  glm::vec4 navWindowingDimBg;
+
+  /// Color for modal window dim background
+  glm::vec4 modalWindowDimBg;
+
+  // ==========================================================================
+  // CAD-Specific Colors
+  // ==========================================================================
+
+  /// Major grid lines color
+  glm::vec4 gridMajor;
+
+  /// Minor grid lines color
+  glm::vec4 gridMinor;
+
+  /// X axis color
+  glm::vec4 axisX;
+
+  /// Y axis color
+  glm::vec4 axisY;
+
+  /// Z axis color
+  glm::vec4 axisZ;
+
+  /// Selection highlight color
+  glm::vec4 selection;
+
+  /// Snap indicator color
+  glm::vec4 snap;
+
+  /// Preview/ghost geometry color
+  glm::vec4 preview;
+
+  /// Cursor color
+  glm::vec4 cursor;
+
+  /// Highlight color for hovered elements
+  glm::vec4 highlight;
+
+  /// Error/warning color
+  glm::vec4 error;
+
+  /// Success color
+  glm::vec4 success;
+
+  /// Info color
+  glm::vec4 info;
+
+  /**
+   * @brief Equality operator for ColorScheme
+   * @param other The other ColorScheme to compare
+   * @return true if all colors are equal
+   */
+  bool operator==(const ColorScheme &other) const = default;
+};
+
+/**
+ * @brief Theme settings for the application
+ *
+ * Contains configuration for the current theme preset and custom color scheme.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct ThemeSettings {
+  /// Current theme preset
+  ThemePreset preset = ThemePreset::Dark;
+
+  /// Custom color scheme (used when preset is Custom)
+  ColorScheme customScheme;
+
+  /// Whether to use the custom scheme instead of preset
+  bool useCustom = false;
+
+  /**
+   * @brief Equality operator for ThemeSettings
+   * @param other The other ThemeSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const ThemeSettings &other) const {
+    return preset == other.preset && useCustom == other.useCustom &&
+           customScheme == other.customScheme;
+  }
+};
+
+// ==========================================================================
+// Phase 7: Polish & Optimization - Keyboard Shortcuts Data Structures
+// ==========================================================================
+
+/**
+ * @brief Keyboard modifier keys for shortcut combinations
+ *
+ * Defines the available modifier keys that can be combined
+ * with regular keys to form keyboard shortcuts.
+ */
+enum class KeyModifier {
+  None,        ///< No modifier key
+  Ctrl,        ///< Control key
+  Shift,       ///< Shift key
+  Alt,         ///< Alt key
+  CtrlShift,   ///< Control + Shift
+  CtrlAlt,     ///< Control + Alt
+  ShiftAlt,    ///< Shift + Alt
+  CtrlShiftAlt ///< Control + Shift + Alt
+};
+
+/**
+ * @brief Key combination for keyboard shortcuts
+ *
+ * Represents a keyboard shortcut as a combination of a key code
+ * and optional modifier keys.
+ */
+struct KeyCombo {
+  /// ImGui key code (e.g., ImGuiKey_Z, ImGuiKey_Y)
+  int keyCode;
+
+  /// Modifier keys combination
+  KeyModifier modifier;
+
+  /**
+   * @brief Equality operator for KeyCombo
+   * @param other The other KeyCombo to compare
+   * @return true if both key code and modifier match
+   */
+  bool operator==(const KeyCombo &other) const {
+    return keyCode == other.keyCode && modifier == other.modifier;
+  }
+};
+
+/**
+ * @brief Keyboard shortcut definition
+ *
+ * Contains all information about a keyboard shortcut including
+ * its key combination, action string, description, and customization flag.
+ */
+struct Shortcut {
+  /// Unique identifier for the shortcut (e.g., "undo", "redo", "line_tool")
+  std::string id;
+
+  /// Key combination that triggers this shortcut
+  KeyCombo keyCombo;
+
+  /// Human-readable description of what this shortcut does
+  std::string description;
+
+  /// Action string for dispatching (e.g., "commandManager.undo",
+  /// "tool.activate")
+  std::string action;
+
+  /// Whether this shortcut can be customized by the user
+  bool isCustomizable = true;
+
+  /**
+   * @brief Default constructor
+   */
+  Shortcut() = default;
+
+  /**
+   * @brief Constructor with all fields
+   */
+  Shortcut(std::string id, KeyCombo keyCombo, std::string description,
+           std::string action, bool isCustomizable = true)
+      : id(std::move(id)), keyCombo(keyCombo),
+        description(std::move(description)), action(std::move(action)),
+        isCustomizable(isCustomizable) {}
+
+  /**
+   * @brief Move constructor
+   */
+  Shortcut(Shortcut &&other) noexcept
+      : id(std::move(other.id)), keyCombo(other.keyCombo),
+        description(std::move(other.description)),
+        action(std::move(other.action)), isCustomizable(other.isCustomizable) {}
+
+  /**
+   * @brief Move assignment operator
+   */
+  Shortcut &operator=(Shortcut &&other) noexcept {
+    if (this != &other) {
+      id = std::move(other.id);
+      keyCombo = other.keyCombo;
+      description = std::move(other.description);
+      action = std::move(other.action);
+      isCustomizable = other.isCustomizable;
+    }
+    return *this;
+  }
+
+  /**
+   * @brief Copy constructor
+   */
+  Shortcut(const Shortcut &other) = default;
+
+  /**
+   * @brief Copy assignment operator
+   */
+  Shortcut &operator=(const Shortcut &other) = default;
+
+  /**
+   * @brief Equality operator for Shortcut
+   * @param other The other Shortcut to compare
+   * @return true if all fields are equal
+   */
+  bool operator==(const Shortcut &other) const {
+    return id == other.id && keyCombo == other.keyCombo &&
+           description == other.description && action == other.action &&
+           isCustomizable == other.isCustomizable;
+  }
+};
+
+/**
+ * @brief Shortcut settings for keyboard shortcuts
+ *
+ * Contains configuration for all keyboard shortcuts in the application.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct ShortcutSettings {
+  /// Map of shortcut ID to shortcut definition
+  std::unordered_map<std::string, Shortcut> shortcuts;
+
+  /**
+   * @brief Equality operator for ShortcutSettings
+   * @param other The other ShortcutSettings to compare
+   * @return true if all shortcuts are equal
+   */
+  bool operator==(const ShortcutSettings &other) const {
+    return shortcuts == other.shortcuts;
+  }
+};
+
+// ==========================================================================
+// Phase 7: Tooltip Data Structures
+// ==========================================================================
+
+/**
+ * @brief Tooltip preset enumeration
+ *
+ * Defines the available predefined tooltip presets for the application.
+ */
+enum class TooltipPreset {
+  Basic,    ///< Basic tooltips (title only)
+  Detailed, ///< Detailed tooltips (title + description + shortcut)
+  Minimal,  ///< Minimal tooltips (title + shortcut)
+  Custom    ///< User-defined custom tooltip configuration
+};
+
+/**
+ * @brief Tooltip configuration for appearance and behavior
+ *
+ * Contains configuration for tooltip display including timing,
+ * positioning, and content options.
+ */
+struct TooltipConfig {
+  /// Delay before showing tooltip in milliseconds
+  int delay = 500;
+
+  /// Duration to show tooltip in milliseconds (0 = until mouse moves)
+  int duration = 0;
+
+  /// Maximum width of tooltip in pixels
+  int maxWidth = 400;
+
+  /// Position mode for tooltip display
+  TooltipPreset preset = TooltipPreset::Detailed;
+
+  /// Whether to show keyboard shortcuts in tooltips
+  bool showShortcuts = true;
+
+  /// Whether to show descriptions in tooltips
+  bool showDescriptions = true;
+
+  /// Whether to wrap tooltip text
+  bool wrapText = true;
+
+  /**
+   * @brief Equality operator for TooltipConfig
+   * @param other The other TooltipConfig to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const TooltipConfig &other) const = default;
+};
+
+/**
+ * @brief Tooltip settings for the application
+ *
+ * Contains configuration for tooltip behavior and appearance.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct TooltipSettings {
+  /// Whether tooltips are enabled globally
+  bool enabled = true;
+
+  /// Tooltip configuration preset
+  TooltipPreset preset = TooltipPreset::Detailed;
+
+  /// Custom tooltip configuration (used when preset is Custom)
+  TooltipConfig customConfig;
+
+  /// Whether to use the custom configuration instead of preset
+  bool useCustom = false;
+
+  /**
+   * @brief Equality operator for TooltipSettings
+   * @param other The other TooltipSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const TooltipSettings &other) const {
+    return enabled == other.enabled && preset == other.preset &&
+           useCustom == other.useCustom && customConfig == other.customConfig;
+  }
+};
+
+// ==========================================================================
+// Phase 7: Help Data Structures
+// ==========================================================================
+
+/**
+ * @brief Help topic for documentation
+ *
+ * Contains all information about a single help topic including
+ * its content, category, keywords for search, and related topics.
+ */
+struct HelpTopic {
+  /// Unique identifier for the topic
+  std::string id;
+
+  /// Display title
+  std::string title;
+
+  /// Help content (markdown formatted)
+  std::string content;
+
+  /// Category for grouping (e.g., "tools", "reference", "getting-started")
+  std::string category;
+
+  /// Keywords for search
+  std::vector<std::string> keywords;
+
+  /// ID of related topic (for navigation)
+  std::string relatedTopicId;
+
+  /**
+   * @brief Equality operator for HelpTopic
+   * @param other The other HelpTopic to compare
+   * @return true if all fields are equal
+   */
+  bool operator==(const HelpTopic &other) const = default;
+};
+
+/**
+ * @brief Help settings for the application
+ *
+ * Contains configuration for help system behavior.
+ * These settings are FSM state stored in UIFSMAdapter.
+ */
+struct HelpSettings {
+  /// Whether help system is enabled
+  bool enabled = true;
+
+  /// Default topic to show on startup
+  std::string defaultTopic = "welcome";
+
+  /// Whether to show help on application startup
+  bool showOnStartup = false;
+
+  /// Maximum size of help history
+  int historySize = 20;
+
+  /**
+   * @brief Equality operator for HelpSettings
+   * @param other The other HelpSettings to compare
+   * @return true if all settings are equal
+   */
+  bool operator==(const HelpSettings &other) const = default;
+};
+
 // ==========================================================================
 // Phase 6: FSM Event Definitions
 // These events are defined in fsm::events namespace in FSM.hpp
@@ -315,15 +888,28 @@ public:
    * @brief Activate a tool
    * @param toolId Tool identifier to activate
    *
-   * Sends the appropriate tool activation event to the FSM:
-   * - "Line3D" → OnActivateLine3D event
-   * - "Circle3D" → OnActivateCircle3D event
-   * - "Arc3D" → OnActivateArc3D event
-   * - "Rectangle3D" → OnActivateRectangle3D event
-   * - "Polygon3D" → OnActivatePolygon3D event
-   * - "NGon3D" → OnActivateNGon3D event
-   * - "LineInSketch" → OnActivateLineInSketch event
-   * - "CircleInSketch" → OnActivateCircleInSketch event
+   * Sends the appropriate tool activation event to the FSM.
+   * Events are defined in fsm_config.yaml Phase 16: Keyboard Shortcut Events.
+   *
+   * Tool ID to FSM Event mapping:
+   * - "Line3D" or "Line" → OnShortcutLine
+   * - "Circle3D" or "Circle" → OnShortcutCircle
+   * - "Arc3D" or "Arc" → OnShortcutArc
+   * - "Rectangle3D" or "Rectangle" → OnShortcutRectangle
+   * - "Polygon3D" or "Polygon" → OnShortcutPolygon
+   * - "Triangle" → OnShortcutTriangle
+   * - "Ellipse" → OnShortcutEllipse
+   * - "Spline" → OnShortcutSpline
+   * - "Select" → OnShortcutSelect
+   * - "Move" → OnShortcutMove
+   * - "Rotate" → OnShortcutRotate
+   * - "Scale" → OnShortcutScale
+   * - "Mirror" → OnShortcutMirror
+   * - "Fillet" → OnShortcutFillet
+   * - "Dimension" → OnShortcutDimension
+   * - "Measure" → OnShortcutMeasure
+   * - "LineInSketch" → OnAddLineInSketch
+   * - "CircleInSketch" → OnAddCircleByCenterInSketch
    *
    * The tool remains active until deactivated or a drawing operation completes.
    */
@@ -418,7 +1004,7 @@ public:
    * Executes the command and adds it to the command history if successful.
    * Any commands after the current position are removed (redo chain cleared).
    */
-  void executeCommand(std::unique_ptr<ICommand> command);
+  void executeCommand(std::unique_ptr<Commands::ICommand> command);
 
   /**
    * @brief Undo the last command
@@ -495,7 +1081,7 @@ public:
    * Returns a raw pointer to the command at the specified index.
    * The command remains owned by UIFSMAdapter.
    */
-  const ICommand *getCommandAt(size_t index) const;
+  const Commands::ICommand *getCommandAt(size_t index) const;
 
   // ==========================================================================
   // Phase 5: Navigation State Management Methods
@@ -607,6 +1193,11 @@ public:
   using GridGeometryDirtyCallback = std::function<void()>;
 
   /**
+   * @brief Callback type for coordinate input settings change notifications
+   */
+  using CoordinateInputSettingsCallback = std::function<void()>;
+
+  /**
    * @brief Get the current grid settings
    * @return Current grid settings
    */
@@ -619,6 +1210,54 @@ public:
    * Triggers OnGridSettingsChanged FSM event and notifies listeners.
    */
   void setGridSettings(const GridSettings &settings);
+
+  /**
+   * @brief Get the grid settings panel visibility
+   * @return true if the grid settings panel is visible
+   */
+  bool getGridSettingsPanelVisible() const;
+
+  /**
+   * @brief Set the grid settings panel visibility
+   * @param visible The new visibility state
+   */
+  void setGridSettingsPanelVisible(bool visible);
+
+  /**
+   * @brief Get the snap settings panel visibility
+   * @return true if the snap settings panel is visible
+   */
+  bool getSnapSettingsPanelVisible() const;
+
+  /**
+   * @brief Set the snap settings panel visibility
+   * @param visible The new visibility state
+   */
+  void setSnapSettingsPanelVisible(bool visible);
+
+  /**
+   * @brief Get the coordinate input widget visibility
+   * @return true if the coordinate input widget is visible
+   */
+  bool getCoordinateInputWidgetVisible() const;
+
+  /**
+   * @brief Set the coordinate input widget visibility
+   * @param visible The new visibility state
+   */
+  void setCoordinateInputWidgetVisible(bool visible);
+
+  /**
+   * @brief Get the measurement display visibility
+   * @return true if the measurement display is visible
+   */
+  bool getMeasurementDisplayVisible() const;
+
+  /**
+   * @brief Set the measurement display visibility
+   * @param visible The new visibility state
+   */
+  void setMeasurementDisplayVisible(bool visible);
 
   /**
    * @brief Get the current snap settings
@@ -880,6 +1519,233 @@ public:
   int getMeasurementPrecision() const;
 
   // ==========================================================================
+  // Coordinate Input Settings Methods
+  // These methods provide access to coordinate input settings
+  // ==========================================================================
+
+  /**
+   * @brief Get the current coordinate input settings
+   * @return Current coordinate input settings
+   */
+  CoordinateInputSettings getCoordinateInputSettings() const;
+
+  /**
+   * @brief Set coordinate input settings
+   * @param settings The new coordinate input settings
+   *
+   * Triggers OnCoordinateInputSettingsChanged FSM event and notifies listeners.
+   */
+  void setCoordinateInputSettings(const CoordinateInputSettings &settings);
+
+  /**
+   * @brief Set callback for coordinate input settings change notifications
+   * @param callback Function to invoke when coordinate input settings change
+   */
+  void setCoordinateInputSettingsChangedCallback(
+      CoordinateInputSettingsCallback callback);
+
+  // ==========================================================================
+  // Coordinate Input State Query Methods (for CoordinateInputManager)
+  // These methods provide access to individual coordinate input settings
+  // properties
+  // ==========================================================================
+
+  /**
+   * @brief Check if expression parsing is enabled
+   * @return true if expression parsing is enabled
+   */
+  bool isExpressionParsingEnabled() const;
+
+  /**
+   * @brief Set expression parsing enabled state
+   * @param enabled The new enabled state
+   *
+   * Updates the coordinate input settings and triggers the
+   * OnCoordinateInputSettingsChanged FSM event.
+   */
+  void setExpressionParsingEnabled(bool enabled);
+
+  /**
+   * @brief Get the coordinate precision
+   * @return Number of decimal places for coordinate display
+   */
+  int getCoordinatePrecision() const;
+
+  /**
+   * @brief Get the angular precision
+   * @return Number of decimal places for angular display
+   */
+  int getAngularPrecision() const;
+
+  /**
+   * @brief Get the coordinate input mode
+   * @return Current coordinate input mode
+   */
+  CoordinateInputMode getCoordinateInputMode() const;
+
+  // ==========================================================================
+  // Phase 7: Shortcut Settings Methods
+  // These methods provide access to keyboard shortcut settings
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for shortcut settings change notifications
+   */
+  using ShortcutSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current shortcut settings
+   * @return Current shortcut settings
+   */
+  ShortcutSettings getShortcutSettings() const;
+
+  /**
+   * @brief Set shortcut settings
+   * @param settings The new shortcut settings
+   *
+   * Triggers OnShortcutSettingsChanged FSM event and notifies listeners.
+   */
+  void setShortcutSettings(const ShortcutSettings &settings);
+
+  /**
+   * @brief Set callback for shortcut settings change notifications
+   * @param callback Function to invoke when shortcut settings change
+   */
+  void setShortcutSettingsChangedCallback(ShortcutSettingsCallback callback);
+
+  // ==========================================================================
+  // Phase 7: Theme Settings Methods
+  // These methods provide access to theme settings
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for theme settings change notifications
+   */
+  using ThemeSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current theme settings
+   * @return Current theme settings
+   */
+  ThemeSettings getThemeSettings() const;
+
+  /**
+   * @brief Set theme settings
+   * @param settings The new theme settings
+   *
+   * Triggers OnThemeSettingsChanged FSM event and notifies listeners.
+   */
+  void setThemeSettings(const ThemeSettings &settings);
+
+  /**
+   * @brief Set callback for theme settings change notifications
+   * @param callback Function to invoke when theme settings change
+   */
+  void setThemeSettingsChangedCallback(ThemeSettingsCallback callback);
+
+  // ==========================================================================
+  // Phase 7: Tooltip Settings Methods
+  // These methods provide access to tooltip settings
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for tooltip settings change notifications
+   */
+  using TooltipSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current tooltip settings
+   * @return Current tooltip settings
+   */
+  TooltipSettings getTooltipSettings() const;
+
+  /**
+   * @brief Set tooltip settings
+   * @param settings The new tooltip settings
+   *
+   * Triggers OnTooltipSettingsChanged FSM event and notifies listeners.
+   */
+  void setTooltipSettings(const TooltipSettings &settings);
+
+  /**
+   * @brief Set callback for tooltip settings change notifications
+   * @param callback Function to invoke when tooltip settings change
+   */
+  void setTooltipSettingsChangedCallback(TooltipSettingsCallback callback);
+
+  // ==========================================================================
+  // Phase 7: Help Settings Methods
+  // These methods provide access to help system
+  // ==========================================================================
+
+  /**
+   * @brief Callback type for help settings change notifications
+   */
+  using HelpSettingsCallback = std::function<void()>;
+
+  /**
+   * @brief Get the current help topics
+   * @return Vector of help topics
+   */
+  std::vector<HelpTopic> getHelpTopics() const;
+
+  /**
+   * @brief Get the current help settings
+   * @return Current help settings
+   */
+  HelpSettings getHelpSettings() const;
+
+  /**
+   * @brief Set help settings
+   * @param settings The new help settings
+   *
+   * Triggers OnHelpSettingsChanged FSM event and notifies listeners.
+   */
+  void setHelpSettings(const HelpSettings &settings);
+
+  /**
+   * @brief Set callback for help settings change notifications
+   * @param callback Function to invoke when help settings change
+   */
+  void setHelpSettingsChangedCallback(HelpSettingsCallback callback);
+
+  /**
+   * @brief Get the current shortcut settings
+   * @return Current shortcut settings
+   */
+  ShortcutSettings getShortcuts() const;
+
+  // ==========================================================================
+  // Phase 7: Performance Monitor Methods
+  // These methods provide access to performance monitoring
+  // ==========================================================================
+
+  /**
+   * @brief Get performance monitor instance
+   * @return Pointer to performance monitor
+   */
+  View::PerformanceMonitor *getPerformanceMonitor();
+
+  /**
+   * @brief Get performance statistics
+   * @return PerformanceStats Current statistics
+   */
+  View::PerformanceStats getPerformanceStats() const;
+
+  /**
+   * @brief Get performance display configuration
+   * @return PerformanceDisplayConfig Current configuration
+   */
+  View::PerformanceDisplayConfig getPerformanceDisplayConfig() const;
+
+  /**
+   * @brief Set performance display configuration
+   * @param config New configuration
+   */
+  void
+  setPerformanceDisplayConfig(const View::PerformanceDisplayConfig &config);
+
+  // ==========================================================================
   // Figure Grouping Methods (STUB - Not fully implemented)
   // These methods are stubs to allow compilation of GroupFiguresCommand
   // and UngroupFiguresCommand. Full implementation is pending.
@@ -994,7 +1860,7 @@ private:
   // ==========================================================================
 
   /// Vector of command objects (actual commands, not just descriptions)
-  std::vector<std::unique_ptr<ICommand>> commandHistory_;
+  std::vector<std::unique_ptr<Commands::ICommand>> commandHistory_;
 
   /// Current position in command history (index of last executed command)
   size_t currentCommandIndex_{0};
@@ -1037,8 +1903,20 @@ private:
   /// Grid settings for visualization and snapping
   GridSettings gridSettings_;
 
+  /// Grid settings panel visibility
+  bool gridSettingsPanelVisible_{true};
+
   /// Snap settings for precision drawing
   SnapSettings snapSettings_;
+
+  /// Snap settings panel visibility
+  bool snapSettingsPanelVisible_{true};
+
+  /// Coordinate input widget visibility
+  bool coordinateInputWidgetVisible_{false};
+
+  /// Measurement display visibility
+  bool measurementDisplayVisible_{false};
 
   /// Measurement settings for precision drawing
   MeasurementSettings measurementSettings_;
@@ -1061,6 +1939,84 @@ private:
   /// Callback to notify when grid geometry becomes dirty
   /// Triggered when grid settings change (spacing, divisions, etc.)
   GridGeometryDirtyCallback onGridGeometryDirty_;
+
+  // ==========================================================================
+  // Coordinate Input Settings Storage
+  // These member variables store coordinate input settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Coordinate input settings for precise coordinate entry
+  CoordinateInputSettings coordinateInputSettings_;
+
+  /// Callback for coordinate input settings change notifications
+  CoordinateInputSettingsCallback onCoordinateInputSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Shortcut Settings Storage
+  // These member variables store shortcut settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Shortcut settings for keyboard shortcuts
+  ShortcutSettings shortcutSettings_;
+
+  /// Callback for shortcut settings change notifications
+  ShortcutSettingsCallback onShortcutSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Theme Settings Storage
+  // These member variables store theme settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Theme settings for the application
+  ThemeSettings themeSettings_;
+
+  /// Callback for theme settings change notifications
+  ThemeSettingsCallback onThemeSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Tooltip Settings Storage
+  // These member variables store tooltip settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Tooltip settings for the application
+  TooltipSettings tooltipSettings_;
+
+  /// Callback for tooltip settings change notifications
+  TooltipSettingsCallback onTooltipSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Help Settings Storage
+  // These member variables store help settings that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Help topics for the application
+  std::vector<HelpTopic> helpTopics_;
+
+  /// Help settings for the application
+  HelpSettings helpSettings_;
+
+  /// Callback for help settings change notifications
+  HelpSettingsCallback onHelpSettingsChanged_;
+
+  // ==========================================================================
+  // Phase 7: Performance Monitor Storage
+  // These member variables store performance monitoring state that
+  // cannot be stored in FSM because FSMConfig's VariableValue only supports
+  // simple types.
+  // ==========================================================================
+
+  /// Performance monitor instance for real-time statistics
+  std::unique_ptr<View::PerformanceMonitor> performanceMonitor_;
 
   /**
    * @brief Get available sketch planes

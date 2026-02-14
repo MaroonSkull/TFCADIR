@@ -8,24 +8,24 @@ namespace view {
 /**
  * @brief Constructor for OutlinerPanel
  * @param fsmAdapter Reference to the UIFSMAdapter for state access
- * @param selectionManager Reference to the SelectionManager for selection operations
+ * @param selectionManager Reference to the SelectionManager for selection
+ * operations
  * @param model Reference to the FlatFigures model for figure access
  */
-OutlinerPanel::OutlinerPanel(UIFSMAdapter& fsmAdapter, SelectionManager& selectionManager, model::FlatFigures& model)
-    : fsmAdapter_(fsmAdapter),
-      selectionManager_(selectionManager),
-      model_(model),
-      treeCache_{},
-      filterText_{},
-      renameBuffer_{},
-      renamingFigureId_(0),
-      showContextMenu_(false) {
+OutlinerPanel::OutlinerPanel(UIFSMAdapter &fsmAdapter,
+                             SelectionManager &selectionManager,
+                             model::FlatFigures &model)
+    : fsmAdapter_(fsmAdapter), selectionManager_(selectionManager),
+      model_(model), treeCache_{}, filterText_{}, renameBuffer_{},
+      renamingFigureId_(0), showContextMenu_(false) {
   // Register callbacks for state change notifications
   fsmAdapter_.setSelectionChangedCallback(
-      [this](const std::vector<uint32_t>& ids) { this->onSelectionChanged(); });
-  
+      [this](const std::vector<uint32_t> &ids) { this->onSelectionChanged(); });
+
   fsmAdapter_.setPropertyChangedCallback(
-      [this](uint32_t id, const std::string& path) { this->onPropertyChanged(id, path); });
+      [this](uint32_t id, const std::string &path) {
+        this->onPropertyChanged(id, path);
+      });
 }
 
 /**
@@ -67,17 +67,16 @@ void OutlinerPanel::render() {
 /**
  * @brief Invalidates the cached tree data
  */
-void OutlinerPanel::invalidateCache() {
-  treeCache_.isValid = false;
-}
+void OutlinerPanel::invalidateCache() { treeCache_.isValid = false; }
 
 /**
  * @brief Updates the cached tree data if needed
- * @details Only rebuilds cache if invalid or 100ms has elapsed since last update
+ * @details Only rebuilds cache if invalid or 100ms has elapsed since last
+ * update
  */
 void OutlinerPanel::updateCacheIfNeeded() {
   auto now = std::chrono::steady_clock::now();
-  
+
   // Check if cache needs updating (invalid or 100ms elapsed)
   bool needsUpdate = !treeCache_.isValid;
   if (treeCache_.isValid) {
@@ -137,10 +136,12 @@ std::vector<OutlinerPanel::TreeNodeData> OutlinerPanel::buildTreeData() {
     }
 
     TreeNodeData node;
-    node.figureId = i; // Use index as ID for compatibility with selection manager
+    node.figureId =
+        i; // Use index as ID for compatibility with selection manager
     node.name = figure->getName();
     node.typeName = getFigureTypeName(figure);
-    node.isSelected = std::find(selectedIds.begin(), selectedIds.end(), i) != selectedIds.end();
+    node.isSelected = std::find(selectedIds.begin(), selectedIds.end(), i) !=
+                      selectedIds.end();
     node.isPrimarySelection = (i == primaryId);
 
     nodes.push_back(std::move(node));
@@ -155,11 +156,11 @@ std::vector<OutlinerPanel::TreeNodeData> OutlinerPanel::buildTreeData() {
 void OutlinerPanel::renderFilter() {
   ImGui::Text("Filter:");
   ImGui::SameLine();
-  
+
   char buffer[256];
   std::strncpy(buffer, filterText_.c_str(), sizeof(buffer) - 1);
   buffer[sizeof(buffer) - 1] = '\0';
-  
+
   if (ImGui::InputText("##Filter", buffer, sizeof(buffer))) {
     filterText_ = buffer;
     invalidateCache(); // Filter changed, rebuild cache
@@ -171,13 +172,13 @@ void OutlinerPanel::renderFilter() {
  */
 void OutlinerPanel::renderFigureList() {
   if (ImGui::BeginChild("FigureList", ImVec2(0, 0), true)) {
-    for (const auto& node : treeCache_.treeNodes) {
+    for (const auto &node : treeCache_.treeNodes) {
       if (!matchesFilter(node.name)) {
         continue;
       }
 
       bool isRenaming = (renamingFigureId_ == node.figureId);
-      
+
       if (isRenaming) {
         // Render rename input
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -191,7 +192,7 @@ void OutlinerPanel::renderFigureList() {
           renamingFigureId_ = 0;
           invalidateCache();
         }
-        
+
         // Cancel rename on focus loss or Escape
         if (!ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Escape)) {
           renamingFigureId_ = 0;
@@ -243,19 +244,20 @@ void OutlinerPanel::renderContextMenu(uint32_t figureId) {
  * @param node The tree node data to render
  * @return true if the item was clicked
  */
-bool OutlinerPanel::renderFigureItem(const TreeNodeData& node) {
+bool OutlinerPanel::renderFigureItem(const TreeNodeData &node) {
   ImGui::PushID(static_cast<int>(node.figureId));
 
   // Get icon for figure type
-  const char* icon = getTypeIcon(node.typeName);
-  
+  const char *icon = getTypeIcon(node.typeName);
+
   // Build label text
   std::string label = std::string(icon) + " " + node.name;
-  
+
   // Render selectable
   int flags = ImGuiSelectableFlags_None;
   if (node.isPrimarySelection) {
-    flags |= ImGuiSelectableFlags_AllowDoubleClick; // Enable double-click for rename
+    flags |=
+        ImGuiSelectableFlags_AllowDoubleClick; // Enable double-click for rename
   }
 
   bool clicked = ImGui::Selectable(label.c_str(), node.isSelected, flags);
@@ -289,13 +291,19 @@ bool OutlinerPanel::renderFigureItem(const TreeNodeData& node) {
  * @param typeName The name of the figure type
  * @return Icon character or emoji for the figure type
  */
-const char* OutlinerPanel::getTypeIcon(const std::string& typeName) const {
-  if (typeName == "Triangle") return "🔺";
-  if (typeName == "Quad") return "🔲";
-  if (typeName == "Circle") return "⭕";
-  if (typeName == "Ngon") return "⬡";
-  if (typeName == "CurveBezier3") return "〰️";
-  if (typeName == "CurveBezier4") return "〰️";
+const char *OutlinerPanel::getTypeIcon(const std::string &typeName) const {
+  if (typeName == "Triangle")
+    return "🔺";
+  if (typeName == "Quad")
+    return "🔲";
+  if (typeName == "Circle")
+    return "⭕";
+  if (typeName == "Ngon")
+    return "⬡";
+  if (typeName == "CurveBezier3")
+    return "〰️";
+  if (typeName == "CurveBezier4")
+    return "〰️";
   return "📦"; // Default icon
 }
 
@@ -304,7 +312,7 @@ const char* OutlinerPanel::getTypeIcon(const std::string& typeName) const {
  * @param name The figure name to check
  * @return true if the figure matches the filter text
  */
-bool OutlinerPanel::matchesFilter(const std::string& name) const {
+bool OutlinerPanel::matchesFilter(const std::string &name) const {
   if (filterText_.empty()) {
     return true;
   }
@@ -312,7 +320,7 @@ bool OutlinerPanel::matchesFilter(const std::string& name) const {
   // Case-insensitive substring match
   std::string lowerName = name;
   std::string lowerFilter = filterText_;
-  
+
   std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
                  [](unsigned char c) { return std::tolower(c); });
   std::transform(lowerFilter.begin(), lowerFilter.end(), lowerFilter.begin(),
@@ -327,7 +335,8 @@ bool OutlinerPanel::matchesFilter(const std::string& name) const {
  * @param isCtrlPressed Whether Ctrl key is held (for multi-selection)
  * @param isShiftPressed Whether Shift key is held (for range selection)
  */
-void OutlinerPanel::handleSelection(uint32_t figureId, bool isCtrlPressed, bool isShiftPressed) {
+void OutlinerPanel::handleSelection(uint32_t figureId, bool isCtrlPressed,
+                                    bool isShiftPressed) {
   if (isCtrlPressed) {
     // Toggle selection
     selectionManager_.toggleFigureSelection(figureId);
@@ -352,7 +361,8 @@ void OutlinerPanel::handleRename(uint32_t figureId) {
   }
 
   renamingFigureId_ = figureId;
-  std::strncpy(renameBuffer_, figure->getName().c_str(), sizeof(renameBuffer_) - 1);
+  std::strncpy(renameBuffer_, figure->getName().c_str(),
+               sizeof(renameBuffer_) - 1);
   renameBuffer_[sizeof(renameBuffer_) - 1] = '\0';
 }
 
@@ -361,15 +371,15 @@ void OutlinerPanel::handleRename(uint32_t figureId) {
  */
 void OutlinerPanel::handleDelete() {
   auto selectedIds = selectionManager_.getSelectedFigureIds();
-  
+
   // Delete in reverse order to avoid index shifting issues
   std::vector<uint32_t> sortedIds(selectedIds.begin(), selectedIds.end());
   std::sort(sortedIds.rbegin(), sortedIds.rend());
-  
+
   for (uint32_t id : sortedIds) {
     model_.removeFigure(id);
   }
-  
+
   // Clear selection after delete
   selectionManager_.clearSelection();
   invalidateCache();
@@ -387,7 +397,8 @@ void OutlinerPanel::onSelectionChanged() {
  * @param figureId The ID of the figure that changed
  * @param propertyPath The path of the property that changed
  */
-void OutlinerPanel::onPropertyChanged(uint32_t figureId, const std::string& propertyPath) {
+void OutlinerPanel::onPropertyChanged(uint32_t figureId,
+                                      const std::string &propertyPath) {
   // If name changed, invalidate cache to update display
   if (propertyPath == "name") {
     invalidateCache();

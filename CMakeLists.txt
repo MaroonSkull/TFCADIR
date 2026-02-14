@@ -25,7 +25,7 @@ include (CMake/utils.cmake)
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Phase 4: nlohmann/json dependency for command serialization
+#Phase 4 : nlohmann / json dependency for command serialization
 include(FetchContent)
 FetchContent_Declare(
     nlohmann_json
@@ -90,6 +90,7 @@ foreach (library
     target_link_libraries (${PROJECT_NAME}
         PRIVATE
             ${library}
+            Tools
     )
 
 endforeach (library)
