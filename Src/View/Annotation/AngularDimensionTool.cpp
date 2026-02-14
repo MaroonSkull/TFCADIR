@@ -8,12 +8,12 @@
 
 #include "DimensionTool.hpp"
 #include "View/UIFSMAdapter.hpp"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-#include <cmath>
-#include <sstream>
 #include <iomanip>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace view {
 
@@ -21,18 +21,18 @@ namespace view {
 // AngularDimensionTool Implementation
 //------------------------------------------------------------------------------
 
-AngularDimensionTool::AngularDimensionTool(UIFSMAdapter& adapter)
+AngularDimensionTool::AngularDimensionTool(UIFSMAdapter &adapter)
     : DimensionTool(Type::AngularDimension, adapter), currentMousePos_(0.0f) {
   /// Set default prefix for angular dimensions
   style_.suffix = "°";
 }
 
-bool AngularDimensionTool::handleClick(const glm::vec2& position,
+bool AngularDimensionTool::handleClick(const glm::vec2 &position,
                                        int modifiers) {
   /// Add the clicked point
   points_.push_back(position);
 
-  const char* pointNames[] = {"Vertex", "First point", "Second point"};
+  const char *pointNames[] = {"Vertex", "First point", "Second point"};
   spdlog::info("AngularDimensionTool: {} added at ({}, {})",
                pointNames[std::min(points_.size() - 1, size_t(2))], position.x,
                position.y);
@@ -55,7 +55,7 @@ bool AngularDimensionTool::handleClick(const glm::vec2& position,
   return true;
 }
 
-bool AngularDimensionTool::handleMouseMove(const glm::vec2& position) {
+bool AngularDimensionTool::handleMouseMove(const glm::vec2 &position) {
   /// Update current mouse position for preview
   currentMousePos_ = position;
   return true;
@@ -85,7 +85,7 @@ std::vector<glm::vec2> AngularDimensionTool::getPreviewPoints() const {
   std::vector<glm::vec2> preview;
 
   /// Add all collected points
-  for (const auto& point : points_) {
+  for (const auto &point : points_) {
     preview.push_back(point);
   }
 
@@ -101,9 +101,7 @@ size_t AngularDimensionTool::getCollectedPointsCount() const {
   return points_.size();
 }
 
-bool AngularDimensionTool::isComplete() const {
-  return points_.size() >= 3;
-}
+bool AngularDimensionTool::isComplete() const { return points_.size() >= 3; }
 
 std::string AngularDimensionTool::getFormattedValue() const {
   if (points_.size() < 3) {
@@ -138,8 +136,8 @@ glm::vec2 AngularDimensionTool::getSecondPoint() const {
   return points_.size() < 3 ? glm::vec2(0.0f) : points_[2];
 }
 
-float AngularDimensionTool::calculateAngle(const glm::vec2& v1,
-                                           const glm::vec2& v2) const {
+float AngularDimensionTool::calculateAngle(const glm::vec2 &v1,
+                                           const glm::vec2 &v2) const {
   /// Calculate angle using dot product
   float dot = glm::dot(v1, v2);
   float len1 = glm::length(v1);

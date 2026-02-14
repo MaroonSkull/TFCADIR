@@ -8,12 +8,12 @@
 
 #include "DimensionTool.hpp"
 #include "View/UIFSMAdapter.hpp"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-#include <cmath>
-#include <sstream>
 #include <iomanip>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace view {
 
@@ -21,7 +21,7 @@ namespace view {
 // TextAnnotationTool Implementation
 //------------------------------------------------------------------------------
 
-TextAnnotationTool::TextAnnotationTool(UIFSMAdapter& adapter)
+TextAnnotationTool::TextAnnotationTool(UIFSMAdapter &adapter)
     : DimensionTool(Type::TextAnnotation, adapter), position_(0.0f),
       hasPosition_(false), currentMousePos_(0.0f), text_(DEFAULT_TEXT),
       fontSize_(12.0f) {
@@ -31,8 +31,7 @@ TextAnnotationTool::TextAnnotationTool(UIFSMAdapter& adapter)
   style_.textSize = fontSize_;
 }
 
-bool TextAnnotationTool::handleClick(const glm::vec2& position,
-                                     int modifiers) {
+bool TextAnnotationTool::handleClick(const glm::vec2 &position, int modifiers) {
   /// Set the text position
   position_ = position;
   hasPosition_ = true;
@@ -53,7 +52,7 @@ bool TextAnnotationTool::handleClick(const glm::vec2& position,
   return true;
 }
 
-bool TextAnnotationTool::handleMouseMove(const glm::vec2& position) {
+bool TextAnnotationTool::handleMouseMove(const glm::vec2 &position) {
   /// Update current mouse position for preview
   currentMousePos_ = position;
   return true;
@@ -92,7 +91,7 @@ glm::vec2 TextAnnotationTool::getPosition() const {
   return hasPosition_ ? position_ : glm::vec2(0.0f);
 }
 
-void TextAnnotationTool::setText(const std::string& text) { text_ = text; }
+void TextAnnotationTool::setText(const std::string &text) { text_ = text; }
 
 void TextAnnotationTool::setFontSize(float size) { fontSize_ = size; }
 
@@ -100,12 +99,8 @@ size_t TextAnnotationTool::getCollectedPointsCount() const {
   return hasPosition_ ? 1 : 0;
 }
 
-bool TextAnnotationTool::isComplete() const {
-  return hasPosition_;
-}
+bool TextAnnotationTool::isComplete() const { return hasPosition_; }
 
-std::string TextAnnotationTool::getFormattedValue() const {
-  return text_;
-}
+std::string TextAnnotationTool::getFormattedValue() const { return text_; }
 
 } // namespace view

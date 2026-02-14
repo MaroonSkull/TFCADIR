@@ -10,11 +10,11 @@
 
 #pragma once
 
+#include <functional>
 #include <glm/glm.hpp>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include <functional>
 
 namespace view {
 
@@ -25,29 +25,29 @@ class UIFSMAdapter;
  * @brief Dimension arrow style options
  */
 enum class ArrowStyle {
-  Filled,      ///< Filled triangular arrows
-  Open,        ///< Open triangular arrows
-  Closed,      ///< Closed triangular arrows
-  Architect,   ///< Architectural tick marks
-  None         ///< No arrows
+  Filled,    ///< Filled triangular arrows
+  Open,      ///< Open triangular arrows
+  Closed,    ///< Closed triangular arrows
+  Architect, ///< Architectural tick marks
+  None       ///< No arrows
 };
 
 /**
  * @brief Dimension text position options
  */
 enum class TextPosition {
-  AboveLine,   ///< Text above dimension line
-  OnLine,      ///< Text on dimension line (with gap)
-  BelowLine    ///< Text below dimension line
+  AboveLine, ///< Text above dimension line
+  OnLine,    ///< Text on dimension line (with gap)
+  BelowLine  ///< Text below dimension line
 };
 
 /**
  * @brief Dimension text alignment options
  */
 enum class TextAlignment {
-  Center,      ///< Center aligned with dimension line
-  Start,       ///< Aligned with start of dimension
-  End          ///< Aligned with end of dimension
+  Center, ///< Center aligned with dimension line
+  Start,  ///< Aligned with start of dimension
+  End     ///< Aligned with end of dimension
 };
 
 /**
@@ -57,15 +57,15 @@ struct DimensionStyle {
   ArrowStyle arrowStyle{ArrowStyle::Filled};
   TextPosition textPosition{TextPosition::AboveLine};
   TextAlignment textAlignment{TextAlignment::Center};
-  float arrowSize{3.0f};           ///< Arrow size in pixels
-  float textSize{12.0f};           ///< Text size in points
-  float lineWeight{1.0f};          ///< Line weight in pixels
-  float extensionLineOffset{2.0f}; ///< Offset from measured points
-  float extensionLineExtension{2.0f}; ///< Extension beyond dimension line
+  float arrowSize{3.0f};                   ///< Arrow size in pixels
+  float textSize{12.0f};                   ///< Text size in points
+  float lineWeight{1.0f};                  ///< Line weight in pixels
+  float extensionLineOffset{2.0f};         ///< Offset from measured points
+  float extensionLineExtension{2.0f};      ///< Extension beyond dimension line
   glm::vec4 color{0.0f, 0.0f, 0.0f, 1.0f}; ///< Dimension color
-  std::string prefix;              ///< Text prefix (e.g., "R" for radius)
-  std::string suffix;              ///< Text suffix (e.g., "mm")
-  int precision{2};                ///< Decimal places for value display
+  std::string prefix; ///< Text prefix (e.g., "R" for radius)
+  std::string suffix; ///< Text suffix (e.g., "mm")
+  int precision{2};   ///< Decimal places for value display
 };
 
 /**
@@ -84,12 +84,12 @@ public:
    * @brief Tool type identifiers
    */
   enum class Type {
-    LinearDimension,    ///< Linear dimension tool
-    AngularDimension,   ///< Angular dimension tool
-    RadialDimension,    ///< Radial dimension tool
-    DiameterDimension,  ///< Diameter dimension tool
-    LeaderLine,         ///< Leader line tool
-    TextAnnotation      ///< Text annotation tool
+    LinearDimension,   ///< Linear dimension tool
+    AngularDimension,  ///< Angular dimension tool
+    RadialDimension,   ///< Radial dimension tool
+    DiameterDimension, ///< Diameter dimension tool
+    LeaderLine,        ///< Leader line tool
+    TextAnnotation     ///< Text annotation tool
   };
 
   /**
@@ -97,7 +97,7 @@ public:
    * @param type The tool type identifier
    * @param adapter Reference to the UIFSMAdapter for FSM queries
    */
-  DimensionTool(Type type, UIFSMAdapter& adapter);
+  DimensionTool(Type type, UIFSMAdapter &adapter);
 
   /**
    * @brief Virtual destructor
@@ -105,12 +105,12 @@ public:
   virtual ~DimensionTool() = default;
 
   // Copy prohibition
-  DimensionTool(const DimensionTool&) = delete;
-  DimensionTool& operator=(const DimensionTool&) = delete;
+  DimensionTool(const DimensionTool &) = delete;
+  DimensionTool &operator=(const DimensionTool &) = delete;
 
   // Move permission
-  DimensionTool(DimensionTool&&) noexcept = default;
-  DimensionTool& operator=(DimensionTool&&) noexcept = default;
+  DimensionTool(DimensionTool &&) noexcept = default;
+  DimensionTool &operator=(DimensionTool &&) noexcept = default;
 
   /**
    * @brief Get the tool type
@@ -160,13 +160,13 @@ public:
    * @brief Get the current dimension style
    * @return Reference to the dimension style configuration
    */
-  const DimensionStyle& getStyle() const { return style_; }
+  const DimensionStyle &getStyle() const { return style_; }
 
   /**
    * @brief Set the dimension style
    * @param style New style configuration
    */
-  void setStyle(const DimensionStyle& style) { style_ = style; }
+  void setStyle(const DimensionStyle &style) { style_ = style; }
 
   /**
    * @brief Handle mouse click event
@@ -174,14 +174,14 @@ public:
    * @param modifiers Keyboard modifiers (Ctrl, Shift, Alt)
    * @return true if the event was handled
    */
-  virtual bool handleClick(const glm::vec2& position, int modifiers) = 0;
+  virtual bool handleClick(const glm::vec2 &position, int modifiers) = 0;
 
   /**
    * @brief Handle mouse move event
    * @param position Current mouse position
    * @return true if the event was handled
    */
-  virtual bool handleMouseMove(const glm::vec2& position) = 0;
+  virtual bool handleMouseMove(const glm::vec2 &position) = 0;
 
   /**
    * @brief Handle key press event
@@ -236,7 +236,7 @@ public:
    * @brief Set callback for dimension completion
    * @param callback Function to call when dimension is complete
    */
-  void setOnComplete(std::function<void(const std::string&)> callback) {
+  void setOnComplete(std::function<void(const std::string &)> callback) {
     onComplete_ = std::move(callback);
   }
 
@@ -252,13 +252,13 @@ protected:
   Type type_;
 
   /// Reference to UIFSMAdapter for FSM queries (non-owning)
-  UIFSMAdapter& adapter_;
+  UIFSMAdapter &adapter_;
 
   /// Current dimension style
   DimensionStyle style_;
 
   /// Callback for dimension completion
-  std::function<void(const std::string&)> onComplete_;
+  std::function<void(const std::string &)> onComplete_;
 };
 
 /**
@@ -274,8 +274,8 @@ public:
    * @param adapter Reference to UIFSMAdapter
    * @return Unique pointer to the created tool
    */
-  static std::unique_ptr<DimensionTool>
-  createTool(DimensionTool::Type type, UIFSMAdapter& adapter);
+  static std::unique_ptr<DimensionTool> createTool(DimensionTool::Type type,
+                                                   UIFSMAdapter &adapter);
 
   /**
    * @brief Get list of all available tool types
@@ -314,14 +314,14 @@ public:
    * @brief Construct a LinearDimensionTool
    * @param adapter Reference to UIFSMAdapter for FSM queries
    */
-  explicit LinearDimensionTool(UIFSMAdapter& adapter);
+  explicit LinearDimensionTool(UIFSMAdapter &adapter);
 
   std::string getDisplayName() const override { return "Linear Dimension"; }
   std::string getActivationEvent() const override {
     return "OnActivateLinearDimension";
   }
-  bool handleClick(const glm::vec2& position, int modifiers) override;
-  bool handleMouseMove(const glm::vec2& position) override;
+  bool handleClick(const glm::vec2 &position, int modifiers) override;
+  bool handleMouseMove(const glm::vec2 &position) override;
   bool handleKeyPress(int key, int modifiers) override;
   void cancel() override;
   bool hasPreview() const override;
@@ -349,8 +349,8 @@ private:
   glm::vec2 currentMousePos_;
   Orientation orientation_{Orientation::Aligned};
   std::pair<glm::vec2, glm::vec2>
-  calculateDimensionLine(const glm::vec2& start, const glm::vec2& end,
-                         const glm::vec2& mousePos) const;
+  calculateDimensionLine(const glm::vec2 &start, const glm::vec2 &end,
+                         const glm::vec2 &mousePos) const;
   std::string formatValue(float value) const;
 };
 
@@ -366,14 +366,14 @@ public:
    * @brief Construct an AngularDimensionTool
    * @param adapter Reference to UIFSMAdapter for FSM queries
    */
-  explicit AngularDimensionTool(UIFSMAdapter& adapter);
+  explicit AngularDimensionTool(UIFSMAdapter &adapter);
 
   std::string getDisplayName() const override { return "Angular Dimension"; }
   std::string getActivationEvent() const override {
     return "OnActivateAngularDimension";
   }
-  bool handleClick(const glm::vec2& position, int modifiers) override;
-  bool handleMouseMove(const glm::vec2& position) override;
+  bool handleClick(const glm::vec2 &position, int modifiers) override;
+  bool handleMouseMove(const glm::vec2 &position) override;
   bool handleKeyPress(int key, int modifiers) override;
   void cancel() override;
   bool hasPreview() const override;
@@ -395,7 +395,7 @@ public:
 private:
   std::vector<glm::vec2> points_;
   glm::vec2 currentMousePos_;
-  float calculateAngle(const glm::vec2& v1, const glm::vec2& v2) const;
+  float calculateAngle(const glm::vec2 &v1, const glm::vec2 &v2) const;
   std::string formatValue(float value) const;
 };
 
@@ -411,14 +411,14 @@ public:
    * @brief Construct a RadialDimensionTool
    * @param adapter Reference to UIFSMAdapter for FSM queries
    */
-  explicit RadialDimensionTool(UIFSMAdapter& adapter);
+  explicit RadialDimensionTool(UIFSMAdapter &adapter);
 
   std::string getDisplayName() const override { return "Radial Dimension"; }
   std::string getActivationEvent() const override {
     return "OnActivateRadialDimension";
   }
-  bool handleClick(const glm::vec2& position, int modifiers) override;
-  bool handleMouseMove(const glm::vec2& position) override;
+  bool handleClick(const glm::vec2 &position, int modifiers) override;
+  bool handleMouseMove(const glm::vec2 &position) override;
   bool handleKeyPress(int key, int modifiers) override;
   void cancel() override;
   bool hasPreview() const override;
@@ -453,14 +453,14 @@ public:
    * @brief Construct a DiameterDimensionTool
    * @param adapter Reference to UIFSMAdapter for FSM queries
    */
-  explicit DiameterDimensionTool(UIFSMAdapter& adapter);
+  explicit DiameterDimensionTool(UIFSMAdapter &adapter);
 
   std::string getDisplayName() const override { return "Diameter Dimension"; }
   std::string getActivationEvent() const override {
     return "OnActivateDiameterDimension";
   }
-  bool handleClick(const glm::vec2& position, int modifiers) override;
-  bool handleMouseMove(const glm::vec2& position) override;
+  bool handleClick(const glm::vec2 &position, int modifiers) override;
+  bool handleMouseMove(const glm::vec2 &position) override;
   bool handleKeyPress(int key, int modifiers) override;
   void cancel() override;
   bool hasPreview() const override;
@@ -495,12 +495,12 @@ public:
    * @brief Construct a LeaderTool
    * @param adapter Reference to UIFSMAdapter for FSM queries
    */
-  explicit LeaderTool(UIFSMAdapter& adapter);
+  explicit LeaderTool(UIFSMAdapter &adapter);
 
   std::string getDisplayName() const override { return "Leader Line"; }
   std::string getActivationEvent() const override { return "OnActivateLeader"; }
-  bool handleClick(const glm::vec2& position, int modifiers) override;
-  bool handleMouseMove(const glm::vec2& position) override;
+  bool handleClick(const glm::vec2 &position, int modifiers) override;
+  bool handleMouseMove(const glm::vec2 &position) override;
   bool handleKeyPress(int key, int modifiers) override;
   void cancel() override;
   bool hasPreview() const override;
@@ -515,9 +515,9 @@ public:
   /// Get the text position (end of leader)
   glm::vec2 getTextPosition() const;
   /// Get the annotation text
-  const std::string& getText() const { return text_; }
+  const std::string &getText() const { return text_; }
   /// Set the annotation text
-  void setText(const std::string& text);
+  void setText(const std::string &text);
   /// Get the leader line length
   float getLength() const;
 
@@ -525,7 +525,7 @@ private:
   std::vector<glm::vec2> points_;
   glm::vec2 currentMousePos_;
   std::string text_;
-  static constexpr const char* DEFAULT_TEXT = "Note";
+  static constexpr const char *DEFAULT_TEXT = "Note";
 };
 
 /**
@@ -540,14 +540,14 @@ public:
    * @brief Construct a TextAnnotationTool
    * @param adapter Reference to UIFSMAdapter for FSM queries
    */
-  explicit TextAnnotationTool(UIFSMAdapter& adapter);
+  explicit TextAnnotationTool(UIFSMAdapter &adapter);
 
   std::string getDisplayName() const override { return "Text Annotation"; }
   std::string getActivationEvent() const override {
     return "OnActivateTextAnnotation";
   }
-  bool handleClick(const glm::vec2& position, int modifiers) override;
-  bool handleMouseMove(const glm::vec2& position) override;
+  bool handleClick(const glm::vec2 &position, int modifiers) override;
+  bool handleMouseMove(const glm::vec2 &position) override;
   bool handleKeyPress(int key, int modifiers) override;
   void cancel() override;
   bool hasPreview() const override;
@@ -560,9 +560,9 @@ public:
   /// Get the text position
   glm::vec2 getPosition() const;
   /// Get the annotation text
-  const std::string& getText() const { return text_; }
+  const std::string &getText() const { return text_; }
   /// Set the annotation text
-  void setText(const std::string& text);
+  void setText(const std::string &text);
   /// Get the font size
   float getFontSize() const { return fontSize_; }
   /// Set the font size
@@ -574,7 +574,7 @@ private:
   glm::vec2 currentMousePos_;
   std::string text_;
   float fontSize_;
-  static constexpr const char* DEFAULT_TEXT = "Text";
+  static constexpr const char *DEFAULT_TEXT = "Text";
 };
 
 } // namespace view

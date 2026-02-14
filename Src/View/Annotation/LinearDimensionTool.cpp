@@ -9,12 +9,12 @@
 
 #include "DimensionTool.hpp"
 #include "View/UIFSMAdapter.hpp"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-#include <cmath>
-#include <sstream>
 #include <iomanip>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace view {
 
@@ -22,10 +22,11 @@ namespace view {
 // LinearDimensionTool Implementation
 //------------------------------------------------------------------------------
 
-LinearDimensionTool::LinearDimensionTool(UIFSMAdapter& adapter)
+LinearDimensionTool::LinearDimensionTool(UIFSMAdapter &adapter)
     : DimensionTool(Type::LinearDimension, adapter), currentMousePos_(0.0f) {}
 
-bool LinearDimensionTool::handleClick(const glm::vec2& position, int modifiers) {
+bool LinearDimensionTool::handleClick(const glm::vec2 &position,
+                                      int modifiers) {
   /// Add the clicked point
   points_.push_back(position);
   spdlog::info("LinearDimensionTool: Point {} added at ({}, {})",
@@ -49,7 +50,7 @@ bool LinearDimensionTool::handleClick(const glm::vec2& position, int modifiers) 
   return true;
 }
 
-bool LinearDimensionTool::handleMouseMove(const glm::vec2& position) {
+bool LinearDimensionTool::handleMouseMove(const glm::vec2 &position) {
   /// Update current mouse position for preview
   currentMousePos_ = position;
   return true;
@@ -116,9 +117,7 @@ size_t LinearDimensionTool::getCollectedPointsCount() const {
   return points_.size();
 }
 
-bool LinearDimensionTool::isComplete() const {
-  return points_.size() >= 2;
-}
+bool LinearDimensionTool::isComplete() const { return points_.size() >= 2; }
 
 std::string LinearDimensionTool::getFormattedValue() const {
   if (points_.size() < 2) {
@@ -175,9 +174,9 @@ LinearDimensionTool::Orientation LinearDimensionTool::getOrientation() const {
 }
 
 std::pair<glm::vec2, glm::vec2>
-LinearDimensionTool::calculateDimensionLine(const glm::vec2& start,
-                                            const glm::vec2& end,
-                                            const glm::vec2& mousePos) const {
+LinearDimensionTool::calculateDimensionLine(const glm::vec2 &start,
+                                            const glm::vec2 &end,
+                                            const glm::vec2 &mousePos) const {
   /// Calculate the dimension line based on orientation
   glm::vec2 dimStart, dimEnd;
 
@@ -227,7 +226,7 @@ std::string LinearDimensionTool::formatValue(float value) const {
 // DimensionTool Base Implementation
 //------------------------------------------------------------------------------
 
-DimensionTool::DimensionTool(Type type, UIFSMAdapter& adapter)
+DimensionTool::DimensionTool(Type type, UIFSMAdapter &adapter)
     : type_(type), adapter_(adapter) {}
 
 std::string DimensionTool::getToolId() const { return typeToString(type_); }
@@ -272,7 +271,7 @@ std::string DimensionTool::typeToString(Type type) {
 
 std::unique_ptr<DimensionTool>
 DimensionToolFactory::createTool(DimensionTool::Type type,
-                                 UIFSMAdapter& adapter) {
+                                 UIFSMAdapter &adapter) {
   switch (type) {
   case DimensionTool::Type::LinearDimension:
     return std::make_unique<LinearDimensionTool>(adapter);
@@ -302,8 +301,7 @@ std::vector<DimensionTool::Type> DimensionToolFactory::getAvailableTools() {
           DimensionTool::Type::TextAnnotation};
 }
 
-std::string
-DimensionToolFactory::getToolDisplayName(DimensionTool::Type type) {
+std::string DimensionToolFactory::getToolDisplayName(DimensionTool::Type type) {
   switch (type) {
   case DimensionTool::Type::LinearDimension:
     return "Linear Dimension";

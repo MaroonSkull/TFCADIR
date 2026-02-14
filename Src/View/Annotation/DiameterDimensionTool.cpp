@@ -8,12 +8,12 @@
 
 #include "DimensionTool.hpp"
 #include "View/UIFSMAdapter.hpp"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-#include <cmath>
-#include <sstream>
 #include <iomanip>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace view {
 
@@ -21,18 +21,18 @@ namespace view {
 // DiameterDimensionTool Implementation
 //------------------------------------------------------------------------------
 
-DiameterDimensionTool::DiameterDimensionTool(UIFSMAdapter& adapter)
+DiameterDimensionTool::DiameterDimensionTool(UIFSMAdapter &adapter)
     : DimensionTool(Type::DiameterDimension, adapter), currentMousePos_(0.0f) {
   /// Set default prefix for diameter dimensions
   style_.prefix = "Ø";
 }
 
-bool DiameterDimensionTool::handleClick(const glm::vec2& position,
+bool DiameterDimensionTool::handleClick(const glm::vec2 &position,
                                         int modifiers) {
   /// Add the clicked point
   points_.push_back(position);
 
-  const char* pointNames[] = {"Center", "Point on circle"};
+  const char *pointNames[] = {"Center", "Point on circle"};
   spdlog::info("DiameterDimensionTool: {} added at ({}, {})",
                pointNames[std::min(points_.size() - 1, size_t(1))], position.x,
                position.y);
@@ -55,7 +55,7 @@ bool DiameterDimensionTool::handleClick(const glm::vec2& position,
   return true;
 }
 
-bool DiameterDimensionTool::handleMouseMove(const glm::vec2& position) {
+bool DiameterDimensionTool::handleMouseMove(const glm::vec2 &position) {
   /// Update current mouse position for preview
   currentMousePos_ = position;
   return true;
@@ -85,7 +85,7 @@ std::vector<glm::vec2> DiameterDimensionTool::getPreviewPoints() const {
   std::vector<glm::vec2> preview;
 
   /// Add all collected points
-  for (const auto& point : points_) {
+  for (const auto &point : points_) {
     preview.push_back(point);
   }
 
@@ -101,9 +101,7 @@ size_t DiameterDimensionTool::getCollectedPointsCount() const {
   return points_.size();
 }
 
-bool DiameterDimensionTool::isComplete() const {
-  return points_.size() >= 2;
-}
+bool DiameterDimensionTool::isComplete() const { return points_.size() >= 2; }
 
 std::string DiameterDimensionTool::getFormattedValue() const {
   if (points_.size() < 2) {

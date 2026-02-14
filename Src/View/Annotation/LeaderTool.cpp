@@ -8,12 +8,12 @@
 
 #include "DimensionTool.hpp"
 #include "View/UIFSMAdapter.hpp"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-#include <cmath>
-#include <sstream>
 #include <iomanip>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace view {
 
@@ -21,7 +21,7 @@ namespace view {
 // LeaderTool Implementation
 //------------------------------------------------------------------------------
 
-LeaderTool::LeaderTool(UIFSMAdapter& adapter)
+LeaderTool::LeaderTool(UIFSMAdapter &adapter)
     : DimensionTool(Type::LeaderLine, adapter), currentMousePos_(0.0f),
       text_(DEFAULT_TEXT) {
   /// Leader lines don't use prefix/suffix
@@ -29,11 +29,11 @@ LeaderTool::LeaderTool(UIFSMAdapter& adapter)
   style_.suffix = "";
 }
 
-bool LeaderTool::handleClick(const glm::vec2& position, int modifiers) {
+bool LeaderTool::handleClick(const glm::vec2 &position, int modifiers) {
   /// Add the clicked point
   points_.push_back(position);
 
-  const char* pointNames[] = {"Arrow point", "Text position"};
+  const char *pointNames[] = {"Arrow point", "Text position"};
   spdlog::info("LeaderTool: {} added at ({}, {})",
                pointNames[std::min(points_.size() - 1, size_t(1))], position.x,
                position.y);
@@ -55,7 +55,7 @@ bool LeaderTool::handleClick(const glm::vec2& position, int modifiers) {
   return true;
 }
 
-bool LeaderTool::handleMouseMove(const glm::vec2& position) {
+bool LeaderTool::handleMouseMove(const glm::vec2 &position) {
   /// Update current mouse position for preview
   currentMousePos_ = position;
   return true;
@@ -86,7 +86,7 @@ std::vector<glm::vec2> LeaderTool::getPreviewPoints() const {
   std::vector<glm::vec2> preview;
 
   /// Add all collected points
-  for (const auto& point : points_) {
+  for (const auto &point : points_) {
     preview.push_back(point);
   }
 
@@ -106,7 +106,7 @@ glm::vec2 LeaderTool::getTextPosition() const {
   return points_.size() < 2 ? glm::vec2(0.0f) : points_[1];
 }
 
-void LeaderTool::setText(const std::string& text) { text_ = text; }
+void LeaderTool::setText(const std::string &text) { text_ = text; }
 
 float LeaderTool::getLength() const {
   if (points_.size() < 2) {
@@ -116,16 +116,10 @@ float LeaderTool::getLength() const {
   return glm::length(points_[1] - points_[0]);
 }
 
-size_t LeaderTool::getCollectedPointsCount() const {
-  return points_.size();
-}
+size_t LeaderTool::getCollectedPointsCount() const { return points_.size(); }
 
-bool LeaderTool::isComplete() const {
-  return points_.size() >= 2;
-}
+bool LeaderTool::isComplete() const { return points_.size() >= 2; }
 
-std::string LeaderTool::getFormattedValue() const {
-  return text_;
-}
+std::string LeaderTool::getFormattedValue() const { return text_; }
 
 } // namespace view
