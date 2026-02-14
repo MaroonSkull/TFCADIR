@@ -233,30 +233,52 @@ void UIFSMAdapter::activateTool(const std::string &toolId) {
   collectedPoints_.clear();
 
   // Map tool IDs to their corresponding FSM event names
+  // These events are defined in fsm_config.yaml Phase 16: Keyboard Shortcut
+  // Events
   std::string eventName;
-  if (toolId == "Line3D") {
-    eventName = "OnActivateLine3D";
-  } else if (toolId == "Circle3D") {
-    eventName = "OnActivateCircle3D";
-  } else if (toolId == "Arc3D") {
-    eventName = "OnActivateArc3D";
-  } else if (toolId == "Rectangle3D") {
-    eventName = "OnActivateRectangle3D";
-  } else if (toolId == "Polygon3D") {
-    eventName = "OnActivatePolygon3D";
-  } else if (toolId == "NGon3D") {
-    eventName = "OnActivateNGon3D";
+  if (toolId == "Line3D" || toolId == "Line") {
+    eventName = "OnShortcutLine";
+  } else if (toolId == "Circle3D" || toolId == "Circle") {
+    eventName = "OnShortcutCircle";
+  } else if (toolId == "Arc3D" || toolId == "Arc") {
+    eventName = "OnShortcutArc";
+  } else if (toolId == "Rectangle3D" || toolId == "Rectangle") {
+    eventName = "OnShortcutRectangle";
+  } else if (toolId == "Polygon3D" || toolId == "Polygon") {
+    eventName = "OnShortcutPolygon";
+  } else if (toolId == "Triangle") {
+    eventName = "OnShortcutTriangle";
+  } else if (toolId == "Ellipse") {
+    eventName = "OnShortcutEllipse";
+  } else if (toolId == "Spline") {
+    eventName = "OnShortcutSpline";
+  } else if (toolId == "Select") {
+    eventName = "OnShortcutSelect";
+  } else if (toolId == "Move") {
+    eventName = "OnShortcutMove";
+  } else if (toolId == "Rotate") {
+    eventName = "OnShortcutRotate";
+  } else if (toolId == "Scale") {
+    eventName = "OnShortcutScale";
+  } else if (toolId == "Mirror") {
+    eventName = "OnShortcutMirror";
+  } else if (toolId == "Fillet") {
+    eventName = "OnShortcutFillet";
+  } else if (toolId == "Dimension") {
+    eventName = "OnShortcutDimension";
+  } else if (toolId == "Measure") {
+    eventName = "OnShortcutMeasure";
   } else if (toolId == "LineInSketch") {
-    eventName = "OnActivateLineInSketch";
+    eventName = "OnAddLineInSketch";
   } else if (toolId == "CircleInSketch") {
-    eventName = "OnActivateCircleInSketch";
+    eventName = "OnAddCircleByCenterInSketch";
   } else {
     logger_->warn("Unknown tool ID requested: {}", toolId);
     return;
   }
 
   /// Trigger the FSM event via FSMConfig's string-based event system
-  /// Note: These events need to be defined in the FSM YAML configuration
+  /// Note: These events are defined in fsm_config.yaml
   if (fsmconfig::StateMachine *fsm = fsm_.get_fsm()) {
     try {
       fsm->triggerEvent(eventName);

@@ -888,15 +888,28 @@ public:
    * @brief Activate a tool
    * @param toolId Tool identifier to activate
    *
-   * Sends the appropriate tool activation event to the FSM:
-   * - "Line3D" → OnActivateLine3D event
-   * - "Circle3D" → OnActivateCircle3D event
-   * - "Arc3D" → OnActivateArc3D event
-   * - "Rectangle3D" → OnActivateRectangle3D event
-   * - "Polygon3D" → OnActivatePolygon3D event
-   * - "NGon3D" → OnActivateNGon3D event
-   * - "LineInSketch" → OnActivateLineInSketch event
-   * - "CircleInSketch" → OnActivateCircleInSketch event
+   * Sends the appropriate tool activation event to the FSM.
+   * Events are defined in fsm_config.yaml Phase 16: Keyboard Shortcut Events.
+   *
+   * Tool ID to FSM Event mapping:
+   * - "Line3D" or "Line" → OnShortcutLine
+   * - "Circle3D" or "Circle" → OnShortcutCircle
+   * - "Arc3D" or "Arc" → OnShortcutArc
+   * - "Rectangle3D" or "Rectangle" → OnShortcutRectangle
+   * - "Polygon3D" or "Polygon" → OnShortcutPolygon
+   * - "Triangle" → OnShortcutTriangle
+   * - "Ellipse" → OnShortcutEllipse
+   * - "Spline" → OnShortcutSpline
+   * - "Select" → OnShortcutSelect
+   * - "Move" → OnShortcutMove
+   * - "Rotate" → OnShortcutRotate
+   * - "Scale" → OnShortcutScale
+   * - "Mirror" → OnShortcutMirror
+   * - "Fillet" → OnShortcutFillet
+   * - "Dimension" → OnShortcutDimension
+   * - "Measure" → OnShortcutMeasure
+   * - "LineInSketch" → OnAddLineInSketch
+   * - "CircleInSketch" → OnAddCircleByCenterInSketch
    *
    * The tool remains active until deactivated or a drawing operation completes.
    */

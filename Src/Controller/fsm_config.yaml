@@ -2,410 +2,558 @@
 #Defines states and transitions for the drawing application
 
 #Global variables
-variables:
-  mouse_x: 0.0
-  mouse_y: 0.0
+variables : mouse_x : 0.0 mouse_y : 0.0
 
 #State definitions
-states:
-  Idle:
-    on_enter: on_idle_enter
-    on_exit: on_idle_exit
-    actions:
-      - log_idle_state
+            states : Idle : on_enter : on_idle_enter on_exit
+    : on_idle_exit actions : -log_idle_state
 
-  DrawingProcessing:
-    on_enter: on_drawing_enter
-    on_exit: on_drawing_exit
-    actions:
-      - log_drawing_state
+                                 DrawingProcessing : on_enter
+    : on_drawing_enter on_exit : on_drawing_exit actions : -log_drawing_state
 
-  MoveFirstPoint:
-    on_enter: on_move_first_point_enter
-    on_exit: on_move_first_point_exit
-    actions:
-      - log_move_first_point_state
+                                                               MoveFirstPoint
+    : on_enter : on_move_first_point_enter on_exit
+    : on_move_first_point_exit actions : -log_move_first_point_state
 
-  PlaneSelection:
-    on_enter: on_plane_selection_enter
-    on_exit: on_plane_selection_exit
-    actions:
-      - log_plane_selection_state
+                                             PlaneSelection : on_enter
+    : on_plane_selection_enter on_exit : on_plane_selection_exit actions
+    : -log_plane_selection_state
 
-  SketchEdit:
-    on_enter: on_sketch_edit_enter
-    on_exit: on_sketch_edit_exit
-    actions:
-      - log_sketch_edit_state
+          SketchEdit : on_enter : on_sketch_edit_enter on_exit
+    : on_sketch_edit_exit actions : -log_sketch_edit_state
 
-  # Phase 10: Selection mode states
-  SelectionMode:
-    on_enter: on_selection_mode_enter
-    on_exit: on_selection_mode_exit
-    actions:
-      - log_selection_mode_state
+#Phase 10 : Selection mode states
+                                        SelectionMode : on_enter
+    : on_selection_mode_enter on_exit : on_selection_mode_exit actions
+    : -log_selection_mode_state
 
-  BoxSelection:
-    on_enter: on_box_selection_enter
-    on_exit: on_box_selection_exit
-    actions:
-      - log_box_selection_state
+          BoxSelection : on_enter : on_box_selection_enter on_exit
+    : on_box_selection_exit actions : -log_box_selection_state
 
-  LassoSelection:
-    on_enter: on_lasso_selection_enter
-    on_exit: on_lasso_selection_exit
-    actions:
-      - log_lasso_selection_state
+                                          LassoSelection : on_enter
+    : on_lasso_selection_enter on_exit : on_lasso_selection_exit actions
+    : -log_lasso_selection_state
 
-  PolygonSelection:
-    on_enter: on_polygon_selection_enter
-    on_exit: on_polygon_selection_exit
-    actions:
-      - log_polygon_selection_state
+          PolygonSelection : on_enter : on_polygon_selection_enter on_exit
+    : on_polygon_selection_exit actions : -log_polygon_selection_state
 
-  # Phase 11: Annotation tool states
-  LinearDimensionMode:
-    on_enter: on_linear_dimension_enter
-    on_exit: on_linear_dimension_exit
-    actions:
-      - log_linear_dimension_state
+#Phase 11 : Annotation tool states
+                                              LinearDimensionMode : on_enter
+    : on_linear_dimension_enter on_exit : on_linear_dimension_exit actions
+    : -log_linear_dimension_state
 
-  AngularDimensionMode:
-    on_enter: on_angular_dimension_enter
-    on_exit: on_angular_dimension_exit
-    actions:
-      - log_angular_dimension_state
+          AngularDimensionMode : on_enter : on_angular_dimension_enter on_exit
+    : on_angular_dimension_exit actions : -log_angular_dimension_state
 
-  RadialDimensionMode:
-    on_enter: on_radial_dimension_enter
-    on_exit: on_radial_dimension_exit
-    actions:
-      - log_radial_dimension_state
+                                              RadialDimensionMode : on_enter
+    : on_radial_dimension_enter on_exit : on_radial_dimension_exit actions
+    : -log_radial_dimension_state
 
-  DiameterDimensionMode:
-    on_enter: on_diameter_dimension_enter
-    on_exit: on_diameter_dimension_exit
-    actions:
-      - log_diameter_dimension_state
+          DiameterDimensionMode : on_enter : on_diameter_dimension_enter on_exit
+    : on_diameter_dimension_exit actions : -log_diameter_dimension_state
 
-  LeaderLineMode:
-    on_enter: on_leader_line_enter
-    on_exit: on_leader_line_exit
-    actions:
-      - log_leader_line_state
+                                               LeaderLineMode : on_enter
+    : on_leader_line_enter on_exit : on_leader_line_exit actions
+    : -log_leader_line_state
 
-  TextAnnotationMode:
-    on_enter: on_text_annotation_enter
-    on_exit: on_text_annotation_exit
-    actions:
-      - log_text_annotation_state
+          TextAnnotationMode : on_enter : on_text_annotation_enter on_exit
+    : on_text_annotation_exit actions : -log_text_annotation_state
+
+#Phase 12 : Measurement tool states
+                                            DistanceMeasurement : on_enter
+    : on_distance_measurement_enter on_exit
+    : on_distance_measurement_exit actions : -log_distance_measurement_state -
+                                             show_measurement_preview
+
+                                                 AreaMeasurement : on_enter
+    : on_area_measurement_enter on_exit : on_area_measurement_exit actions
+    : -log_area_measurement_state -
+      show_measurement_preview
+
+          AngleMeasurement : on_enter : on_angle_measurement_enter on_exit
+    : on_angle_measurement_exit actions : -log_angle_measurement_state -
+                                          show_measurement_preview
+
+                                              VolumeMeasurement : on_enter
+    : on_volume_measurement_enter on_exit : on_volume_measurement_exit actions
+    : -log_volume_measurement_state -
+      show_measurement_preview
+
+          CoordinateMeasurement : on_enter
+    : on_coordinate_measurement_enter on_exit
+    : on_coordinate_measurement_exit actions
+    : -log_coordinate_measurement_state -
+      show_measurement_preview
+
+          LengthMeasurement : on_enter : on_length_measurement_enter on_exit
+    : on_length_measurement_exit actions : -log_length_measurement_state -
+                                           show_measurement_preview
 
 #Transition definitions
-transitions:
-  #From Idle to DrawingProcessing on figure creation events
-  - from: Idle
-    to: DrawingProcessing
-    event: OnAddTriangleByCenter
-    on_transition: on_start_drawing
+                                               transitions :
+#From Idle to DrawingProcessing on figure creation events
+    -from : Idle to : DrawingProcessing event
+    : OnAddTriangleByCenter on_transition : on_start_drawing
 
-  - from: Idle
-    to: DrawingProcessing
-    event: OnAddTriangleByCorners
-    on_transition: on_start_drawing
+                                            -
+                                            from : Idle to
+    : DrawingProcessing event : OnAddTriangleByCorners on_transition
+    : on_start_drawing
 
-  - from: Idle
-    to: DrawingProcessing
-    event: OnAddSquareByCenter
-    on_transition: on_start_drawing
+      -
+      from : Idle to : DrawingProcessing event
+    : OnAddSquareByCenter on_transition : on_start_drawing
 
-  - from: Idle
-    to: DrawingProcessing
-    event: OnAddSquareByCorners
-    on_transition: on_start_drawing
+                                          -
+                                          from : Idle to
+    : DrawingProcessing event : OnAddSquareByCorners on_transition
+    : on_start_drawing
 
-  - from: Idle
-    to: DrawingProcessing
-    event: OnAddNgonByCenter
-    on_transition: on_start_drawing
+      -
+      from : Idle to : DrawingProcessing event : OnAddNgonByCenter on_transition
+    : on_start_drawing
 
-  - from: Idle
-    to: DrawingProcessing
-    event: OnAddCircleByCenter
-    on_transition: on_start_drawing
+      -
+      from : Idle to : DrawingProcessing event
+    : OnAddCircleByCenter on_transition : on_start_drawing
 
-  - from: Idle
-    to: DrawingProcessing
-    event: OnAddLine
-    on_transition: on_start_drawing
+                                          -
+                                          from : Idle to
+    : DrawingProcessing event : OnAddLine on_transition : on_start_drawing
 
-  #From DrawingProcessing to MoveFirstPoint on mouse move
-  - from: DrawingProcessing
-    to: MoveFirstPoint
-    event: OnMouseMove
-    on_transition: on_move_to_first_point
+#From DrawingProcessing to MoveFirstPoint on mouse move
+                                                          -
+                                                          from
+    : DrawingProcessing to : MoveFirstPoint event : OnMouseMove on_transition
+    : on_move_to_first_point
 
-  #From MoveFirstPoint back to DrawingProcessing
-  - from: MoveFirstPoint
-    to: DrawingProcessing
-    event: OnMouseMove
-    on_transition: on_update_drawing
+#From MoveFirstPoint back to DrawingProcessing
+      -
+      from : MoveFirstPoint to : DrawingProcessing event
+    : OnMouseMove on_transition : on_update_drawing
 
-  #From DrawingProcessing back to Idle(figure completed)
-  - from: DrawingProcessing
-    to: Idle
-    event: OnFigureComplete
-    on_transition: on_complete_figure
+#From DrawingProcessing back to Idle(figure completed)
+                                  -
+                                  from : DrawingProcessing to : Idle event
+    : OnFigureComplete on_transition : on_complete_figure
 
-  #From MoveFirstPoint back to Idle(cancelled)
-  - from: MoveFirstPoint
-    to: Idle
-    event: OnFigureCancel
-    on_transition: on_cancel_figure
+#From MoveFirstPoint back to Idle(cancelled)
+                                       -
+                                       from : MoveFirstPoint to : Idle event
+    : OnFigureCancel on_transition : on_cancel_figure
 
-  #Sketch mode transitions
-  #From Idle to PlaneSelection when entering sketch mode
-  - from: Idle
-    to: PlaneSelection
-    event: OnEnterSketchMode
-    on_transition: on_enter_sketch_mode
+#Sketch mode transitions
+#From Idle to PlaneSelection when entering sketch mode
+                                     -
+                                     from : Idle to : PlaneSelection event
+    : OnEnterSketchMode on_transition : on_enter_sketch_mode
 
-  #From PlaneSelection to SketchEdit when plane is selected
-  - from: PlaneSelection
-    to: SketchEdit
-    event: OnPlaneSelected
-    on_transition: on_select_plane
+#From PlaneSelection to SketchEdit when plane is selected
+                                        -
+                                        from : PlaneSelection to
+    : SketchEdit event : OnPlaneSelected on_transition : on_select_plane
 
-  #From SketchEdit back to Idle when exiting sketch mode
-  - from: SketchEdit
-    to: Idle
-    event: OnExitSketchMode
-    on_transition: on_exit_sketch_mode
+#From SketchEdit back to Idle when exiting sketch mode
+                                                         -
+                                                         from : SketchEdit to
+    : Idle event : OnExitSketchMode on_transition : on_exit_sketch_mode
 
-  #Sketch drawing transitions - from SketchEdit to DrawingProcessing(start drawing in SKETCH MODE)
-  - from: SketchEdit
-    to: DrawingProcessing
-    event: OnAddTriangleByCenterInSketch
-    on_transition: on_start_drawing_in_sketch
+#Sketch drawing transitions -                                                  \
+    from SketchEdit to DrawingProcessing(start drawing in SKETCH MODE)
+                                                    -
+                                                    from : SketchEdit to
+    : DrawingProcessing event : OnAddTriangleByCenterInSketch on_transition
+    : on_start_drawing_in_sketch
 
-  - from: SketchEdit
-    to: DrawingProcessing
-    event: OnAddCircleByCenterInSketch
-    on_transition: on_start_drawing_in_sketch
+      -
+      from : SketchEdit to : DrawingProcessing event
+    : OnAddCircleByCenterInSketch on_transition : on_start_drawing_in_sketch
 
-  - from: SketchEdit
-    to: DrawingProcessing
-    event: OnAddSquareByCenterInSketch
-    on_transition: on_start_drawing_in_sketch
+                                                  -
+                                                  from : SketchEdit to
+    : DrawingProcessing event : OnAddSquareByCenterInSketch on_transition
+    : on_start_drawing_in_sketch
 
-  - from: SketchEdit
-    to: DrawingProcessing
-    event: OnAddSquareByCornersInSketch
-    on_transition: on_start_drawing_in_sketch
+      -
+      from : SketchEdit to : DrawingProcessing event
+    : OnAddSquareByCornersInSketch on_transition : on_start_drawing_in_sketch
 
-  - from: SketchEdit
-    to: DrawingProcessing
-    event: OnAddNgonByCenterInSketch
-    on_transition: on_start_drawing_in_sketch
+                                                   -
+                                                   from : SketchEdit to
+    : DrawingProcessing event : OnAddNgonByCenterInSketch on_transition
+    : on_start_drawing_in_sketch
 
-  - from: SketchEdit
-    to: DrawingProcessing
-    event: OnAddLineInSketch
-    on_transition: on_start_drawing_in_sketch
+      -
+      from : SketchEdit to : DrawingProcessing event
+    : OnAddLineInSketch on_transition : on_start_drawing_in_sketch
 
-  #From DrawingProcessing back to SketchEdit(figure complete IN SKETCH)
-  - from: DrawingProcessing
-    to: SketchEdit
-    event: OnFigureCompleteInSketch
-    on_transition: on_complete_figure_in_sketch
+#From DrawingProcessing back to SketchEdit(figure complete IN SKETCH)
+                                        -
+                                        from : DrawingProcessing to
+    : SketchEdit event : OnFigureCompleteInSketch on_transition
+    : on_complete_figure_in_sketch
 
-  # Phase 10: Selection mode transitions
-  # From Idle to SelectionMode when entering point selection
-  - from: Idle
-    to: SelectionMode
-    event: OnEnterSelectionMode
-    on_transition: on_enter_selection_mode
+#Phase 10 : Selection mode transitions
+#From Idle to SelectionMode when entering point selection
+      -
+      from : Idle to : SelectionMode event : OnEnterSelectionMode on_transition
+    : on_enter_selection_mode
 
-  # From Idle to BoxSelection when entering box selection mode
-  - from: Idle
-    to: BoxSelection
-    event: OnEnterBoxSelection
-    on_transition: on_enter_box_selection
+#From Idle to BoxSelection when entering box selection mode
+      -
+      from : Idle to : BoxSelection event : OnEnterBoxSelection on_transition
+    : on_enter_box_selection
 
-  # From Idle to LassoSelection when entering lasso selection mode
-  - from: Idle
-    to: LassoSelection
-    event: OnEnterLassoSelection
-    on_transition: on_enter_lasso_selection
+#From Idle to LassoSelection when entering lasso selection mode
+      -
+      from : Idle to : LassoSelection event
+    : OnEnterLassoSelection on_transition : on_enter_lasso_selection
 
-  # From Idle to PolygonSelection when entering polygon selection mode
-  - from: Idle
-    to: PolygonSelection
-    event: OnEnterPolygonSelection
-    on_transition: on_enter_polygon_selection
+#From Idle to PolygonSelection when entering polygon selection mode
+                                            -
+                                            from : Idle to
+    : PolygonSelection event : OnEnterPolygonSelection on_transition
+    : on_enter_polygon_selection
 
-  # From any selection mode back to Idle when selection is complete
-  - from: SelectionMode
-    to: Idle
-    event: OnSelectionComplete
-    on_transition: on_complete_selection
+#From any selection mode back to Idle when selection is complete
+      -
+      from : SelectionMode to : Idle event : OnSelectionComplete on_transition
+    : on_complete_selection
 
-  - from: BoxSelection
-    to: Idle
-    event: OnSelectionComplete
-    on_transition: on_complete_box_selection
+      -
+      from : BoxSelection to : Idle event : OnSelectionComplete on_transition
+    : on_complete_box_selection
 
-  - from: LassoSelection
-    to: Idle
-    event: OnSelectionComplete
-    on_transition: on_complete_lasso_selection
+      -
+      from : LassoSelection to : Idle event : OnSelectionComplete on_transition
+    : on_complete_lasso_selection
 
-  - from: PolygonSelection
-    to: Idle
-    event: OnSelectionComplete
-    on_transition: on_complete_polygon_selection
+      -
+      from : PolygonSelection to : Idle event
+    : OnSelectionComplete on_transition : on_complete_polygon_selection
 
-  # From any selection mode back to Idle when cancelled
-  - from: SelectionMode
-    to: Idle
-    event: OnSelectionCancel
-    on_transition: on_cancel_selection
+#From any selection mode back to Idle when cancelled
+                                          -
+                                          from : SelectionMode to : Idle event
+    : OnSelectionCancel on_transition : on_cancel_selection
 
-  - from: BoxSelection
-    to: Idle
-    event: OnSelectionCancel
-    on_transition: on_cancel_selection
+                                        -
+                                        from : BoxSelection to : Idle event
+    : OnSelectionCancel on_transition : on_cancel_selection
 
-  - from: LassoSelection
-    to: Idle
-    event: OnSelectionCancel
-    on_transition: on_cancel_selection
+                                        -
+                                        from : LassoSelection to : Idle event
+    : OnSelectionCancel on_transition : on_cancel_selection
 
-  - from: PolygonSelection
-    to: Idle
-    event: OnSelectionCancel
-    on_transition: on_cancel_selection
+                                        -
+                                        from : PolygonSelection to : Idle event
+    : OnSelectionCancel on_transition : on_cancel_selection
 
-  # Phase 11: Annotation tool transitions
-  # From Idle to LinearDimensionMode when activating linear dimension tool
-  - from: Idle
-    to: LinearDimensionMode
-    event: OnActivateLinearDimension
-    on_transition: on_activate_linear_dimension
+#Phase 11 : Annotation tool transitions
+#From Idle to LinearDimensionMode when activating linear dimension tool
+                                        -
+                                        from : Idle to
+    : LinearDimensionMode event : OnActivateLinearDimension on_transition
+    : on_activate_linear_dimension
 
-  # From Idle to AngularDimensionMode when activating angular dimension tool
-  - from: Idle
-    to: AngularDimensionMode
-    event: OnActivateAngularDimension
-    on_transition: on_activate_angular_dimension
+#From Idle to AngularDimensionMode when activating angular dimension tool
+      -
+      from : Idle to : AngularDimensionMode event
+    : OnActivateAngularDimension on_transition : on_activate_angular_dimension
 
-  # From Idle to RadialDimensionMode when activating radial dimension tool
-  - from: Idle
-    to: RadialDimensionMode
-    event: OnActivateRadialDimension
-    on_transition: on_activate_radial_dimension
+#From Idle to RadialDimensionMode when activating radial dimension tool
+                                                 -
+                                                 from : Idle to
+    : RadialDimensionMode event : OnActivateRadialDimension on_transition
+    : on_activate_radial_dimension
 
-  # From Idle to DiameterDimensionMode when activating diameter dimension tool
-  - from: Idle
-    to: DiameterDimensionMode
-    event: OnActivateDiameterDimension
-    on_transition: on_activate_diameter_dimension
+#From Idle to DiameterDimensionMode when activating diameter dimension tool
+      -
+      from : Idle to : DiameterDimensionMode event
+    : OnActivateDiameterDimension on_transition : on_activate_diameter_dimension
 
-  # From Idle to LeaderLineMode when activating leader line tool
-  - from: Idle
-    to: LeaderLineMode
-    event: OnActivateLeaderLine
-    on_transition: on_activate_leader_line
+#From Idle to LeaderLineMode when activating leader line tool
+                                                  -
+                                                  from : Idle to
+    : LeaderLineMode event : OnActivateLeaderLine on_transition
+    : on_activate_leader_line
 
-  # From Idle to TextAnnotationMode when activating text annotation tool
-  - from: Idle
-    to: TextAnnotationMode
-    event: OnActivateTextAnnotation
-    on_transition: on_activate_text_annotation
+#From Idle to TextAnnotationMode when activating text annotation tool
+      -
+      from : Idle to : TextAnnotationMode event
+    : OnActivateTextAnnotation on_transition : on_activate_text_annotation
 
-  # From any annotation mode back to Idle when complete
-  - from: LinearDimensionMode
-    to: Idle
-    event: OnAnnotationComplete
-    on_transition: on_complete_linear_dimension
+#From any annotation mode back to Idle when complete
+                                               -
+                                               from : LinearDimensionMode to
+    : Idle event : OnAnnotationComplete on_transition
+    : on_complete_linear_dimension
 
-  - from: AngularDimensionMode
-    to: Idle
-    event: OnAnnotationComplete
-    on_transition: on_complete_angular_dimension
+      -
+      from : AngularDimensionMode to : Idle event
+    : OnAnnotationComplete on_transition : on_complete_angular_dimension
 
-  - from: RadialDimensionMode
-    to: Idle
-    event: OnAnnotationComplete
-    on_transition: on_complete_radial_dimension
+                                           -
+                                           from : RadialDimensionMode to
+    : Idle event : OnAnnotationComplete on_transition
+    : on_complete_radial_dimension
 
-  - from: DiameterDimensionMode
-    to: Idle
-    event: OnAnnotationComplete
-    on_transition: on_complete_diameter_dimension
+      -
+      from : DiameterDimensionMode to : Idle event
+    : OnAnnotationComplete on_transition : on_complete_diameter_dimension
 
-  - from: LeaderLineMode
-    to: Idle
-    event: OnAnnotationComplete
-    on_transition: on_complete_leader_line
+                                           -
+                                           from : LeaderLineMode to : Idle event
+    : OnAnnotationComplete on_transition : on_complete_leader_line
 
-  - from: TextAnnotationMode
-    to: Idle
-    event: OnAnnotationComplete
-    on_transition: on_complete_text_annotation
+                                           -
+                                           from : TextAnnotationMode to
+    : Idle event : OnAnnotationComplete on_transition
+    : on_complete_text_annotation
 
-  # From any annotation mode back to Idle when cancelled
-  - from: LinearDimensionMode
-    to: Idle
-    event: OnAnnotationCancel
-    on_transition: on_cancel_annotation
+#From any annotation mode back to Idle when cancelled
+      -
+      from : LinearDimensionMode to : Idle event
+    : OnAnnotationCancel on_transition : on_cancel_annotation
 
-  - from: AngularDimensionMode
-    to: Idle
-    event: OnAnnotationCancel
-    on_transition: on_cancel_annotation
+                                         -
+                                         from : AngularDimensionMode to
+    : Idle event : OnAnnotationCancel on_transition : on_cancel_annotation
 
-  - from: RadialDimensionMode
-    to: Idle
-    event: OnAnnotationCancel
-    on_transition: on_cancel_annotation
+                                                      -
+                                                      from
+    : RadialDimensionMode to : Idle event : OnAnnotationCancel on_transition
+    : on_cancel_annotation
 
-  - from: DiameterDimensionMode
-    to: Idle
-    event: OnAnnotationCancel
-    on_transition: on_cancel_annotation
+      -
+      from : DiameterDimensionMode to : Idle event
+    : OnAnnotationCancel on_transition : on_cancel_annotation
 
-  - from: LeaderLineMode
-    to: Idle
-    event: OnAnnotationCancel
-    on_transition: on_cancel_annotation
+                                         -
+                                         from : LeaderLineMode to : Idle event
+    : OnAnnotationCancel on_transition : on_cancel_annotation
 
-  - from: TextAnnotationMode
-    to: Idle
-    event: OnAnnotationCancel
-    on_transition: on_cancel_annotation
+                                         -
+                                         from : TextAnnotationMode to
+    : Idle event : OnAnnotationCancel on_transition : on_cancel_annotation
 
-# Phase 7: Polish & Optimization Events
-# These events are triggered by Polish components and handled by the FSM
-# No state transitions are defined for these events as they are notification-only
+#Phase 12 : Measurement tool transitions
+#From Idle to DistanceMeasurement when activating distance measurement tool
+                                                      -
+                                                      from : Idle to
+    : DistanceMeasurement event : OnDistanceMeasurement on_transition
+    : on_start_distance_measurement
 
-# Shortcut events (triggered by ShortcutManager)
-# OnShortcutRegistered - Fired when a keyboard shortcut is registered
-# OnShortcutUnregistered - Fired when a keyboard shortcut is unregistered
-# OnShortcutActivated - Fired when a keyboard shortcut is activated
+#From Idle to AreaMeasurement when activating area measurement tool
+      -
+      from : Idle to : AreaMeasurement event : OnAreaMeasurement on_transition
+    : on_start_area_measurement
 
-# Context Menu events (triggered by ContextMenuManager)
-# OnContextMenuRequested - Fired when a context menu is requested
+#From Idle to AngleMeasurement when activating angle measurement tool
+      -
+      from : Idle to : AngleMeasurement event : OnAngleMeasurement on_transition
+    : on_start_angle_measurement
 
-# Theme events (triggered by ThemeManager)
-# OnThemeChanged - Fired when the application theme is changed
+#From Idle to VolumeMeasurement when activating volume measurement tool
+      -
+      from : Idle to : VolumeMeasurement event
+    : OnVolumeMeasurement on_transition : on_start_volume_measurement
 
-# Tooltip events (triggered by TooltipManager)
-# OnTooltipChanged - Fired when tooltip content is changed
+#From Idle to CoordinateMeasurement when activating coordinate measurement tool
+                                          -
+                                          from : Idle to
+    : CoordinateMeasurement event : OnCoordinateMeasurement on_transition
+    : on_start_coordinate_measurement
 
-# Help events (triggered by HelpSystem)
-# OnHelpRequested - Fired when help is requested for a topic
+#From Idle to LengthMeasurement when activating length measurement tool
+      -
+      from : Idle to : LengthMeasurement event
+    : OnLengthMeasurement on_transition : on_start_length_measurement
 
-# Performance events (triggered by PerformanceMonitor)
-# OnPerformanceUpdate - Fired when performance metrics are updated
+#From any measurement mode back to Idle when complete
+                                          -
+                                          from : DistanceMeasurement to
+    : Idle event : OnFigureComplete on_transition
+    : on_complete_distance_measurement
 
+      -
+      from : AreaMeasurement to : Idle event : OnFigureComplete on_transition
+    : on_complete_area_measurement
 
+      -
+      from : AngleMeasurement to : Idle event : OnFigureComplete on_transition
+    : on_complete_angle_measurement
+
+      -
+      from : VolumeMeasurement to : Idle event : OnFigureComplete on_transition
+    : on_complete_volume_measurement
+
+      -
+      from : CoordinateMeasurement to : Idle event
+    : OnFigureComplete on_transition : on_complete_coordinate_measurement
+
+                                       -
+                                       from : LengthMeasurement to : Idle event
+    : OnFigureComplete on_transition : on_complete_length_measurement
+
+#From any measurement mode back to Idle when cancelled
+                                       -
+                                       from : DistanceMeasurement to
+    : Idle event : OnFigureCancel on_transition : on_cancel_measurement
+
+                                                  -
+                                                  from : AreaMeasurement to
+    : Idle event : OnFigureCancel on_transition : on_cancel_measurement
+
+                                                  -
+                                                  from : AngleMeasurement to
+    : Idle event : OnFigureCancel on_transition : on_cancel_measurement
+
+                                                  -
+                                                  from : VolumeMeasurement to
+    : Idle event : OnFigureCancel on_transition : on_cancel_measurement
+
+                                                  -
+                                                  from
+    : CoordinateMeasurement to : Idle event : OnFigureCancel on_transition
+    : on_cancel_measurement
+
+      -
+      from : LengthMeasurement to : Idle event : OnFigureCancel on_transition
+    : on_cancel_measurement
+
+#Phase 16 : Keyboard Shortcut Events
+#These events are triggered by keyboard shortcuts and handled by the FSM
+
+#Drawing tool shortcuts(from Idle to DrawingProcessing)
+      -
+      from : Idle to : DrawingProcessing event : OnShortcutLine on_transition
+    : on_activate_line_tool
+
+      -
+      from : Idle to : DrawingProcessing event
+    : OnShortcutRectangle on_transition : on_activate_rectangle_tool
+
+                                          -
+                                          from : Idle to
+    : DrawingProcessing event : OnShortcutCircle on_transition
+    : on_activate_circle_tool
+
+      -
+      from : Idle to : DrawingProcessing event : OnShortcutPolygon on_transition
+    : on_activate_polygon_tool
+
+      -
+      from : Idle to : DrawingProcessing event
+    : OnShortcutTriangle on_transition : on_activate_triangle_tool
+
+                                         -
+                                         from : Idle to
+    : DrawingProcessing event : OnShortcutArc on_transition
+    : on_activate_arc_tool
+
+      -
+      from : Idle to : DrawingProcessing event : OnShortcutEllipse on_transition
+    : on_activate_ellipse_tool
+
+      -
+      from : Idle to : DrawingProcessing event : OnShortcutSpline on_transition
+    : on_activate_spline_tool
+
+#Selection tool shortcut(from any drawing mode to SelectionMode)
+      -
+      from : Idle to : SelectionMode event : OnShortcutSelect on_transition
+    : on_activate_select_tool
+
+      -
+      from : DrawingProcessing to : SelectionMode event
+    : OnShortcutSelect on_transition : on_activate_select_tool
+
+                                       -
+                                       from : MoveFirstPoint to
+    : SelectionMode event : OnShortcutSelect on_transition
+    : on_activate_select_tool
+
+#Modify tool shortcuts(from Idle)
+      -
+      from : Idle to : MoveFirstPoint event : OnShortcutMove on_transition
+    : on_activate_move_tool
+
+      -
+      from : Idle to : MoveFirstPoint event : OnShortcutRotate on_transition
+    : on_activate_rotate_tool
+
+      -
+      from : Idle to : MoveFirstPoint event : OnShortcutScale on_transition
+    : on_activate_scale_tool
+
+      -
+      from : Idle to : MoveFirstPoint event : OnShortcutMirror on_transition
+    : on_activate_mirror_tool
+
+      -
+      from : Idle to : MoveFirstPoint event : OnShortcutFillet on_transition
+    : on_activate_fillet_tool
+
+#Annotation tool shortcuts(from Idle)
+      -
+      from : Idle to : LinearDimensionMode event
+    : OnShortcutDimension on_transition : on_activate_dimension_tool
+
+                                          -
+                                          from : Idle to
+    : DistanceMeasurement event : OnShortcutMeasure on_transition
+    : on_activate_measure_tool
+
+#View mode shortcuts(handled by view layer, no state transition)
+#OnShortcut2DMode - Switch to 2D view mode(F2)
+#OnShortcut3DMode - Switch to 3D view mode(F3)
+#OnShortcutZoomIn - Zoom in(Ctrl++)
+#OnShortcutZoomOut - Zoom out(Ctrl + -)
+#OnShortcutZoomFit - Zoom to fit(Ctrl + F)
+#OnShortcutToggleGrid - Toggle grid visibility(G)
+#OnShortcutToggleSnap - Toggle snap to grid(Shift + G)
+
+#File operation shortcuts(handled by application layer)
+#OnShortcutNew - New project(Ctrl + N)
+#OnShortcutOpen - Open project(Ctrl + O)
+#OnShortcutSave - Save project(Ctrl + S)
+#OnShortcutSaveAs - Save project as(Ctrl + Shift + S)
+
+#Edit operation shortcuts(handled by application layer)
+#OnShortcutUndo - Undo last action(Ctrl + Z)
+#OnShortcutRedo - Redo last action(Ctrl + Y)
+#OnShortcutCut - Cut selection(Ctrl + X)
+#OnShortcutCopy - Copy selection(Ctrl + C)
+#OnShortcutPaste - Paste from clipboard(Ctrl + V)
+#OnShortcutDelete - Delete selection(Del)
+#OnShortcutDuplicate - Duplicate selection(Ctrl + D)
+
+#Help shortcuts(handled by help system)
+#OnShortcutHelp - Open documentation(F1)
+#OnShortcutShortcutsDialog - Open shortcuts dialog(F9)
+
+#Phase 7 : Polish &Optimization Events
+#These events are triggered by Polish components and handled by the FSM
+#No state transitions are defined for these events as they are notification -  \
+    only
+
+#Shortcut events(triggered by ShortcutManager)
+#OnShortcutRegistered - Fired when a keyboard shortcut is registered
+#OnShortcutUnregistered - Fired when a keyboard shortcut is unregistered
+#OnShortcutActivated - Fired when a keyboard shortcut is activated
+
+#Context Menu events(triggered by ContextMenuManager)
+#OnContextMenuRequested - Fired when a context menu is requested
+
+#Theme events(triggered by ThemeManager)
+#OnThemeChanged - Fired when the application theme is changed
+
+#Tooltip events(triggered by TooltipManager)
+#OnTooltipChanged - Fired when tooltip content is changed
+
+#Help events(triggered by HelpSystem)
+#OnHelpRequested - Fired when help is requested for a topic
+
+#Performance events(triggered by PerformanceMonitor)
+#OnPerformanceUpdate - Fired when performance metrics are updated
