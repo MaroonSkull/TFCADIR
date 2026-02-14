@@ -470,31 +470,55 @@ bool ShortcutConfigManager::exportToFile(const std::string &filePath) {
 // ==========================================================================
 
 void ShortcutConfigManager::initializeDefaults() {
-  // Drawing tools
+  // ==========================================================================
+  // Drawing Tools (SolidWorks-inspired)
+  // ==========================================================================
+  defaultShortcuts_["select"] =
+      ShortcutEntry("select", "Select Tool", ShortcutKey(ImGuiKey_Q, 0));
   defaultShortcuts_["line"] =
       ShortcutEntry("line", "Line", ShortcutKey(ImGuiKey_L, 0));
-  defaultShortcuts_["circle"] =
-      ShortcutEntry("circle", "Circle", ShortcutKey(ImGuiKey_C, 0));
-  defaultShortcuts_["arc"] =
-      ShortcutEntry("arc", "Arc", ShortcutKey(ImGuiKey_A, 0));
   defaultShortcuts_["rectangle"] =
       ShortcutEntry("rectangle", "Rectangle", ShortcutKey(ImGuiKey_R, 0));
+  defaultShortcuts_["circle"] =
+      ShortcutEntry("circle", "Circle", ShortcutKey(ImGuiKey_C, 0));
   defaultShortcuts_["polygon"] =
       ShortcutEntry("polygon", "Polygon", ShortcutKey(ImGuiKey_P, 0));
+  defaultShortcuts_["triangle"] =
+      ShortcutEntry("triangle", "Triangle", ShortcutKey(ImGuiKey_T, 0));
+  defaultShortcuts_["arc"] =
+      ShortcutEntry("arc", "Arc", ShortcutKey(ImGuiKey_A, 0));
+  defaultShortcuts_["ellipse"] =
+      ShortcutEntry("ellipse", "Ellipse", ShortcutKey(ImGuiKey_E, 0));
+  defaultShortcuts_["spline"] =
+      ShortcutEntry("spline", "Spline", ShortcutKey(ImGuiKey_S, 0));
 
-  // Selection and editing
-  defaultShortcuts_["select"] =
-      ShortcutEntry("select", "Select", ShortcutKey(ImGuiKey_Q, 0));
+  // ==========================================================================
+  // Modify Tools
+  // ==========================================================================
   defaultShortcuts_["move"] =
       ShortcutEntry("move", "Move", ShortcutKey(ImGuiKey_M, 0));
   defaultShortcuts_["rotate"] =
       ShortcutEntry("rotate", "Rotate", ShortcutKey(ImGuiKey_R, 2)); // Shift+R
   defaultShortcuts_["scale"] =
       ShortcutEntry("scale", "Scale", ShortcutKey(ImGuiKey_X, 0));
+  defaultShortcuts_["mirror"] =
+      ShortcutEntry("mirror", "Mirror", ShortcutKey(ImGuiKey_M, 2)); // Shift+M
+  defaultShortcuts_["fillet"] =
+      ShortcutEntry("fillet", "Fillet", ShortcutKey(ImGuiKey_F, 0));
   defaultShortcuts_["delete"] =
       ShortcutEntry("delete", "Delete", ShortcutKey(ImGuiKey_Delete, 0));
 
-  // Edit operations
+  // ==========================================================================
+  // Annotation Tools
+  // ==========================================================================
+  defaultShortcuts_["dimension"] =
+      ShortcutEntry("dimension", "Dimension", ShortcutKey(ImGuiKey_D, 0));
+  defaultShortcuts_["measure"] =
+      ShortcutEntry("measure", "Measure", ShortcutKey(ImGuiKey_M, 6)); // Alt+M
+
+  // ==========================================================================
+  // Edit Operations
+  // ==========================================================================
   defaultShortcuts_["undo"] =
       ShortcutEntry("undo", "Undo", ShortcutKey(ImGuiKey_Z, 1)); // Ctrl+Z
   defaultShortcuts_["redo"] =
@@ -508,29 +532,47 @@ void ShortcutConfigManager::initializeDefaults() {
   defaultShortcuts_["duplicate"] = ShortcutEntry(
       "duplicate", "Duplicate", ShortcutKey(ImGuiKey_D, 1)); // Ctrl+D
 
-  // View operations
+  // ==========================================================================
+  // View Operations
+  // ==========================================================================
+  defaultShortcuts_["mode_2d"] =
+      ShortcutEntry("mode_2d", "2D Mode", ShortcutKey(ImGuiKey_F2, 0));
+  defaultShortcuts_["mode_3d"] =
+      ShortcutEntry("mode_3d", "3D Mode", ShortcutKey(ImGuiKey_F3, 0));
   defaultShortcuts_["zoom_in"] =
       ShortcutEntry("zoom_in", "Zoom In", ShortcutKey(ImGuiKey_Equal, 1));
   defaultShortcuts_["zoom_out"] =
       ShortcutEntry("zoom_out", "Zoom Out", ShortcutKey(ImGuiKey_Minus, 1));
-  defaultShortcuts_["zoom_extents"] =
-      ShortcutEntry("zoom_extents", "Zoom Extents", ShortcutKey(ImGuiKey_E, 1));
+  defaultShortcuts_["zoom_fit"] = ShortcutEntry(
+      "zoom_fit", "Zoom to Fit", ShortcutKey(ImGuiKey_F, 1)); // Ctrl+F
   defaultShortcuts_["toggle_grid"] =
       ShortcutEntry("toggle_grid", "Toggle Grid", ShortcutKey(ImGuiKey_G, 0));
-  defaultShortcuts_["toggle_snap"] =
-      ShortcutEntry("toggle_snap", "Toggle Snap", ShortcutKey(ImGuiKey_S, 0));
+  defaultShortcuts_["toggle_snap"] = ShortcutEntry(
+      "toggle_snap", "Toggle Snap", ShortcutKey(ImGuiKey_G, 2)); // Shift+G
 
-  // File operations
+  // ==========================================================================
+  // File Operations
+  // ==========================================================================
   defaultShortcuts_["new"] =
-      ShortcutEntry("new", "New File", ShortcutKey(ImGuiKey_N, 1)); // Ctrl+N
-  defaultShortcuts_["open"] =
-      ShortcutEntry("open", "Open File", ShortcutKey(ImGuiKey_O, 1)); // Ctrl+O
-  defaultShortcuts_["save"] =
-      ShortcutEntry("save", "Save File", ShortcutKey(ImGuiKey_S, 1)); // Ctrl+S
+      ShortcutEntry("new", "New Project", ShortcutKey(ImGuiKey_N, 1)); // Ctrl+N
+  defaultShortcuts_["open"] = ShortcutEntry(
+      "open", "Open Project", ShortcutKey(ImGuiKey_O, 1)); // Ctrl+O
+  defaultShortcuts_["save"] = ShortcutEntry(
+      "save", "Save Project", ShortcutKey(ImGuiKey_S, 1)); // Ctrl+S
   defaultShortcuts_["save_as"] = ShortcutEntry(
       "save_as", "Save As", ShortcutKey(ImGuiKey_S, 3)); // Ctrl+Shift+S
 
-  // Escape to cancel/deselect
+  // ==========================================================================
+  // Help and Tools
+  // ==========================================================================
+  defaultShortcuts_["help"] =
+      ShortcutEntry("help", "Documentation", ShortcutKey(ImGuiKey_F1, 0));
+  defaultShortcuts_["shortcuts_dialog"] = ShortcutEntry(
+      "shortcuts_dialog", "Keyboard Shortcuts", ShortcutKey(ImGuiKey_F9, 0));
+
+  // ==========================================================================
+  // Misc
+  // ==========================================================================
   defaultShortcuts_["escape"] = ShortcutEntry("escape", "Cancel/Deselect",
                                               ShortcutKey(ImGuiKey_Escape, 0));
 }
