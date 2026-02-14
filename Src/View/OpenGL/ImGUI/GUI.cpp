@@ -4,6 +4,10 @@
 #include <View/Commands/ExtendedCommandManager.hpp>
 #include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
 #include <View/ImGUI/ViewPresetsPanel.hpp>
+#include <View/ImportExport/ImportExportDialog.hpp>
+#include <View/ImportExport/ImportExportManager.hpp>
+#include <View/LayerManager/Layer.hpp>
+#include <View/LayerManager/LayerManagerPanel.hpp>
 #include <View/Navigation/NavigationEventHandler.hpp>
 #include <View/Navigation/NavigationManager.hpp>
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
@@ -21,6 +25,9 @@
 #include <View/Precision/MeasurementDisplay.hpp>
 #include <View/Precision/MeasurementManager.hpp>
 #include <View/Precision/SnapSettingsPanel.hpp>
+#include <View/Settings/DisplaySettings.hpp>
+#include <View/Settings/GridSettings.hpp>
+#include <View/Settings/SettingsManager.hpp>
 #include <View/Shortcuts/ShortcutManager.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
@@ -35,7 +42,25 @@ void GUI::ShowMainMenuBar() {
   if (!BeginMainMenuBar())
     throw std::runtime_error("Failed to create main menu bar!");
 
-  if (BeginMenu("Menu")) {
+  // Phase 14: File menu with Import/Export
+  if (BeginMenu("File")) {
+    if (MenuItem("Import...")) {
+      if (importExportDialog_) {
+        importExportDialog_->openImport();
+      }
+    }
+    if (MenuItem("Export...")) {
+      if (importExportDialog_) {
+        // Export selected figures or all figures
+        std::vector<std::shared_ptr<model::IFigure>> figuresToExport;
+        if (selectionManager_ &&
+            !selectionManager_->getSelectedFigureIds().empty()) {
+          // TODO: Get selected figures from model
+        }
+        importExportDialog_->openExport(figuresToExport);
+      }
+    }
+    Separator();
     if (BeginMenu("Examples")) {
       if (MenuItem("1")) {
       }
@@ -53,7 +78,7 @@ void GUI::ShowMainMenuBar() {
     if (MenuItem("Redo", "CTRL+Y", false, false)) {
     } // Disabled item
     Separator();
-    if (MenuItem("Keyboard Shortcuts...")) {
+    if (MenuItem("Keyboard Shortcuts...", "F9")) {
       if (shortcutDialog_) {
         shortcutDialog_->open();
       }
@@ -81,6 +106,19 @@ void GUI::ShowMainMenuBar() {
     EndMenu();
   }
   if (BeginMenu("View")) {
+    // Phase 15: Grid Settings menu item
+    if (MenuItem("Grid Settings...")) {
+      if (gridSettingsDialog_) {
+        gridSettingsDialog_->Open();
+      }
+    }
+    // Phase 15: Display Settings menu item
+    if (MenuItem("Display Settings...")) {
+      if (displaySettingsDialog_) {
+        displaySettingsDialog_->Open();
+      }
+    }
+    Separator();
     if (MenuItem("Grid")) {
     }
     if (MenuItem("Sized", NULL, false, false)) {
@@ -99,6 +137,33 @@ void GUI::ShowMainMenuBar() {
         SliderInt("Curves segments override", &curveSegmentsOverride_v_, 3, 40);
     EndMenu();
   }
+
+  // Phase 17: Help menu
+  if (BeginMenu("Help")) {
+    if (MenuItem("Documentation", "F1")) {
+      if (helpDialog_) {
+        helpDialog_->open();
+      }
+    }
+    if (MenuItem("Keyboard Shortcuts")) {
+      if (helpDialog_) {
+        helpDialog_->open();
+        helpDialog_->switchToTab(1); // Switch to Shortcuts tab
+      }
+    }
+    if (MenuItem("Tutorials")) {
+      if (helpDialog_) {
+        helpDialog_->open();
+        helpDialog_->switchToTab(2); // Switch to Tutorials tab
+      }
+    }
+    Separator();
+    if (MenuItem("About TFCADIR")) {
+      // TODO: Show about dialog
+    }
+    EndMenu();
+  }
+
   EndMainMenuBar();
 }
 
@@ -157,6 +222,17 @@ void GUI::ShowDockSpace() {
         DockBuilderSplitNode(dockIdSelectionSettings_, ImGuiDir_Down, 0.50f,
                              nullptr, &dockIdSelectionSettings_);
 
+    // Phase 12: Split annotation tools dock to create space for measurement
+    // tools
+    dockIdMeasurementTools_ =
+        DockBuilderSplitNode(dockIdAnnotationTools_, ImGuiDir_Down, 0.50f,
+                             nullptr, &dockIdAnnotationTools_);
+
+    // Phase 13: Split measurement tools dock to create space for layer manager
+    dockIdLayerManager_ =
+        DockBuilderSplitNode(dockIdMeasurementTools_, ImGuiDir_Down, 0.50f,
+                             nullptr, &dockIdMeasurementTools_);
+
     DockBuilderDockWindow("Canvas", centerId);
     DockBuilderDockWindow("Tools", dockIdTools_);
     DockBuilderDockWindow("Log", dockIdLog_);
@@ -170,6 +246,8 @@ void GUI::ShowDockSpace() {
     DockBuilderDockWindow("Coordinate Input", dockIdCoordinateInput_);
     DockBuilderDockWindow("Selection Settings", dockIdSelectionSettings_);
     DockBuilderDockWindow("Annotation Tools", dockIdAnnotationTools_);
+    DockBuilderDockWindow("Measurement Tools", dockIdMeasurementTools_);
+    DockBuilderDockWindow("Layer Manager", dockIdLayerManager_);
 
     DockBuilderFinish(dockId_);
   }
@@ -514,6 +592,42 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
   measurementDisplay_ = std::make_unique<view::MeasurementDisplay>(
       uiFSMAdapter_.get(), measurementManager_.get());
 
+  /// Phase 13: Create layer manager for layer management
+  layerManager_ = std::make_unique<view::LayerManager>();
+
+  /// Phase 13: Create layer manager panel for layer management UI
+  layerManagerPanel_ =
+      std::make_unique<view::LayerManagerPanel>(*layerManager_, *model);
+
+  /// Phase 14: Create import/export manager for file operations
+  importExportManager_ =
+      std::make_unique<view::import_export::ImportExportManager>();
+
+  /// Phase 14: Create import/export dialog for import/export UI
+  importExportDialog_ =
+      std::make_unique<view::import_export::ImportExportDialog>(
+          *importExportManager_);
+
+  /// Phase 15: Create grid settings dialog for grid configuration
+  gridSettingsDialog_ = std::make_unique<view::settings::GridSettings>();
+
+  /// Phase 15: Create display settings dialog for display configuration
+  displaySettingsDialog_ = std::make_unique<view::settings::DisplaySettings>();
+
+  /// Phase 15: Load settings from file and apply
+  view::settings::SettingsManager::Instance().LoadFromFile(
+      "config/settings.yaml");
+  gridConfig_ = view::settings::SettingsManager::Instance().GetGridConfig();
+  displayConfig_ =
+      view::settings::SettingsManager::Instance().GetDisplayConfig();
+
+  /// Phase 17: Create help system for context-sensitive help
+  helpSystem_ = std::make_shared<view::HelpSystem>();
+  helpSystem_->initialize("config/help.yaml");
+
+  /// Phase 17: Create help dialog for displaying help content
+  helpDialog_ = std::make_unique<view::HelpDialog>(helpSystem_);
+
   /// Phase 7: Create shortcut manager for keyboard shortcut handling (stateless
   /// coordinator)
   shortcutManager_ = std::make_unique<view::ShortcutManager>(*uiFSMAdapter_);
@@ -708,6 +822,25 @@ GUI::DrawGUI(ImTextureID renderTexture) {
     }
   }
 
+  // Phase 17: Handle F1 key for context-sensitive help
+  if (IsKeyPressed(ImGuiKey_F1)) {
+    if (helpDialog_) {
+      // Get current context from FSM state
+      std::string context;
+      if (sp_controller_) {
+        auto currentState = sp_controller_->fsm_.get_current_state();
+        if (currentState == fsm::State::SketchEdit) {
+          context = "sketch_mode";
+        } else if (currentState == fsm::State::PlaneSelection) {
+          context = "plane_selection";
+        } else {
+          context = "general";
+        }
+      }
+      helpDialog_->openWithContext(context);
+    }
+  }
+
   ShowMainMenuBar();
   ShowDockSpace();
   ShowLog();
@@ -786,6 +919,26 @@ GUI::DrawGUI(ImTextureID renderTexture) {
 
   // Phase 11: Render annotation tools panel
   ShowAnnotationToolsPanel();
+
+  // Phase 12: Render measurement tools panel
+  ShowMeasurementToolsPanel();
+
+  // Phase 13: Render layer manager panel
+  ShowLayerManagerPanel();
+
+  // Phase 14: Render import/export dialog
+  ShowImportExportDialog();
+
+  // Phase 15: Render grid settings dialog
+  ShowGridSettingsDialog();
+
+  // Phase 15: Render display settings dialog
+  ShowDisplaySettingsDialog();
+
+  // Phase 17: Render help dialog
+  if (helpDialog_ && helpDialog_->isOpen()) {
+    helpDialog_->render();
+  }
 
   // SshowDemoWindow();
   Render();
@@ -1163,7 +1316,8 @@ void GUI::ShowAnnotationToolsPanel() {
       }
 
       // Arrow size
-      SliderFloat("Arrow Size", &dimensionStyle_.arrowSize, 2.0f, 20.0f, "%.1f");
+      SliderFloat("Arrow Size", &dimensionStyle_.arrowSize, 2.0f, 20.0f,
+                  "%.1f");
 
       // Text position selection
       Text("Text Position:");
@@ -1212,8 +1366,8 @@ void GUI::ShowAnnotationToolsPanel() {
                   "%.1f");
 
       // Extension line offset
-      SliderFloat("Extension Offset", &dimensionStyle_.extensionLineOffset, 0.0f,
-                  20.0f, "%.1f");
+      SliderFloat("Extension Offset", &dimensionStyle_.extensionLineOffset,
+                  0.0f, 20.0f, "%.1f");
 
       // Precision
       SliderInt("Precision", &dimensionStyle_.precision, 0, 6, "%d");
@@ -1228,7 +1382,7 @@ void GUI::ShowAnnotationToolsPanel() {
         TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Status: Active");
 
         // Show tool-specific info
-        Text("Points: %zu / %zu", 
+        Text("Points: %zu / %zu",
              activeAnnotationTool_->getCollectedPointsCount(),
              activeAnnotationTool_->getRequiredPoints());
 
@@ -1265,20 +1419,245 @@ void GUI::activateAnnotationTool(view::DimensionTool::Type toolType) {
 
   // Create the appropriate tool using the factory
   if (uiFSMAdapter_) {
-    activeAnnotationTool_ = view::DimensionToolFactory::createTool(toolType, *uiFSMAdapter_);
-    
+    activeAnnotationTool_ =
+        view::DimensionToolFactory::createTool(toolType, *uiFSMAdapter_);
+
     if (activeAnnotationTool_) {
       // Apply current style
       activeAnnotationTool_->setStyle(dimensionStyle_);
-      
+
       // Activate the tool
       activeAnnotationTool_->activate();
-      
-      spdlog::info("Activated {} tool", 
+
+      spdlog::info("Activated {} tool",
                    view::DimensionToolFactory::getToolDisplayName(toolType));
     } else {
       spdlog::warn("Failed to create annotation tool type: {}",
                    static_cast<int>(toolType));
+    }
+  }
+}
+
+/**
+ * @brief Render the measurement tools panel for Phase 12 measurement tools
+ *
+ * Displays the measurement tool selection buttons and measurement style
+ * options.
+ */
+void GUI::ShowMeasurementToolsPanel() {
+  if (Begin("Measurement Tools")) {
+    // Tool selection section
+    if (CollapsingHeader("Measurement Tools", ImGuiTreeNodeFlags_DefaultOpen)) {
+      // Distance Measurement button
+      if (Button("Distance", ImVec2(80, 0))) {
+        activateMeasurementTool(view::MeasurementTool::Type::Distance);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Measure distance between two points (M)");
+      }
+      SameLine();
+
+      // Area Measurement button
+      if (Button("Area", ImVec2(80, 0))) {
+        activateMeasurementTool(view::MeasurementTool::Type::Area);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Calculate area of polygon (A)");
+      }
+      SameLine();
+
+      // Angle Measurement button
+      if (Button("Angle", ImVec2(80, 0))) {
+        activateMeasurementTool(view::MeasurementTool::Type::Angle);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Measure angle between three points");
+      }
+      SameLine();
+
+      // Coordinate Measurement button
+      if (Button("Coordinate", ImVec2(80, 0))) {
+        activateMeasurementTool(view::MeasurementTool::Type::Coordinate);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Display point coordinates");
+      }
+      SameLine();
+
+      // Length Measurement button
+      if (Button("Length", ImVec2(80, 0))) {
+        activateMeasurementTool(view::MeasurementTool::Type::Length);
+      }
+      if (IsItemHovered()) {
+        SetTooltip("Measure length along path");
+      }
+    }
+
+    Separator();
+
+    // Measurement style section
+    if (CollapsingHeader("Measurement Style", ImGuiTreeNodeFlags_DefaultOpen)) {
+      // Precision
+      SliderInt("Precision", &measurementStyle_.precision, 0, 6, "%d");
+
+      // Unit selection
+      Text("Unit:");
+      int unit = static_cast<int>(measurementStyle_.unit);
+      if (RadioButton("mm##Unit", &unit,
+                      static_cast<int>(view::MeasurementUnit::Millimeters))) {
+        measurementStyle_.unit = static_cast<view::MeasurementUnit>(unit);
+      }
+      SameLine();
+      if (RadioButton("cm##Unit", &unit,
+                      static_cast<int>(view::MeasurementUnit::Centimeters))) {
+        measurementStyle_.unit = static_cast<view::MeasurementUnit>(unit);
+      }
+      SameLine();
+      if (RadioButton("m##Unit", &unit,
+                      static_cast<int>(view::MeasurementUnit::Meters))) {
+        measurementStyle_.unit = static_cast<view::MeasurementUnit>(unit);
+      }
+      SameLine();
+      if (RadioButton("in##Unit", &unit,
+                      static_cast<int>(view::MeasurementUnit::Inches))) {
+        measurementStyle_.unit = static_cast<view::MeasurementUnit>(unit);
+      }
+
+      // Text size
+      SliderFloat("Text Size", &measurementStyle_.textSize, 8.0f, 32.0f,
+                  "%.0f");
+
+      // Line color
+      Text("Line Color:");
+      ColorEdit4("##LineColor", &measurementStyle_.lineColor.x,
+                 ImGuiColorEditFlags_NoInputs);
+
+      // Show preview checkbox
+      Checkbox("Show Preview", &measurementStyle_.showPreview);
+    }
+
+    Separator();
+
+    // Active tool info section
+    if (CollapsingHeader("Active Tool", ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (activeMeasurementTool_) {
+        Text("Tool: %s", activeMeasurementTool_->getDisplayName().c_str());
+        TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Status: Active");
+
+        // Show tool-specific info
+        Text("Points: %zu", activeMeasurementTool_->getCollectedPointsCount());
+
+        // Show formatted value if complete
+        if (activeMeasurementTool_->isComplete()) {
+          Text("Value: %s",
+               activeMeasurementTool_->getFormattedValue().c_str());
+        }
+
+        // Cancel button
+        if (Button("Cancel Tool", ImVec2(-FLT_MIN, 0))) {
+          activeMeasurementTool_->cancel();
+          activeMeasurementTool_.reset();
+          spdlog::info("Measurement tool cancelled");
+        }
+      } else {
+        TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No tool active");
+        Text("Select a tool above to begin");
+      }
+    }
+  }
+  End();
+}
+
+/**
+ * @brief Handle measurement tool activation (Phase 12)
+ * @param toolType The type of measurement tool to activate
+ */
+void GUI::activateMeasurementTool(view::MeasurementTool::Type toolType) {
+  // Deactivate current tool if any
+  if (activeMeasurementTool_) {
+    activeMeasurementTool_->cancel();
+    activeMeasurementTool_.reset();
+  }
+
+  // Create the appropriate tool using the factory
+  if (uiFSMAdapter_) {
+    activeMeasurementTool_ =
+        view::MeasurementToolFactory::createTool(toolType, *uiFSMAdapter_);
+
+    if (activeMeasurementTool_) {
+      // Apply current style
+      activeMeasurementTool_->setStyle(measurementStyle_);
+
+      // Activate the tool
+      activeMeasurementTool_->activate();
+
+      spdlog::info("Activated {} tool",
+                   view::MeasurementToolFactory::getTypeName(toolType));
+    } else {
+      spdlog::warn("Failed to create measurement tool type: {}",
+                   static_cast<int>(toolType));
+    }
+  }
+}
+
+/**
+ * @brief Render the layer manager panel for Phase 13 layer management
+ *
+ * Displays the layer management UI for creating, editing, and deleting layers.
+ */
+void GUI::ShowLayerManagerPanel() {
+  if (layerManagerPanel_) {
+    layerManagerPanel_->render();
+  }
+}
+
+/**
+ * @brief Render the import/export dialog for Phase 14 file operations
+ *
+ * Displays the import/export dialog when open.
+ */
+void GUI::ShowImportExportDialog() {
+  if (importExportDialog_ && importExportDialog_->isOpen()) {
+    importExportDialog_->render();
+  }
+}
+
+/**
+ * @brief Render the grid settings dialog for Phase 15 grid configuration
+ *
+ * Displays the grid settings dialog when open.
+ */
+void GUI::ShowGridSettingsDialog() {
+  if (gridSettingsDialog_ && gridSettingsDialog_->IsOpen()) {
+    gridSettingsDialog_->Render(gridConfig_);
+
+    // Check if settings changed and apply
+    if (gridSettingsDialog_->HasChanged()) {
+      view::settings::SettingsManager::Instance().SetGridConfig(gridConfig_);
+      view::settings::SettingsManager::Instance().SaveToFile(
+          "config/settings.yaml");
+      spdlog::info("Grid settings updated and saved");
+    }
+  }
+}
+
+/**
+ * @brief Render the display settings dialog for Phase 15 display configuration
+ *
+ * Displays the display settings dialog when open.
+ */
+void GUI::ShowDisplaySettingsDialog() {
+  if (displaySettingsDialog_ && displaySettingsDialog_->IsOpen()) {
+    displaySettingsDialog_->Render(displayConfig_);
+
+    // Check if settings changed and apply
+    if (displaySettingsDialog_->HasChanged()) {
+      view::settings::SettingsManager::Instance().SetDisplayConfig(
+          displayConfig_);
+      view::settings::DisplaySettings::ApplyTheme(displayConfig_);
+      view::settings::SettingsManager::Instance().SaveToFile(
+          "config/settings.yaml");
+      spdlog::info("Display settings updated and saved");
     }
   }
 }

@@ -27,6 +27,15 @@ config_lib(Polish PRIVATE_SOURCES Polish/ShortcutManager.cpp Polish/ContextMenuM
 #Phase 2 : Tools System(Tool Manager, Preview Renderer, Tool Options Panel)
 config_lib(Tools PRIVATE_SOURCES Tools/ToolManager.cpp Tools/PreviewRenderer.cpp Tools/ImGUI/CommandManager.cpp Tools/ImGUI/ToolOptionsPanel.cpp PUBLIC_SOURCES Tools/ToolManager.hpp Tools/PreviewRenderer.hpp Tools/ImGUI/CommandManager.hpp Tools/ImGUI/ToolOptionsPanel.hpp PUBLIC_DEPENDENCIES UIFSMAdapter Model imgui COMPILE_FEATURES cxx_std_17)
 
+#Phase 13 : Layer Management System
+config_lib(LayerManager PRIVATE_SOURCES LayerManager/LayerManagerPanel.cpp LayerManager/Layer.cpp PUBLIC_SOURCES LayerManager/Layer.hpp LayerManager/LayerManagerPanel.hpp PUBLIC_DEPENDENCIES Model imgui glm::glm fsmconfig COMPILE_FEATURES cxx_std_20)
+
+#Phase 14 : Import/Export System
+config_lib(ImportExport PRIVATE_SOURCES ImportExport/FileFormats.cpp ImportExport/ImportExportManager.cpp ImportExport/ImportExportDialog.cpp ImportExport/Importers/DXFImporter.cpp ImportExport/Importers/SVGImporter.cpp ImportExport/Exporters/SVGExporter.cpp ImportExport/Exporters/PNGExporter.cpp PUBLIC_SOURCES ImportExport/FileFormats.hpp ImportExport/ImporterExporterInterfaces.hpp ImportExport/ImportExportManager.hpp ImportExport/ImportExportDialog.hpp ImportExport/Importers/DXFImporter.hpp ImportExport/Importers/SVGImporter.hpp ImportExport/Exporters/SVGExporter.hpp ImportExport/Exporters/PNGExporter.hpp PUBLIC_DEPENDENCIES Model imgui glm::glm COMPILE_FEATURES cxx_std_20)
+
+#Phase 15 : Grid & Display Settings System
+config_lib(Settings PRIVATE_SOURCES Settings/SettingsConfig.cpp Settings/GridSettings.cpp Settings/DisplaySettings.cpp Settings/SettingsManager.cpp PUBLIC_SOURCES Settings/SettingsConfig.hpp Settings/GridSettings.hpp Settings/DisplaySettings.hpp Settings/SettingsManager.hpp PUBLIC_DEPENDENCIES glm::glm imgui spdlog::spdlog COMPILE_FEATURES cxx_std_20)
+
 #Select specific view
 add_subdirectory("OpenGL")
 

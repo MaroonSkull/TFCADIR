@@ -25,6 +25,9 @@ config_lib(ImGUIOpenGLView
         ../Annotation/DiameterDimensionTool.cpp
         ../Annotation/LeaderTool.cpp
         ../Annotation/TextAnnotationTool.cpp
+        ../Measurement/MeasurementTool.cpp
+        ../Help/HelpSystem.cpp
+        ../Help/HelpDialog.cpp
     PUBLIC_SOURCES
         ImGUI/ApplicationSettings.hpp
         ImGUI/ContextMenu.hpp
@@ -38,6 +41,9 @@ config_lib(ImGUIOpenGLView
         ../Shortcuts/ShortcutManager.hpp
         ../Presets/ViewPresetManager.hpp
         ../Annotation/DimensionTool.hpp
+        ../Measurement/MeasurementTool.hpp
+        ../Help/HelpSystem.hpp
+        ../Help/HelpDialog.hpp
     PUBLIC_DEPENDENCIES
         Model
         ImGUIOpenGLController
@@ -49,6 +55,9 @@ config_lib(ImGUIOpenGLView
         GLFWPP
         glm
         Polish
+        LayerManager
+        ImportExport
+        Settings
     PRIVATE_DEPENDENCIES
         spdlog::spdlog
         EmbedResource

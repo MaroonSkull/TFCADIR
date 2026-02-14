@@ -4,8 +4,16 @@
 #include <View/CameraController.hpp>
 #include <View/Commands/CommandManager.hpp>
 
+#include <View/Annotation/DimensionTool.hpp>
 #include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
+#include <View/Help/HelpDialog.hpp>
+#include <View/Help/HelpSystem.hpp>
 #include <View/ImGUI/ViewPresetsPanel.hpp>
+#include <View/ImportExport/ImportExportDialog.hpp>
+#include <View/ImportExport/ImportExportManager.hpp>
+#include <View/LayerManager/Layer.hpp>
+#include <View/LayerManager/LayerManagerPanel.hpp>
+#include <View/Measurement/MeasurementTool.hpp>
 #include <View/Navigation/NavigationEventHandler.hpp>
 #include <View/Navigation/NavigationManager.hpp>
 #include <View/ObjectManagement/ImGUI/OutlinerPanel.hpp>
@@ -25,9 +33,11 @@
 #include <View/Precision/MeasurementManager.hpp>
 #include <View/Precision/SnapSettingsPanel.hpp>
 #include <View/Presets/ViewPresetManager.hpp>
+#include <View/Settings/DisplaySettings.hpp>
+#include <View/Settings/GridSettings.hpp>
+#include <View/Settings/SettingsManager.hpp>
 #include <View/Shortcuts/ShortcutManager.hpp>
 #include <View/Tools/ImGUI/CommandManager.hpp>
-#include <View/Annotation/DimensionTool.hpp>
 #include <View/Tools/ImGUI/ToolOptionsPanel.hpp>
 #include <View/UIFSMAdapter.hpp>
 #include <glfwpp/glfwpp.h>
@@ -167,6 +177,49 @@ private:
   /// Phase 11: Current dimension style for annotation tools
   view::DimensionStyle dimensionStyle_;
 
+  /// Phase 12: Current active measurement tool (nullptr if none active)
+  std::unique_ptr<view::MeasurementTool> activeMeasurementTool_;
+
+  /// Phase 12: Current measurement style for measurement tools
+  view::MeasurementStyle measurementStyle_;
+
+  /// Phase 12: Measurement tools panel dock ID
+  ImGuiID dockIdMeasurementTools_{};
+
+  /// Phase 13: Layer Manager panel dock ID
+  ImGuiID dockIdLayerManager_{};
+
+  /// Phase 13: Layer Manager for layer operations
+  std::unique_ptr<view::LayerManager> layerManager_;
+
+  /// Phase 13: Layer Manager Panel for layer management UI
+  std::unique_ptr<view::LayerManagerPanel> layerManagerPanel_;
+
+  /// Phase 14: Import/Export Manager for file operations
+  std::unique_ptr<view::import_export::ImportExportManager>
+      importExportManager_;
+
+  /// Phase 14: Import/Export Dialog for import/export UI
+  std::unique_ptr<view::import_export::ImportExportDialog> importExportDialog_;
+
+  /// Phase 15: Grid settings dialog for grid configuration
+  std::unique_ptr<view::settings::GridSettings> gridSettingsDialog_;
+
+  /// Phase 15: Display settings dialog for display/appearance configuration
+  std::unique_ptr<view::settings::DisplaySettings> displaySettingsDialog_;
+
+  /// Phase 15: Current grid configuration
+  view::settings::GridConfig gridConfig_;
+
+  /// Phase 15: Current display configuration
+  view::settings::DisplayConfig displayConfig_;
+
+  /// Phase 17: Help system for context-sensitive help
+  std::shared_ptr<view::HelpSystem> helpSystem_;
+
+  /// Phase 17: Help dialog for displaying help content
+  std::unique_ptr<view::HelpDialog> helpDialog_;
+
   /// Current status bar text
   std::string statusText_{"3D Mode"};
 
@@ -227,7 +280,49 @@ private:
    */
   void activateAnnotationTool(view::DimensionTool::Type toolType);
 
- public:
+  /**
+   * @brief Render the measurement tools panel for Phase 12 measurement tools
+   *
+   * Displays the measurement tool selection and measurement style options.
+   */
+  void ShowMeasurementToolsPanel();
+
+  /**
+   * @brief Handle measurement tool activation (Phase 12)
+   * @param toolType The type of measurement tool to activate
+   */
+  void activateMeasurementTool(view::MeasurementTool::Type toolType);
+
+  /**
+   * @brief Render the layer manager panel for Phase 13 layer management
+   *
+   * Displays the layer list, layer properties, and layer actions.
+   */
+  void ShowLayerManagerPanel();
+
+  /**
+   * @brief Render the import/export dialog for Phase 14 file operations
+   *
+   * Displays the import/export dialog when open.
+   */
+  void ShowImportExportDialog();
+
+  /**
+   * @brief Render the grid settings dialog for Phase 15 grid configuration
+   *
+   * Displays the grid settings dialog when open.
+   */
+  void ShowGridSettingsDialog();
+
+  /**
+   * @brief Render the display settings dialog for Phase 15 display
+   * configuration
+   *
+   * Displays the display settings dialog when open.
+   */
+  void ShowDisplaySettingsDialog();
+
+public:
   GUI(std::shared_ptr<controller::IController> sp_controller);
   std::tuple<ImVec2, float, std::optional<ImVec2>>
   DrawGUI(ImTextureID renderTexture);
