@@ -22,13 +22,28 @@ struct Appearance {
 };
 
 /**
+ * @brief Line style enumeration for figure rendering
+ * @details Defines how lines are drawn for figures
+ */
+enum class LineStyle {
+  Solid,   ///< Continuous line
+  Dashed,  ///< Dashed line (---)
+  Dotted,  ///< Dotted line (...)
+  DashDot, ///< Dash-dot line (-.-.-)
+  Center,  ///< Center line (long-short-long)
+  Hidden   ///< Hidden line (short dashes)
+};
+
+/**
  * @brief Layer properties for a figure
- * @details Stores layer assignment, visibility, and lock state
+ * @details Stores layer assignment, visibility, lock state, and line style
  */
 struct LayerProperties {
-  int layerIndex{0};  ///< Layer index (0 = default layer)
-  bool visible{true}; ///< Whether figure is visible
-  bool locked{false}; ///< Whether figure is locked (non-editable)
+  int layerIndex{0};      ///< Layer index (0 = default layer)
+  bool visible{true};     ///< Whether figure is visible
+  bool locked{false};     ///< Whether figure is locked (non-editable)
+  float lineWeight{1.0f}; ///< Line weight/thickness (0.5-5.0 range)
+  LineStyle lineStyle{LineStyle::Solid}; ///< Line style for rendering
 };
 
 /**
