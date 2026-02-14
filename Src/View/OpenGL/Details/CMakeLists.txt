@@ -4,3 +4,4 @@ project (${PROJECT_NAME})
 
 add_subdirectory ("Shader")
 add_subdirectory ("GLProgram")
+add_subdirectory ("Camera")

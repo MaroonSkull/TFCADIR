@@ -6,11 +6,21 @@
 #include <memory>
 #include <optional>
 
+#include "OpenGL/Details/Camera/Camera3d.hpp"
+
 namespace model {
 class SketchPlane;
 } // namespace model
 
 namespace view {
+
+/**
+ * @brief Working mode for the camera controller
+ */
+enum class WorkMode {
+  TwoD,  ///< 2D sketching mode
+  ThreeD ///< 3D navigation mode
+};
 
 /**
  * @brief Controls camera positioning and state management for sketch mode
@@ -134,6 +144,47 @@ public:
    */
   bool is3DMode() const;
 
+  // ==========================================================================
+  // 3D Camera Support Methods
+  // ==========================================================================
+
+  /**
+   * @brief Gets the 3D camera instance
+   * @return Reference to the Camera3D instance
+   */
+  Camera3D &getCamera3D() { return camera3D_; }
+
+  /**
+   * @brief Gets the 3D camera instance (const version)
+   * @return Const reference to the Camera3D instance
+   */
+  const Camera3D &getCamera3D() const { return camera3D_; }
+
+  /**
+   * @brief Sets the working mode for the camera
+   * @param mode The working mode (2D or 3D)
+   */
+  void setWorkMode(WorkMode mode);
+
+  /**
+   * @brief Gets the current working mode
+   * @return The current working mode
+   */
+  WorkMode getWorkMode() const { return workMode_; }
+
+  /**
+   * @brief Gets the view matrix for the current mode
+   * @return The view matrix
+   */
+  glm::mat4 getViewMatrix() const;
+
+  /**
+   * @brief Gets the projection matrix for the current mode
+   * @param aspectRatio The aspect ratio of the viewport
+   * @return The projection matrix
+   */
+  glm::mat4 getProjectionMatrix(float aspectRatio) const;
+
 private:
   /// Saved camera state from before entering sketch mode
   std::optional<CameraState> savedState_;
@@ -141,8 +192,11 @@ private:
   /// Current camera state
   CameraState currentState_;
 
-  /// Flag to track if camera is in 2D mode
-  bool is2DMode_ = true;
+  /// 3D camera instance for orbit navigation
+  Camera3D camera3D_;
+
+  /// Current working mode
+  WorkMode workMode_ = WorkMode::TwoD;
 
   /// Default distance from camera to sketch plane (world units)
   static constexpr float DEFAULT_CAMERA_DISTANCE = 10.0f;
