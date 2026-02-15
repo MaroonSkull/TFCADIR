@@ -65,8 +65,7 @@ void CameraController::setCameraState(const glm::vec3 &position,
   currentState_.position = position;
   currentState_.target = target;
   currentState_.up = up;
-  /// Note: zoom parameter is not currently used in CameraState
-  /// but could be stored for future use
+  currentState_.zoom = zoom;
 }
 
 void CameraController::getCameraState(glm::vec3 &position, glm::vec3 &target,
@@ -74,13 +73,36 @@ void CameraController::getCameraState(glm::vec3 &position, glm::vec3 &target,
   position = currentState_.position;
   target = currentState_.target;
   up = currentState_.up;
-  /// Note: zoom is not currently stored in CameraState
-  /// Return a default value for now
-  zoom = 1.0f;
+  zoom = currentState_.zoom;
 }
 
-bool CameraController::is2DMode() const { return is2DMode_; }
+bool CameraController::is2DMode() const { return workMode_ == WorkMode::TwoD; }
 
-bool CameraController::is3DMode() const { return !is2DMode_; }
+bool CameraController::is3DMode() const {
+  return workMode_ == WorkMode::ThreeD;
+}
+
+// ==========================================================================
+// 3D Camera Support Methods
+// ==========================================================================
+
+void CameraController::setWorkMode(WorkMode mode) { workMode_ = mode; }
+
+glm::mat4 CameraController::getViewMatrix() const {
+  if (workMode_ == WorkMode::ThreeD) {
+    return camera3D_.getViewMatrix();
+  }
+  // For 2D mode, use the current state to create view matrix
+  return glm::lookAt(currentState_.position, currentState_.target,
+                     currentState_.up);
+}
+
+glm::mat4 CameraController::getProjectionMatrix(float aspectRatio) const {
+  if (workMode_ == WorkMode::ThreeD) {
+    return camera3D_.getProjectionMatrix(aspectRatio);
+  }
+  // For 2D mode, return the stored projection matrix
+  return currentState_.projection;
+}
 
 } // namespace view

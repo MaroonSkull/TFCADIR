@@ -52,6 +52,7 @@ config_lib(ImGUIOpenGLView
         GUI
         Shader
         GLProgram
+        RenderingPipeline3D
         GLFWPP
         glm
         Polish
