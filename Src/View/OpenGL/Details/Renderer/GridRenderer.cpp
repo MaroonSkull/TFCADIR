@@ -215,20 +215,24 @@ void GridRenderer::createShaderProgram() {
 std::vector<float> GridRenderer::generateVertexData() const {
   std::vector<float> vertices;
 
-  // Calculate number of lines needed
-  // Lines parallel to X axis (along Z direction)
-  // Lines parallel to Z axis (along X direction)
-  int numLines = static_cast<int>(gridSize_ / gridSpacing_) * 2 + 1;
+  // Calculate number of lines needed per direction
+  // Lines extend from -gridSize_ to +gridSize_ with spacing gridSpacing_
+  int numLinesPerDirection =
+      static_cast<int>(gridSize_ / gridSpacing_) * 2 + 1;
 
   // Reserve space: each line has 2 vertices, each vertex has 3 floats (x, y, z)
-  vertices.reserve(static_cast<size_t>(numLines) * 2 * 3 * 2);
+  // Two sets of lines: parallel to X axis and parallel to Z axis
+  vertices.reserve(static_cast<size_t>(numLinesPerDirection) * 2 * 3 * 2);
 
   float halfSize = static_cast<float>(gridSize_);
 
   // Generate lines parallel to X axis (varying Z)
-  for (int i = -static_cast<int>(gridSize_); i <= static_cast<int>(gridSize_);
-       ++i) {
-    float z = static_cast<float>(i) * gridSpacing_;
+  for (int i = 0; i < numLinesPerDirection; ++i) {
+    float z = -halfSize + static_cast<float>(i) * gridSpacing_;
+    // Clamp to grid extent to handle floating point precision issues
+    if (z > halfSize) {
+      z = halfSize;
+    }
     // Line from (-halfSize, 0, z) to (halfSize, 0, z)
     vertices.push_back(-halfSize); // x1
     vertices.push_back(0.0f);      // y1
@@ -239,9 +243,12 @@ std::vector<float> GridRenderer::generateVertexData() const {
   }
 
   // Generate lines parallel to Z axis (varying X)
-  for (int i = -static_cast<int>(gridSize_); i <= static_cast<int>(gridSize_);
-       ++i) {
-    float x = static_cast<float>(i) * gridSpacing_;
+  for (int i = 0; i < numLinesPerDirection; ++i) {
+    float x = -halfSize + static_cast<float>(i) * gridSpacing_;
+    // Clamp to grid extent to handle floating point precision issues
+    if (x > halfSize) {
+      x = halfSize;
+    }
     // Line from (x, 0, -halfSize) to (x, 0, halfSize)
     vertices.push_back(x);         // x1
     vertices.push_back(0.0f);      // y1
