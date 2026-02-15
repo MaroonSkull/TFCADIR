@@ -67,6 +67,12 @@ OpenglImguiView::OpenglImguiView(
     }
     spdlog::info("3D rendering pipeline initialized successfully");
 
+    // Connect CameraController to RenderingPipeline3D's camera
+    // This ensures debug window buttons affect the rendered view
+    UI_.setExternalCamera3D(&renderingPipeline_->getCamera());
+    spdlog::info("Camera systems unified: CameraController now uses "
+                 "RenderingPipeline3D's camera");
+
     // Shaiders
     Fragment_ = new Shader(LOAD_RESOURCE(Resources_glsl_1D_frag_glsl),
                            Shader::Fragment);
@@ -279,12 +285,15 @@ void OpenglImguiView::draw() {
       /// This prevents camera movement when interacting with ImGui UI elements
       /// (sliders, input fields, etc.)
       ImGuiIO &io = ImGui::GetIO();
-      const bool imguiWantsMouse = io.WantCaptureMouse;
       const bool imguiWantsKeyboard = io.WantCaptureKeyboard;
 
-      /// Only process camera input when ImGui doesn't want to capture it
-      /// This ensures camera doesn't move during UI interactions
-      if (!imguiWantsMouse && mousePosition.has_value()) {
+      /// Process camera input when canvas is hovered (mousePosition has value)
+      /// The mousePosition is only set when the canvas is hovered, which means
+      /// the user wants to interact with the 3D view, not with other ImGui UI
+      /// elements. This fixes the issue where WantCaptureMouse was true when
+      /// hovering over the canvas (an ImGui window), which incorrectly blocked
+      /// camera controls.
+      if (mousePosition.has_value()) {
         const auto &[x, y] = mousePosition.value();
         auto &orbitControls = renderingPipeline_->getOrbitControls();
 

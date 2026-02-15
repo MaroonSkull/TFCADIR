@@ -20,6 +20,12 @@ namespace view {
  * @details Implements the Memento pattern for saving and restoring camera
  * state. Provides methods to position the camera for optimal 2D sketching on
  *          predefined planes.
+ *
+ * Note: This class can operate in two modes:
+ * 1. Internal camera mode: Uses its own Camera3D instance (default)
+ * 2. External camera mode: Uses a pointer to an external Camera3D (set via
+ *    setExternalCamera3D). This is used when the camera should be shared with
+ *    RenderingPipeline3D for interactive 3D controls.
  */
 class CameraController {
 public:
@@ -146,13 +152,32 @@ public:
    * @brief Gets the 3D camera instance
    * @return Reference to the Camera3D instance
    */
-  Camera3D &getCamera3D() { return camera3D_; }
+  Camera3D &getCamera3D() {
+    return externalCamera3D_ ? *externalCamera3D_ : camera3D_;
+  }
 
   /**
    * @brief Gets the 3D camera instance (const version)
    * @return Const reference to the Camera3D instance
    */
-  const Camera3D &getCamera3D() const { return camera3D_; }
+  const Camera3D &getCamera3D() const {
+    return externalCamera3D_ ? *externalCamera3D_ : camera3D_;
+  }
+
+  /**
+   * @brief Sets an external 3D camera to use instead of the internal one
+   * @param camera Pointer to an external Camera3D instance
+   * @details This is used to share a camera between CameraController and
+   *          RenderingPipeline3D. When set, all camera operations will use
+   *          the external camera instead of the internal one.
+   */
+  void setExternalCamera3D(Camera3D *camera) { externalCamera3D_ = camera; }
+
+  /**
+   * @brief Checks if an external camera is set
+   * @return True if using an external camera, false otherwise
+   */
+  bool hasExternalCamera3D() const { return externalCamera3D_ != nullptr; }
 
   /**
    * @brief Sets the working mode for the camera
@@ -188,6 +213,9 @@ private:
 
   /// 3D camera instance for orbit navigation
   Camera3D camera3D_;
+
+  /// Pointer to external 3D camera (used when sharing with RenderingPipeline3D)
+  Camera3D *externalCamera3D_{nullptr};
 
   /// Current working mode
   WorkMode workMode_ = WorkMode::TwoD;

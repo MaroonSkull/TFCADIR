@@ -325,4 +325,25 @@ public:
   GUI(std::shared_ptr<controller::IController> sp_controller);
   std::tuple<ImVec2, float, std::optional<ImVec2>>
   DrawGUI(ImTextureID renderTexture);
+
+  /**
+   * @brief Sets an external 3D camera for the CameraController
+   * @param camera Pointer to an external Camera3D instance
+   * @details This is used to share a camera between CameraController and
+   *          RenderingPipeline3D. When set, all camera operations will use
+   *          the external camera instead of the internal one.
+   */
+  void setExternalCamera3D(view::Camera3D *camera) {
+    if (cameraController_) {
+      cameraController_->setExternalCamera3D(camera);
+    }
+  }
+
+  /**
+   * @brief Gets the CameraController instance
+   * @return Pointer to the CameraController
+   */
+  view::CameraController *getCameraController() {
+    return cameraController_.get();
+  }
 };
