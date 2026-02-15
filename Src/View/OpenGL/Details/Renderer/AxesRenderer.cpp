@@ -85,12 +85,11 @@ void AxesRenderer::render(const glm::mat4 &view, const glm::mat4 &projection) {
     return;
   }
 
-  // Store current line width
-  GLfloat previousLineWidth;
-  glGetFloatv(GL_LINE_WIDTH, &previousLineWidth);
-
-  // Set line width
-  glLineWidth(axisWidth_);
+  /// NOTE: glLineWidth is not used because OpenGL 3.3 Core Profile only
+  /// guarantees support for line width 1.0. Many drivers (especially Mesa/Intel)
+  /// report a wider range via GL_ALIASED_LINE_WIDTH_RANGE but still generate
+  /// GL_INVALID_VALUE when setting widths > 1.0. The axes render correctly
+  /// with the default line width of 1.0.
 
   // Use shader program
   shaderProgram_->useProgram();
@@ -103,9 +102,6 @@ void AxesRenderer::render(const glm::mat4 &view, const glm::mat4 &projection) {
   glBindVertexArray(vao_);
   glDrawArrays(GL_LINES, 0, 6);
   glBindVertexArray(0);
-
-  // Restore previous line width
-  glLineWidth(previousLineWidth);
 }
 
 void AxesRenderer::setAxisLength(float length) {

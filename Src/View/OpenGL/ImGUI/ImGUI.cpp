@@ -4,6 +4,7 @@
 // #include <boost/mp11/bind.hpp>
 // #include <boost/signals2.hpp>
 
+#include <GLFW/glfw3.h>
 #include <Resource.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -269,10 +270,89 @@ void OpenglImguiView::draw() {
       sp_controller_->updateWorkspaceHoverState(
           controller::state::Workspace::unhovered);
 
-    // Render 3D world using the rendering pipeline
+    // Process camera controls input before rendering
     if (renderingPipeline_ && renderingPipeline_->isInitialized()) {
       // Update viewport if needed
       renderingPipeline_->onViewportResize(frameWidth_, frameHeight_);
+
+      /// Get ImGui IO to check for input capture
+      /// This prevents camera movement when interacting with ImGui UI elements
+      /// (sliders, input fields, etc.)
+      ImGuiIO &io = ImGui::GetIO();
+      const bool imguiWantsMouse = io.WantCaptureMouse;
+      const bool imguiWantsKeyboard = io.WantCaptureKeyboard;
+
+      /// Only process camera input when ImGui doesn't want to capture it
+      /// This ensures camera doesn't move during UI interactions
+      if (!imguiWantsMouse && mousePosition.has_value()) {
+        const auto &[x, y] = mousePosition.value();
+        auto &orbitControls = renderingPipeline_->getOrbitControls();
+
+        // Handle mouse button state changes for camera orbit/pan
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+          orbitControls.onMouseButton(0, 1,
+                                      0); // GLFW_MOUSE_BUTTON_1, GLFW_PRESS
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+          orbitControls.onMouseButton(0, 0,
+                                      0); // GLFW_MOUSE_BUTTON_1, GLFW_RELEASE
+        }
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
+          orbitControls.onMouseButton(2, 1,
+                                      0); // GLFW_MOUSE_BUTTON_3, GLFW_PRESS
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle)) {
+          orbitControls.onMouseButton(2, 0,
+                                      0); // GLFW_MOUSE_BUTTON_3, GLFW_RELEASE
+        }
+
+        // Handle mouse movement for orbit/pan
+        orbitControls.onCursorPos(static_cast<double>(x),
+                                  static_cast<double>(y));
+
+        // Handle scroll for zoom
+        if (momentWheel != 0.0f) {
+          orbitControls.onScroll(static_cast<double>(momentWheel));
+        }
+      }
+
+      /// Process keyboard input for camera controls when ImGui doesn't want
+      /// keyboard This allows keyboard camera controls (Arrow keys, W/S/A/D, R)
+      /// to work only when not typing in ImGui input fields
+      if (!imguiWantsKeyboard) {
+        auto &orbitControls = renderingPipeline_->getOrbitControls();
+
+        /// Forward keyboard input to OrbitControls
+        /// Keys: Arrow keys (orbit), W/S (zoom), A/D (pan), R (reset view)
+        /// Using ImGuiKey enum for cross-platform compatibility
+        /// ImGui converts GLFW keys internally via
+        /// ImGui_ImplGlfw_KeyToImGuiKey()
+        struct KeyMapping {
+          ImGuiKey imguiKey;
+          int glfwKey;
+        };
+        const KeyMapping cameraKeys[] = {{ImGuiKey_LeftArrow, GLFW_KEY_LEFT},
+                                         {ImGuiKey_RightArrow, GLFW_KEY_RIGHT},
+                                         {ImGuiKey_UpArrow, GLFW_KEY_UP},
+                                         {ImGuiKey_DownArrow, GLFW_KEY_DOWN},
+                                         {ImGuiKey_W, GLFW_KEY_W},
+                                         {ImGuiKey_S, GLFW_KEY_S},
+                                         {ImGuiKey_A, GLFW_KEY_A},
+                                         {ImGuiKey_D, GLFW_KEY_D},
+                                         {ImGuiKey_R, GLFW_KEY_R}};
+
+        for (const auto &key : cameraKeys) {
+          // Handle key press (single event)
+          if (ImGui::IsKeyPressed(key.imguiKey)) {
+            orbitControls.onKey(key.glfwKey, GLFW_PRESS, 0);
+          }
+          // Handle key repeat for continuous movement
+          if (ImGui::IsKeyDown(key.imguiKey)) {
+            orbitControls.onKey(key.glfwKey, GLFW_REPEAT, 0);
+          }
+        }
+      }
+
       // Render the 3D world (grid, axes, objects)
       renderingPipeline_->render();
     }
