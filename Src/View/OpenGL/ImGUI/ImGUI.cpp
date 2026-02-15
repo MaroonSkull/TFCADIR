@@ -210,10 +210,10 @@ void OpenglImguiView::draw() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
 
-  // reinterpret_cast is inevitable here, it's a necessary measure to pass
-  // the texture from GLFWPP to imgui
+  // Cast GLuint to ImTextureID (ImU64 since ImGui v1.91.4)
+  // static_cast is used for widening conversion from 32-bit to 64-bit
   auto [frameSizes, momentWheel, mousePosition] =
-      UI_.DrawGUI(reinterpret_cast<ImTextureID>(textureId_));
+      UI_.DrawGUI(static_cast<ImTextureID>(textureId_));
 
   // todo observer would be useful here. If model and view haven't changed,
   // don't render new texture
