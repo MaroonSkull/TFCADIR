@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <Controller/IController.hpp>
+#include <Logging/LogViewer.hpp>
 #include <View/CameraController.hpp>
 #include <View/Commands/CommandManager.hpp>
 
@@ -218,6 +219,9 @@ private:
 
   /// Phase 17: Help dialog for displaying help content
   std::unique_ptr<view::HelpDialog> helpDialog_;
+
+  /// Log viewer for displaying log messages in-app
+  std::unique_ptr<TFCADIR::Logging::LogViewer> logViewer_;
 
   /// Current status bar text
   std::string statusText_{"3D Mode"};

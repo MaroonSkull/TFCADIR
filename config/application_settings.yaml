@@ -1,0 +1,23 @@
+# TFCADIR Application Settings
+# Auto-generated - Do not edit manually
+
+[grid]
+visible = true
+show_minor_lines = true
+show_axes = true
+show_origin = true
+major_spacing = 10
+minor_divisions = 10
+opacity = 1
+
+[snap]
+grid_enabled = true
+endpoint_enabled = true
+midpoint_enabled = true
+center_enabled = true
+intersection_enabled = true
+nearest_enabled = false
+tangent_enabled = false
+perpendicular_enabled = false
+tolerance_pixels = 10
+show_indicators = true

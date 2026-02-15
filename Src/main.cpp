@@ -1,7 +1,9 @@
 ﻿#include <Controller/OpenGL/ImGUI.hpp>
+#include <Logging/LoggerManager.hpp>
 #include <Model/FlatFigure.hpp>
 #include <View/OpenGL/ImGUI.hpp>
 
+#include <iostream>
 #include <spdlog/spdlog.h>
 
 // #include <swogl/swogl.h>
@@ -23,9 +25,17 @@ void handle_eptr(std::exception_ptr eptr) // passing by value is OK
 }
 
 int main() {
-  try {
-    spdlog::set_level(spdlog::level::debug); // Set the spdlog level to debug
+  // Initialize logging system
+  if (!TFCADIR::Logging::LoggerManager::instance().initialize(
+          "config/logging.yaml")) {
+    std::cerr << "Failed to initialize logging system" << std::endl;
+    return 1;
+  }
 
+  // Log application startup
+  spdlog::info("TFCADIR application starting");
+
+  try {
     auto Model = std::make_shared<model::FlatFigures>();
     auto Controller = std::shared_ptr<controller::IController>(
         new controller::OpenglImguiController(Model));
@@ -44,9 +54,11 @@ int main() {
     handle_eptr(std::current_exception());
   }
 
-  // Under VisualStudio, this must be called before main finishes to workaround
-  // a known VS issue
-  spdlog::drop_all();
+  // Log application shutdown
+  spdlog::info("TFCADIR application shutting down");
+
+  // Shutdown logging system before exit
+  TFCADIR::Logging::LoggerManager::instance().shutdown();
 
   return 0;
 }

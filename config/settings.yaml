@@ -1,0 +1,25 @@
+# TFCADIR Application Settings
+# Auto-generated - do not edit manually unless necessary
+
+grid:
+  showGrid: true
+  showMinorGridLines: false
+  majorGridSpacing: 10
+  minorDivisions: 10
+  majorGridColor: [0.26, 0.26, 0.26, 1]
+  minorGridColor: [0.2, 0.2, 0.2, 1]
+  gridOpacity: 0.8
+  gridType: "Cartesian"
+
+display:
+  theme: "Dark"
+  backgroundColor: [0.12, 0.12, 0.12, 1]
+  foregroundColor: [0.86, 0.86, 0.86, 1]
+  accentColor: [0, 0.48, 0.68, 1]
+  selectionColor: [1, 0.65, 0, 1]
+  axisXColor: [1, 0.42, 0.42, 1]
+  axisYColor: [0.31, 0.8, 0.77, 1]
+  axisZColor: [1, 0.9, 0.43, 1]
+  fontName: "Default"
+  fontSize: 14
+  uiSize: "Medium"

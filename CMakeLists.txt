@@ -73,6 +73,7 @@ foreach (library
     fsmconfig
     nlohmann_json::nlohmann_json
 #sources
+    Logging
     Model
     Controller
     View

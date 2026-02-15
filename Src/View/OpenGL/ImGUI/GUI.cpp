@@ -1,6 +1,7 @@
 ﻿#include "imgui.h"
 #include <Controller/OpenGL/ImGUI.hpp>
 #include <GUI.hpp>
+#include <Logging/LoggerManager.hpp>
 #include <View/Commands/ExtendedCommandManager.hpp>
 #include <View/Commands/ImGUI/CommandHistoryPanel.hpp>
 #include <View/ImGUI/ViewPresetsPanel.hpp>
@@ -254,10 +255,9 @@ void GUI::ShowDockSpace() {
 }
 
 void GUI::ShowLog() {
-  if (Begin("Log")) {
-    Text("Just logs here");
+  if (logViewer_) {
+    logViewer_->render();
   }
-  End();
 }
 
 void GUI::ShowSidePanel() {
@@ -630,6 +630,15 @@ GUI::GUI(std::shared_ptr<controller::IController> sp_controller)
 
   /// Phase 17: Create help dialog for displaying help content
   helpDialog_ = std::make_unique<view::HelpDialog>(helpSystem_);
+
+  /// Initialize log viewer with ImGUI sink from LoggerManager
+  auto imgui_sink =
+      TFCADIR::Logging::LoggerManager::instance().get_imgui_sink();
+  if (imgui_sink) {
+    logViewer_ = std::make_unique<TFCADIR::Logging::LogViewer>(
+        std::shared_ptr<TFCADIR::Logging::ImGUI_sink_mt>(imgui_sink,
+                                                         [](auto *) {}));
+  }
 
   /// Phase 7: Create shortcut manager for keyboard shortcut handling (stateless
   /// coordinator)
