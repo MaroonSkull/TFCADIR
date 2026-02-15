@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 // MVC
 #include <Controller/IController.hpp>
@@ -12,6 +12,7 @@
 #include <glm/mat4x4.hpp>
 
 // Details
+#include "Details/RenderingPipeline3D.hpp"
 #include <GLProgram.hpp>
 #include <GUI.hpp>
 #include <Shader.hpp>
@@ -40,6 +41,9 @@ private:
   GLuint textureId_{}; // the texture id we'll need later to create a texture
   // todo tmp, move to model
   std::vector<GLfloat> vertices_{};
+
+  /// 3D rendering pipeline integrating all rendering components
+  std::unique_ptr<view::RenderingPipeline3D> renderingPipeline_;
 
   // creates the vertex arrays and buffers
   void create_triangle();

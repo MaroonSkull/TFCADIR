@@ -59,6 +59,13 @@ OpenglImguiView::OpenglImguiView(
     glViewport(0, 0, frameWidth_, frameHeight_);
     create_triangle();
 
+    // Initialize 3D rendering pipeline
+    renderingPipeline_ = std::make_unique<view::RenderingPipeline3D>();
+    if (!renderingPipeline_->initialize(frameWidth_, frameHeight_)) {
+      throw std::runtime_error{"Failed to initialize 3D rendering pipeline"};
+    }
+    spdlog::info("3D rendering pipeline initialized successfully");
+
     // Shaiders
     Fragment_ = new Shader(LOAD_RESOURCE(Resources_glsl_1D_frag_glsl),
                            Shader::Fragment);
@@ -262,47 +269,14 @@ void OpenglImguiView::draw() {
       sp_controller_->updateWorkspaceHoverState(
           controller::state::Workspace::unhovered);
 
-    glClearColor(0.9f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    Pipeline_->useProgram();
-
-    // TODO: remove, temporary raw operations
-    sp_model_->model_ =
-        glm::rotate(sp_model_->model_, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-    const auto view =
-        glm::lookAt(sp_model_->camera_.position, sp_model_->camera_.target,
-                    sp_model_->camera_.up);
-    sp_model_->projection_ =
-        glm::perspective(glm::radians(45.0f), 1.33f, 0.1f, 100.0f);
-
-    auto setUniformMatrix = [&](const std::string &name,
-                                const glm::mat4 &matrix) {
-      if (const auto loc = Pipeline_->getUniformLocation(name);
-          loc.has_value()) {
-        glUniformMatrix4fv(loc.value(), 1, GL_FALSE, glm::value_ptr(matrix));
-      }
-    };
-
-    setUniformMatrix("model", sp_model_->model_);
-    setUniformMatrix("view", view);
-    setUniformMatrix("projection", sp_model_->projection_);
-
-    glBindVertexArray(VAO_);
-
-    if (mousePosition) {
-      // get data from model and send to opengl
-      glBindBuffer(GL_ARRAY_BUFFER, VBO_);
-      // glBufferSubData(GL_ARRAY_BUFFER, 0, vertices_.size() *
-      // sizeof(vertices_.at(0)), vertices_.data());
-      glBufferData(GL_ARRAY_BUFFER, vertices_.size() * sizeof(vertices_.at(0)),
-                   vertices_.data(), GL_DYNAMIC_DRAW);
+    // Render 3D world using the rendering pipeline
+    if (renderingPipeline_ && renderingPipeline_->isInitialized()) {
+      // Update viewport if needed
+      renderingPipeline_->onViewportResize(frameWidth_, frameHeight_);
+      // Render the 3D world (grid, axes, objects)
+      renderingPipeline_->render();
     }
-    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices_.size() / 3));
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
 
