@@ -83,8 +83,11 @@ public:
   /**
    * @brief Sets the current camera state
    * @param state The camera state to set
+   * @details Updates both the internal state struct and the Camera3D object
+   *          used for 3D rendering. This ensures View Presets and other
+   *          camera operations affect the actual rendered view.
    */
-  void setCurrentState(const CameraState &state) { currentState_ = state; }
+  void setCurrentState(const CameraState &state);
 
   /**
    * @brief Positions the camera for optimal 2D sketching on the given plane
