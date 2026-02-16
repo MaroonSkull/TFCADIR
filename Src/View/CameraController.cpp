@@ -17,9 +17,21 @@ void CameraController::restoreCameraState() {
     return;
   }
 
-  // Apply the saved state directly to the controller's current state
-  currentState_ = savedState_.value();
+  // Use setCurrentState() to update both currentState_ AND Camera3D
+  setCurrentState(savedState_.value());
   savedState_.reset();
+}
+
+void CameraController::setCurrentState(const CameraState &state) {
+  /// Update the internal state struct
+  currentState_ = state;
+
+  /// Synchronize with Camera3D for 3D mode rendering
+  /// This ensures View Presets affect the actual rendered view
+  getCamera3D().setPosition(state.position);
+  getCamera3D().setTarget(state.target);
+  getCamera3D().setUp(state.up);
+  /// Note: zoom is applied separately in getProjectionMatrix()
 }
 
 CameraController::CameraState
@@ -66,6 +78,13 @@ void CameraController::setCameraState(const glm::vec3 &position,
   currentState_.target = target;
   currentState_.up = up;
   currentState_.zoom = zoom;
+
+  // Synchronize with Camera3D for 3D mode rendering
+  getCamera3D().setPosition(position);
+  getCamera3D().setTarget(target);
+  getCamera3D().setUp(up);
+  // Note: Camera3D uses fov_, not zoom - zoom is handled separately in
+  // projection
 }
 
 void CameraController::getCameraState(glm::vec3 &position, glm::vec3 &target,

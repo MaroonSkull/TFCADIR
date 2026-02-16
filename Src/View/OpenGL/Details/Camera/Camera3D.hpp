@@ -66,6 +66,14 @@ public:
   void setTarget(const glm::vec3 &target);
 
   /**
+   * @brief Sets the camera up vector
+   * @param up The new up direction
+   * @details Sets the up vector directly without recalculating from position/target.
+   *          Used for view presets that need specific camera orientations (e.g., Top/Bottom views).
+   */
+  void setUp(const glm::vec3 &up);
+
+  /**
    * @brief Zooms the camera in or out
    * @param delta Zoom amount (positive to zoom in, negative to zoom out)
    * @details Adjusts the distance between camera and target.
