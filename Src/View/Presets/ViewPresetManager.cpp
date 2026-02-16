@@ -1,17 +1,16 @@
 #include "View/Presets/ViewPresetManager.hpp"
 #include <View/Navigation/NavigationManager.hpp>
-#include <spdlog/spdlog.h>
 
 namespace view {
 
 ViewPresetManager::ViewPresetManager(NavigationManager &navigationManager)
-    : navigationManager_(navigationManager) {
-  spdlog::debug("ViewPresetManager initialized");
-}
+    : navigationManager_(navigationManager) {}
 
-void ViewPresetManager::applyPreset(ViewPreset preset, float duration) {
-  spdlog::info("Applying view preset: {}", getPresetName(preset));
-  navigationManager_.startTransition(preset, duration);
+void ViewPresetManager::applyPreset(ViewPreset preset, float /*duration*/) {
+  /// Directly apply the view preset without transition animation
+  /// This ensures immediate camera response when View Preset buttons are
+  /// clicked
+  navigationManager_.setViewPreset(preset);
 }
 
 std::string ViewPresetManager::getPresetName(ViewPreset preset) {

@@ -1,6 +1,7 @@
 #include <View/ImGUI/ViewPresetsPanel.hpp>
 #include <View/Navigation/NavigationManager.hpp>
 #include <imgui.h>
+#include <spdlog/spdlog.h>
 
 namespace view {
 
@@ -138,6 +139,8 @@ bool ViewPresetsPanel::renderPresetButton(ViewPreset preset,
                                           const char *label) {
   /// Render button with preset label
   if (ImGui::Button(label)) {
+    spdlog::info("[ViewPresetsPanel::renderPresetButton] Button '{}' clicked, preset={}", 
+                 label, static_cast<int>(preset));
     return true;
   }
   return false;
