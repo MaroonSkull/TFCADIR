@@ -72,6 +72,24 @@ void Camera3D::setTarget(const glm::vec3 &target) {
   updateCameraVectors();
 }
 
+void Camera3D::setUp(const glm::vec3 &up) {
+  /// Validate input vector - ignore zero vectors to prevent NaN
+  constexpr float EPSILON = 0.0001f;
+  if (glm::length(up) < EPSILON) {
+    return;
+  }
+
+  up_ = glm::normalize(up);
+
+  /// Calculate right vector and check for parallel vectors
+  glm::vec3 right = glm::cross(forward_, up_);
+  if (glm::length(right) < EPSILON) {
+    /// forward_ and up_ are parallel - don't update right_
+    return;
+  }
+  right_ = glm::normalize(right);
+}
+
 void Camera3D::zoom(float delta) {
   // Calculate direction from target to camera
   glm::vec3 direction = position_ - target_;
@@ -123,13 +141,26 @@ void Camera3D::setZoomLimits(float minDistance, float maxDistance) {
 }
 
 void Camera3D::updateCameraVectors() {
-  // Calculate forward vector (direction from camera to target)
+  /// Calculate forward vector (direction from camera to target)
   forward_ = glm::normalize(target_ - position_);
 
-  // Calculate right vector (perpendicular to forward and world up)
-  right_ = glm::normalize(glm::cross(forward_, WORLD_UP));
+  /// Calculate right vector (perpendicular to forward and world up)
+  /// Handle edge case when forward is parallel to WORLD_UP (Top/Bottom views)
+  constexpr float EPSILON = 0.0001f;
+  glm::vec3 right = glm::cross(forward_, WORLD_UP);
 
-  // Calculate up vector (perpendicular to forward and right)
+  if (glm::length(right) < EPSILON) {
+    /// forward_ is parallel to WORLD_UP - use alternative reference vector
+    /// This happens for Top view (looking down) or Bottom view (looking up)
+    right = glm::cross(forward_, glm::vec3(1.0f, 0.0f, 0.0f));
+    if (glm::length(right) < EPSILON) {
+      /// Fallback: forward is also parallel to X axis, use Z axis
+      right = glm::cross(forward_, glm::vec3(0.0f, 0.0f, 1.0f));
+    }
+  }
+  right_ = glm::normalize(right);
+
+  /// Calculate up vector (perpendicular to forward and right)
   up_ = glm::normalize(glm::cross(right_, forward_));
 }
 
