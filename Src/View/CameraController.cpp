@@ -23,7 +23,7 @@ void CameraController::restoreCameraState() {
 }
 
 void CameraController::setCurrentState(const CameraState &state) {
-  /// Update the internal state struct
+  /// Apply new camera state for view preset or navigation operation
   currentState_ = state;
 
   /// Synchronize with Camera3D for 3D mode rendering
@@ -68,7 +68,7 @@ CameraController::setCameraForPlane(const model::SketchPlane &plane) {
 }
 
 // ==========================================================================
-// Phase 5: Navigation Support Methods
+// Navigation Support Methods
 // ==========================================================================
 
 void CameraController::setCameraState(const glm::vec3 &position,

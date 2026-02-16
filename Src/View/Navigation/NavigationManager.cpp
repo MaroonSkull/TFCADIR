@@ -3,6 +3,7 @@
 #include <View/ObjectManagement/SelectionManager.hpp>
 #include <algorithm>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace view {
 

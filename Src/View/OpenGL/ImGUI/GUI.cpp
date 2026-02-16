@@ -321,6 +321,19 @@ ImVec2 GUI::ShowCanvas(ImTextureID renderTexture) {
       // calculate cursor coordinates
     }
 
+    /// Render view preset buttons in the top-left corner of the canvas
+    /// Use SetCursorScreenPos() with absolute screen coordinates and submit
+    /// a Dummy() item to properly validate window boundary extension
+    if (viewPresetButtons_) {
+      ImVec2 canvasCursorScreenPos = GetCursorScreenPos();
+      SetCursorScreenPos(ImVec2(screenPositionAbsolute.x + 10.0f,
+                                screenPositionAbsolute.y + 10.0f));
+      Dummy(ImVec2(0.0f, 0.0f)); // Submit item to validate boundary extension
+      viewPresetButtons_->render();
+      SetCursorScreenPos(canvasCursorScreenPos);
+      Dummy(ImVec2(0.0f, 0.0f)); // Submit item to validate boundary extension
+    }
+
     EndChild();
   }
   End();
@@ -418,11 +431,8 @@ void GUI::ShowViewPresetsPanel() {
   if (viewPresetsPanel_) {
     viewPresetsPanel_->render();
   }
-
-  // Phase 9.4: Also render the view preset buttons widget
-  if (viewPresetButtons_) {
-    viewPresetButtons_->render();
-  }
+  // Note: viewPresetButtons_ is now rendered inside ShowCanvas() to avoid
+  // creating a floating "Debug" window
 }
 
 /**
