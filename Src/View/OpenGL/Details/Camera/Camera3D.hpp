@@ -68,8 +68,9 @@ public:
   /**
    * @brief Sets the camera up vector
    * @param up The new up direction
-   * @details Sets the up vector directly without recalculating from position/target.
-   *          Used for view presets that need specific camera orientations (e.g., Top/Bottom views).
+   * @details Sets the up vector directly without recalculating from
+   * position/target. Used for view presets that need specific camera
+   * orientations (e.g., Top/Bottom views).
    */
   void setUp(const glm::vec3 &up);
 
@@ -216,6 +217,9 @@ private:
 
   /// World up vector (used for calculating right vector)
   static constexpr glm::vec3 WORLD_UP{0.0f, 1.0f, 0.0f};
+
+  /// Epsilon value for floating-point comparisons and vector length checks
+  static constexpr float EPSILON = 0.0001f;
 
   /// Default field of view in degrees
   static constexpr float DEFAULT_FOV = 45.0f;

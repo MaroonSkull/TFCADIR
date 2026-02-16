@@ -74,7 +74,6 @@ void Camera3D::setTarget(const glm::vec3 &target) {
 
 void Camera3D::setUp(const glm::vec3 &up) {
   /// Validate input vector - ignore zero vectors to prevent NaN
-  constexpr float EPSILON = 0.0001f;
   if (glm::length(up) < EPSILON) {
     return;
   }
@@ -146,7 +145,6 @@ void Camera3D::updateCameraVectors() {
 
   /// Calculate right vector (perpendicular to forward and world up)
   /// Handle edge case when forward is parallel to WORLD_UP (Top/Bottom views)
-  constexpr float EPSILON = 0.0001f;
   glm::vec3 right = glm::cross(forward_, WORLD_UP);
 
   if (glm::length(right) < EPSILON) {
