@@ -322,11 +322,15 @@ ImVec2 GUI::ShowCanvas(ImTextureID renderTexture) {
     }
 
     /// Render view preset buttons in the top-left corner of the canvas
+    /// Use SetCursorScreenPos() with absolute screen coordinates and submit
+    /// a Dummy() item to properly validate window boundary extension
     if (viewPresetButtons_) {
-      ImVec2 canvasCursorPos = GetCursorPos();
-      SetCursorPos(ImVec2(10.0f, 10.0f));
+      ImVec2 canvasCursorScreenPos = GetCursorScreenPos();
+      SetCursorScreenPos(ImVec2(screenPositionAbsolute.x + 10.0f,
+                                screenPositionAbsolute.y + 10.0f));
+      Dummy(ImVec2(0.0f, 0.0f)); // Submit item to validate boundary extension
       viewPresetButtons_->render();
-      SetCursorPos(canvasCursorPos);
+      SetCursorScreenPos(canvasCursorScreenPos);
     }
 
     EndChild();
