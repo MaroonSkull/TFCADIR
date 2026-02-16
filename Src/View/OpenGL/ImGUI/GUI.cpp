@@ -331,6 +331,7 @@ ImVec2 GUI::ShowCanvas(ImTextureID renderTexture) {
       Dummy(ImVec2(0.0f, 0.0f)); // Submit item to validate boundary extension
       viewPresetButtons_->render();
       SetCursorScreenPos(canvasCursorScreenPos);
+      Dummy(ImVec2(0.0f, 0.0f)); // Submit item to validate boundary extension
     }
 
     EndChild();
