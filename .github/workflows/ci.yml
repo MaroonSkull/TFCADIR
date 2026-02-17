@@ -75,7 +75,13 @@ jobs:
             libboost-all-dev \
             libspdlog-dev \
             libyaml-cpp-dev \
-            clang-tidy
+            clang-tidy \
+            libxrandr-dev \
+            libx11-dev \
+            libxext-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxinerama-dev
 
       # ------------------------------------------------------------------------
       # Step 3: Install system dependencies (Windows) using vcpkg
@@ -244,7 +250,13 @@ jobs:
             libglu1-mesa-dev \
             libboost-all-dev \
             libspdlog-dev \
-            libyaml-cpp-dev
+            libyaml-cpp-dev \
+            libxrandr-dev \
+            libx11-dev \
+            libxext-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxinerama-dev
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
