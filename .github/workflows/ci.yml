@@ -63,7 +63,7 @@ jobs:
 
       # ------------------------------------------------------------------------
       # Step 2: Install system dependencies (Ubuntu)
-      # Required packages: OpenGL, Boost, spdlog, yaml-cpp
+      # Required packages: OpenGL, Boost, spdlog, yaml-cpp, GTest
       # ------------------------------------------------------------------------
       - name: Install dependencies (Ubuntu)
         if: runner.os == 'Linux'
@@ -81,7 +81,9 @@ jobs:
             libxext-dev \
             libxcursor-dev \
             libxi-dev \
-            libxinerama-dev
+            libxinerama-dev \
+            libgtest-dev \
+            libgmock-dev
 
       # ------------------------------------------------------------------------
       # Step 3: Install system dependencies (Windows) using vcpkg
@@ -90,7 +92,7 @@ jobs:
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
-          vcpkg install boost spdlog yaml-cpp
+          vcpkg install boost spdlog yaml-cpp googletest
           vcpkg integrate install
 
       # ------------------------------------------------------------------------
@@ -256,7 +258,9 @@ jobs:
             libxext-dev \
             libxcursor-dev \
             libxi-dev \
-            libxinerama-dev
+            libxinerama-dev \
+            libgtest-dev \
+            libgmock-dev
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

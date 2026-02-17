@@ -74,7 +74,9 @@ jobs:
           libxext-dev \
           libxcursor-dev \
           libxi-dev \
-          libxinerama-dev
+          libxinerama-dev \
+          libgtest-dev \
+          libgmock-dev
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
