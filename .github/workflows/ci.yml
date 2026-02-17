@@ -83,7 +83,8 @@ jobs:
             libxi-dev \
             libxinerama-dev \
             libgtest-dev \
-            libgmock-dev
+            libgmock-dev \
+            wayland-scanner
 
       # ------------------------------------------------------------------------
       # Step 3: Install system dependencies (Windows) using vcpkg
@@ -92,6 +93,7 @@ jobs:
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
           vcpkg install boost spdlog yaml-cpp googletest
           vcpkg integrate install
 
@@ -260,7 +262,8 @@ jobs:
             libxi-dev \
             libxinerama-dev \
             libgtest-dev \
-            libgmock-dev
+            libgmock-dev \
+            wayland-scanner
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

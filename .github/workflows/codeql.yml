@@ -76,7 +76,8 @@ jobs:
           libxi-dev \
           libxinerama-dev \
           libgtest-dev \
-          libgmock-dev
+          libgmock-dev \
+          wayland-scanner
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
