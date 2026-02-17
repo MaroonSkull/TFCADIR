@@ -3,15 +3,6 @@ cmake_minimum_required (VERSION 3.30) #for find Boost
 #Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
-    "$<IF:                                                 \
-        $<AND:                                             \
-            $<C_COMPILER_ID:MSVC>,                         \
-            $<CXX_COMPILER_ID:MSVC>                        \
-        >,                                                 \
-        $<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>, \
-        $<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>  \
-    >")
 endif()
 
 project ("TFCADIR"
@@ -20,6 +11,12 @@ project ("TFCADIR"
     HOMEPAGE_URL "https://github.com/MaroonSkull/TFCADIR"
     LANGUAGES CXX C
 )
+
+# Enable Hot Reload for MSVC compilers if supported (set after project() so compiler is determined)
+if (POLICY CMP0141)
+  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+    "$<IF:$<CXX_COMPILER_ID:MSVC>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
+endif()
 
 include (CMake/utils.cmake)
 
