@@ -56,6 +56,25 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libboost-all-dev \
+          libspdlog-dev \
+          libyaml-cpp-dev \
+          libxrandr-dev \
+          libx11-dev \
+          libxext-dev \
+          libxcursor-dev \
+          libxi-dev \
+          libxinerama-dev
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
