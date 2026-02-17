@@ -1,0 +1,1180 @@
+#include "UIFSMAdapter.hpp"
+#include "Polish/PerformanceMonitor.hpp"
+#include <memory>
+#include <optional>
+#include <tinyexpr.h>
+
+namespace view {
+
+UIFSMAdapter::UIFSMAdapter(fsm::Machine &fsm,
+                           CameraController &cameraController,
+                           std::shared_ptr<spdlog::logger> logger)
+    : fsm_(fsm), cameraController_(cameraController),
+      logger_(std::move(logger)), currentState_(fsm.get_current_state()),
+      primarySelectionIndex_(-1), tooltipSettings_{},
+      performanceMonitor_(std::make_unique<View::PerformanceMonitor>()) {
+  logger_->info("UIFSMAdapter initialized");
+
+  // Initialize default help topics
+  helpTopics_ = {
+      {"welcome",
+       "Welcome to TFCADIR",
+       "Welcome to TFCADIR - a powerful CAD application.\n\nThis help "
+       "system provides context-sensitive assistance for all tools and "
+       "features.",
+       "getting-started",
+       {"welcome", "tutorial", "basics", "introduction"},
+       "tools"},
+      {"tools",
+       "Drawing Tools",
+       "TFCADIR provides a comprehensive set of drawing tools for 3D "
+       "modeling.\n\n## Available Tools\n- Line3D: Draw 3D lines\n- Circle3D: "
+       "Draw "
+       "3D circles\n- Arc3D: Draw 3D arcs\n- Rectangle3D: Draw 3D "
+       "rectangles\n- "
+       "Polygon3D: Draw 3D polygons\n- NGon3D: Draw regular polygons",
+       "tools",
+       {"line", "circle", "arc", "rectangle", "polygon", "drawing", "tools"},
+       "getting-started"},
+      {"shortcuts",
+       "Keyboard Shortcuts",
+       "Keyboard shortcuts provide quick access to frequently used "
+       "commands.\n\n"
+       "## Common Shortcuts\n- Ctrl+Z: Undo\n- Ctrl+Y: Redo\n- Ctrl+S: "
+       "Save\n- Escape: Cancel current operation\n- F1: Show context-sensitive "
+       "help",
+       "reference",
+       {"keyboard", "shortcuts", "hotkeys", "commands"},
+       ""},
+      {"navigation",
+       "3D Navigation",
+       "Navigate the 3D viewport using mouse and keyboard.\n\n## Mouse "
+       "Controls\n"
+       "- Left Click + Drag: Rotate view\n- Right Click + Drag: Pan view\n- "
+       "Scroll Wheel: Zoom in/out\n- Middle Click + Drag: Pan view",
+       "reference",
+       {"navigation", "viewport", "camera", "view"},
+       "tools"},
+      {"grid",
+       "Grid and Snapping",
+       "Use grid and snap tools for precise drawing.\n\n## Grid Settings\n- "
+       "Major Spacing: Distance between major grid lines\n- Minor Divisions: "
+       "Number of divisions between major lines\n\n## Snap Modes\n- Grid: Snap "
+       "to grid intersections\n- Endpoint: Snap to line endpoints\n- Midpoint: "
+       "Snap to line midpoints\n- Center: Snap to circle/arc centers",
+       "reference",
+       {"grid", "snap", "precision", "snapping"},
+       "tools"},
+      {"selection",
+       "Selection and Editing",
+       "Select and edit geometry using various tools.\n\n## Selection Modes\n"
+       "- Click: Select single object\n- Shift+Click: Add to selection\n- "
+       "Ctrl+Click: Toggle selection\n- Drag: Box selection\n\n## Editing\n- "
+       "Delete: Remove selected objects\n- Ctrl+D: Duplicate selection",
+       "tools",
+       {"selection", "editing", "modify", "objects"},
+       "tools"},
+  };
+}
+
+UIFSMAdapter::~UIFSMAdapter() { logger_->info("UIFSMAdapter destroyed"); }
+
+void UIFSMAdapter::setShowPlaneSelectionCallback(
+    ShowPlaneSelectionCallback callback) {
+  showPlaneSelectionCallback_ = std::move(callback);
+}
+
+void UIFSMAdapter::setUpdateStatusCallback(UpdateStatusCallback callback) {
+  updateStatusCallback_ = std::move(callback);
+}
+
+void UIFSMAdapter::setSelectionChangedCallback(
+    SelectionChangedCallback callback) {
+  selectionChangedCallback_ = std::move(callback);
+}
+
+void UIFSMAdapter::setPropertyChangedCallback(
+    PropertyChangedCallback callback) {
+  propertyChangedCallback_ = std::move(callback);
+}
+
+void UIFSMAdapter::onStateChanged(fsm::State newState) {
+  currentState_ = newState;
+  logger_->debug("UIFSMAdapter: State changed to {}",
+                 static_cast<int>(newState));
+
+  switch (newState) {
+  case fsm::State::PlaneSelection:
+    /// Show plane selection UI
+    if (showPlaneSelectionCallback_) {
+      showPlaneSelectionCallback_(
+          [this](int planeIndex) { this->selectPlane(planeIndex); });
+    }
+    /// Update status bar
+    if (updateStatusCallback_) {
+      updateStatusCallback_("Select a sketch plane (Right, Top, or Front)");
+    }
+    break;
+
+  case fsm::State::SketchEdit:
+    /// Update status bar
+    if (updateStatusCallback_) {
+      updateStatusCallback_("Sketch Mode: 2D drawing on sketch plane");
+    }
+    break;
+
+  case fsm::State::Idle:
+    /// Update status bar
+    if (updateStatusCallback_) {
+      updateStatusCallback_("Idle");
+    }
+    break;
+
+  default:
+    /// Other states - update with state name
+    if (updateStatusCallback_) {
+      updateStatusCallback_("Drawing");
+    }
+    break;
+  }
+}
+
+void UIFSMAdapter::enterSketchMode() {
+  logger_->info("Entering sketch mode");
+  fsm_.process_event(fsm::events::OnEnterSketchMode());
+}
+
+void UIFSMAdapter::selectPlane(int planeIndex) {
+  logger_->info("Selecting sketch plane: {}", planeIndex);
+
+  /// Create the selected sketch plane
+  auto planes = getAvailablePlanes();
+  if (planeIndex >= 0 && planeIndex < static_cast<int>(planes.size())) {
+    currentSketchPlane_ =
+        std::make_unique<model::SketchPlane>(planes[planeIndex]);
+
+    /// Send event to FSM with plane index parameter
+    fsm::events::OnPlaneSelected event(planeIndex);
+    fsm_.process_event(event);
+
+    /// Position camera for the selected plane
+    auto cameraState =
+        cameraController_.setCameraForPlane(*currentSketchPlane_);
+    /// Apply camera state to the actual camera (will be done in GUI
+    /// integration)
+    logger_->info("Camera positioned for sketch plane: {}",
+                  currentSketchPlane_->getName());
+  } else {
+    logger_->error("Invalid plane index: {}", planeIndex);
+  }
+}
+
+void UIFSMAdapter::exitSketchMode() {
+  logger_->info("Exiting sketch mode");
+  fsm_.process_event(fsm::events::OnExitSketchMode());
+
+  /// Clear current sketch plane
+  currentSketchPlane_.reset();
+
+  /// Restore camera to previous state
+  cameraController_.restoreCameraState();
+}
+
+model::SketchPlane *UIFSMAdapter::getCurrentSketchPlane() {
+  return currentSketchPlane_.get();
+}
+
+bool UIFSMAdapter::isInSketchMode() const {
+  return currentState_ == fsm::State::PlaneSelection ||
+         currentState_ == fsm::State::SketchEdit;
+}
+
+std::vector<model::SketchPlane> UIFSMAdapter::getAvailablePlanes() const {
+  /// Create preset sketch planes
+  std::vector<model::SketchPlane> planes;
+  planes.push_back(
+      model::SketchPlane(model::SketchPlane::PresetPlane::XY)); // Front plane
+  planes.push_back(
+      model::SketchPlane(model::SketchPlane::PresetPlane::XZ)); // Top plane
+  planes.push_back(
+      model::SketchPlane(model::SketchPlane::PresetPlane::YZ)); // Right plane
+  return planes;
+}
+
+// ==========================================================================
+// Phase 2: Tool Management Methods
+// These methods use local member variables because FSMConfig's VariableValue
+// only supports simple types (int, float, string, bool), not complex types
+// like std::map or std::vector<glm::vec3>.
+// ==========================================================================
+
+std::string UIFSMAdapter::getActiveTool() const {
+  /// Return the currently active tool ID from local storage
+  return activeTool_;
+}
+
+std::map<std::string, std::any> UIFSMAdapter::getToolOptions() const {
+  /// Return the tool options from local storage
+  return toolOptions_;
+}
+
+std::vector<glm::vec3> UIFSMAdapter::getCollectedPoints() const {
+  /// Return the collected points from local storage
+  return collectedPoints_;
+}
+
+void UIFSMAdapter::activateTool(const std::string &toolId) {
+  /// Activate the specified tool by:
+  /// 1. Updating local state
+  /// 2. Triggering FSM event (if event is defined in FSM configuration)
+
+  // Update local state
+  activeTool_ = toolId;
+  collectedPoints_.clear();
+
+  // Map tool IDs to their corresponding FSM event names
+  // These events are defined in fsm_config.yaml Phase 16: Keyboard Shortcut
+  // Events
+  std::string eventName;
+  if (toolId == "Line3D" || toolId == "Line") {
+    eventName = "OnShortcutLine";
+  } else if (toolId == "Circle3D" || toolId == "Circle") {
+    eventName = "OnShortcutCircle";
+  } else if (toolId == "Arc3D" || toolId == "Arc") {
+    eventName = "OnShortcutArc";
+  } else if (toolId == "Rectangle3D" || toolId == "Rectangle") {
+    eventName = "OnShortcutRectangle";
+  } else if (toolId == "Polygon3D" || toolId == "Polygon") {
+    eventName = "OnShortcutPolygon";
+  } else if (toolId == "Triangle") {
+    eventName = "OnShortcutTriangle";
+  } else if (toolId == "Ellipse") {
+    eventName = "OnShortcutEllipse";
+  } else if (toolId == "Spline") {
+    eventName = "OnShortcutSpline";
+  } else if (toolId == "Select") {
+    eventName = "OnShortcutSelect";
+  } else if (toolId == "Move") {
+    eventName = "OnShortcutMove";
+  } else if (toolId == "Rotate") {
+    eventName = "OnShortcutRotate";
+  } else if (toolId == "Scale") {
+    eventName = "OnShortcutScale";
+  } else if (toolId == "Mirror") {
+    eventName = "OnShortcutMirror";
+  } else if (toolId == "Fillet") {
+    eventName = "OnShortcutFillet";
+  } else if (toolId == "Dimension") {
+    eventName = "OnShortcutDimension";
+  } else if (toolId == "Measure") {
+    eventName = "OnShortcutMeasure";
+  } else if (toolId == "LineInSketch") {
+    eventName = "OnAddLineInSketch";
+  } else if (toolId == "CircleInSketch") {
+    eventName = "OnAddCircleByCenterInSketch";
+  } else {
+    logger_->warn("Unknown tool ID requested: {}", toolId);
+    return;
+  }
+
+  /// Trigger the FSM event via FSMConfig's string-based event system
+  /// Note: These events are defined in fsm_config.yaml
+  if (fsmconfig::StateMachine *fsm = fsm_.get_fsm()) {
+    try {
+      fsm->triggerEvent(eventName);
+      logger_->info("Activated tool: {} (event: {})", toolId, eventName);
+    } catch (const fsmconfig::StateException &e) {
+      logger_->warn("Failed to trigger event {}: {}", eventName, e.what());
+      // Continue anyway - tool is still activated locally
+    }
+  }
+}
+
+void UIFSMAdapter::deactivateTool() {
+  /// Deactivate the current tool by:
+  /// 1. Clearing local state
+  /// 2. Triggering FSM event (if event is defined in FSM configuration)
+
+  activeTool_.clear();
+  toolOptions_.clear();
+  collectedPoints_.clear();
+
+  /// Trigger the OnDeactivateTool FSM event
+  /// Note: This event needs to be defined in the FSM YAML configuration
+  if (fsmconfig::StateMachine *fsm = fsm_.get_fsm()) {
+    try {
+      fsm->triggerEvent("OnDeactivateTool");
+      logger_->info("Deactivated tool");
+    } catch (const fsmconfig::StateException &e) {
+      logger_->warn("Failed to trigger event OnDeactivateTool: {}", e.what());
+      // Continue anyway - tool is still deactivated locally
+    }
+  }
+}
+
+// ==========================================================================
+// Phase 3: Object Management Methods
+// These methods manage selection state for figures
+// ==========================================================================
+
+std::vector<uint32_t> UIFSMAdapter::getSelectedFigureIds() const {
+  /// Return the selected figure IDs from local storage
+  return selectedFigureIds_;
+}
+
+int UIFSMAdapter::getPrimarySelectionIndex() const {
+  /// Return the primary selection index
+  return primarySelectionIndex_;
+}
+
+uint32_t UIFSMAdapter::getPrimarySelectionId() const {
+  /// Return the primary selection ID or 0 if no selection
+  if (primarySelectionIndex_ >= 0 &&
+      primarySelectionIndex_ < static_cast<int>(selectedFigureIds_.size())) {
+    return selectedFigureIds_[primarySelectionIndex_];
+  }
+  return 0;
+}
+
+void UIFSMAdapter::selectFigure(uint32_t figureId) {
+  /// Select a single figure (replaces current selection)
+  selectedFigureIds_.clear();
+  selectedFigureIds_.push_back(figureId);
+  primarySelectionIndex_ = 0;
+
+  logger_->info("Selected figure: {}", figureId);
+
+  /// Notify listeners of selection change
+  if (selectionChangedCallback_) {
+    selectionChangedCallback_(selectedFigureIds_);
+  }
+}
+
+void UIFSMAdapter::toggleFigureSelection(uint32_t figureId) {
+  /// Toggle selection state of a figure
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
+
+  if (it != selectedFigureIds_.end()) {
+    /// Figure is selected - remove it
+    size_t index = std::distance(selectedFigureIds_.begin(), it);
+    selectedFigureIds_.erase(it);
+
+    /// Adjust primary selection index if needed
+    if (primarySelectionIndex_ >= static_cast<int>(selectedFigureIds_.size())) {
+      primarySelectionIndex_ = static_cast<int>(selectedFigureIds_.size()) - 1;
+    }
+
+    logger_->info("Deselected figure: {}", figureId);
+  } else {
+    /// Figure is not selected - add it
+    selectedFigureIds_.push_back(figureId);
+    logger_->info("Added to selection: {}", figureId);
+  }
+
+  /// Notify listeners of selection change
+  if (selectionChangedCallback_) {
+    selectionChangedCallback_(selectedFigureIds_);
+  }
+}
+
+void UIFSMAdapter::addToSelection(uint32_t figureId) {
+  /// Add a figure to the current selection if not already selected
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
+
+  if (it == selectedFigureIds_.end()) {
+    selectedFigureIds_.push_back(figureId);
+    logger_->info("Added to selection: {}", figureId);
+
+    /// Notify listeners of selection change
+    if (selectionChangedCallback_) {
+      selectionChangedCallback_(selectedFigureIds_);
+    }
+  }
+}
+
+void UIFSMAdapter::removeFromSelection(uint32_t figureId) {
+  /// Remove a figure from the current selection
+  auto it =
+      std::find(selectedFigureIds_.begin(), selectedFigureIds_.end(), figureId);
+
+  if (it != selectedFigureIds_.end()) {
+    size_t index = std::distance(selectedFigureIds_.begin(), it);
+    selectedFigureIds_.erase(it);
+
+    /// Adjust primary selection index if needed
+    if (primarySelectionIndex_ >= static_cast<int>(selectedFigureIds_.size())) {
+      primarySelectionIndex_ = static_cast<int>(selectedFigureIds_.size()) - 1;
+    }
+
+    logger_->info("Removed from selection: {}", figureId);
+
+    /// Notify listeners of selection change
+    if (selectionChangedCallback_) {
+      selectionChangedCallback_(selectedFigureIds_);
+    }
+  }
+}
+
+void UIFSMAdapter::clearSelection() {
+  /// Clear all selections
+  if (!selectedFigureIds_.empty()) {
+    selectedFigureIds_.clear();
+    primarySelectionIndex_ = -1;
+
+    logger_->info("Cleared selection");
+
+    /// Notify listeners of selection change
+    if (selectionChangedCallback_) {
+      selectionChangedCallback_(selectedFigureIds_);
+    }
+  }
+}
+
+void UIFSMAdapter::setPrimarySelection(int index) {
+  /// Set the primary selection by index
+  if (index >= 0 && index < static_cast<int>(selectedFigureIds_.size())) {
+    primarySelectionIndex_ = index;
+    logger_->info("Primary selection set to index: {}", index);
+  } else {
+    logger_->warn("Invalid primary selection index: {}", index);
+  }
+}
+
+void UIFSMAdapter::updateFigureProperty(uint32_t figureId,
+                                        const std::string &propertyPath,
+                                        const std::any &value) {
+  /// Update a property of a specific figure
+  /// Note: This method requires access to the model which is passed in through
+  /// the constructor or set via a separate setter. For now, this is a
+  /// placeholder that logs the update. The actual property update will be
+  /// implemented by the PropertyInspectorPanel which has direct access to the
+  /// model.
+
+  logger_->info("Updating property '{}' for figure {}", propertyPath, figureId);
+
+  /// Parse property path (e.g., "center.x", "radius")
+  size_t dotPos = propertyPath.find('.');
+
+  /// Notify listeners of property change
+  if (propertyChangedCallback_) {
+    propertyChangedCallback_(figureId, propertyPath);
+  }
+}
+
+// ==========================================================================
+// Figure Grouping Methods (STUB - Not fully implemented)
+// These methods are stubs to allow compilation of GroupFiguresCommand
+// and UngroupFiguresCommand. Full implementation is pending.
+// ==========================================================================
+
+uint32_t UIFSMAdapter::groupFigures(const std::vector<uint32_t> &figureIds) {
+  /// Stub implementation - returns 0 to indicate failure
+  /// Full implementation requires access to the model's grouping functionality
+  logger_->warn("groupFigures called with {} figures - STUB (not implemented)",
+                figureIds.size());
+  return 0; /// Return 0 to indicate grouping failed
+}
+
+std::vector<uint32_t> UIFSMAdapter::ungroupFigures(uint32_t groupId) {
+  /// Stub implementation - returns empty vector to indicate failure
+  /// Full implementation requires access to the model's ungrouping
+  /// functionality
+  logger_->warn("ungroupFigures called for group {} - STUB (not implemented)",
+                groupId);
+  return std::vector<uint32_t>(); /// Return empty vector to indicate ungrouping
+                                  /// failed
+}
+
+// ==========================================================================
+// Phase 4: Command History Management Methods
+// UIFSMAdapter is the single source of truth for command history storage
+// ==========================================================================
+
+void UIFSMAdapter::executeCommand(std::unique_ptr<Commands::ICommand> command) {
+  /// Execute the command
+  command->execute();
+
+  /// Remove any commands after the current index (clear redo chain)
+  if (currentCommandIndex_ < commandHistory_.size()) {
+    commandHistory_.resize(currentCommandIndex_);
+  }
+
+  /// Add the command to history
+  commandHistory_.push_back(std::move(command));
+  currentCommandIndex_ = commandHistory_.size();
+
+  /// Enforce maximum history size
+  if (commandHistory_.size() > MAX_HISTORY_SIZE) {
+    commandHistory_.erase(commandHistory_.begin());
+    currentCommandIndex_ = commandHistory_.size();
+  }
+
+  logger_->info("Executed command, history size: {}, index: {}",
+                commandHistory_.size(), currentCommandIndex_);
+}
+
+bool UIFSMAdapter::undoCommand() {
+  if (!canUndo()) {
+    logger_->warn("Cannot undo: no command to undo");
+    return false;
+  }
+
+  /// Decrement index and undo the command
+  currentCommandIndex_--;
+  commandHistory_[currentCommandIndex_]->undo();
+  logger_->info("Undone command, new index: {}", currentCommandIndex_);
+  return true;
+}
+
+bool UIFSMAdapter::redoCommand() {
+  if (!canRedo()) {
+    logger_->warn("Cannot redo: no command to redo");
+    return false;
+  }
+
+  /// Redo the command at current index (execute again) and increment
+  commandHistory_[currentCommandIndex_]->execute();
+  currentCommandIndex_++;
+  logger_->info("Redone command, new index: {}", currentCommandIndex_);
+  return true;
+}
+
+void UIFSMAdapter::clearCommandHistory() {
+  commandHistory_.clear();
+  currentCommandIndex_ = 0;
+  logger_->info("Command history cleared");
+}
+
+bool UIFSMAdapter::canUndo() const { return currentCommandIndex_ > 0; }
+
+bool UIFSMAdapter::canRedo() const {
+  return currentCommandIndex_ < commandHistory_.size();
+}
+
+std::string UIFSMAdapter::getUndoDescription() const {
+  if (canUndo()) {
+    return commandHistory_[currentCommandIndex_ - 1]->getDescription();
+  }
+  return "";
+}
+
+std::string UIFSMAdapter::getRedoDescription() const {
+  if (canRedo()) {
+    return commandHistory_[currentCommandIndex_]->getDescription();
+  }
+  return "";
+}
+
+size_t UIFSMAdapter::getHistorySize() const { return commandHistory_.size(); }
+
+size_t UIFSMAdapter::getCurrentCommandIndex() const {
+  return currentCommandIndex_;
+}
+
+const Commands::ICommand *UIFSMAdapter::getCommandAt(size_t index) const {
+  if (index < commandHistory_.size()) {
+    return commandHistory_[index].get();
+  }
+  return nullptr;
+}
+
+// ==========================================================================
+// Phase 5: Navigation State Management Methods
+// UIFSMAdapter is the single source of truth for navigation domain state
+// ==========================================================================
+
+void UIFSMAdapter::setOrbitCenter(OrbitCenter center) {
+  if (orbitCenter_ != center) {
+    orbitCenter_ = center;
+    logger_->info("Orbit center changed to: {}", static_cast<int>(center));
+
+    /// Notify listeners of orbit center change
+    if (onOrbitCenterChanged_) {
+      onOrbitCenterChanged_();
+    }
+  }
+}
+
+OrbitCenter UIFSMAdapter::getOrbitCenter() const { return orbitCenter_; }
+
+void UIFSMAdapter::setCustomOrbitCenter(const glm::vec3 &center) {
+  customOrbitCenter_ = center;
+  logger_->info("Custom orbit center set to: ({}, {}, {})", center.x, center.y,
+                center.z);
+}
+
+glm::vec3 UIFSMAdapter::getCustomOrbitCenter() const {
+  return customOrbitCenter_;
+}
+
+void UIFSMAdapter::setCurrentViewPreset(ViewPreset preset) {
+  if (currentViewPreset_ != preset) {
+    currentViewPreset_ = preset;
+    logger_->info("View preset changed to: {}", static_cast<int>(preset));
+
+    /// Notify listeners of view preset change
+    if (onViewPresetChanged_) {
+      onViewPresetChanged_();
+    }
+  }
+}
+
+ViewPreset UIFSMAdapter::getCurrentViewPreset() const {
+  return currentViewPreset_;
+}
+
+void UIFSMAdapter::setIsTransitioning(bool transitioning) {
+  isTransitioning_ = transitioning;
+}
+
+bool UIFSMAdapter::isTransitioning() const { return isTransitioning_; }
+
+void UIFSMAdapter::setViewPresetChangedCallback(NavigationCallback callback) {
+  onViewPresetChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setOrbitCenterChangedCallback(NavigationCallback callback) {
+  onOrbitCenterChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 6: Precision & Snapping Methods
+// These methods provide access to grid and snap settings
+// ==========================================================================
+
+GridSettings UIFSMAdapter::getGridSettings() const {
+  /// Return the current grid settings from local storage
+  return gridSettings_;
+}
+
+void UIFSMAdapter::setGridSettings(const GridSettings &settings) {
+  /// Update grid settings and notify listeners
+  if (gridSettings_ != settings) {
+    gridSettings_ = settings;
+    logger_->info("Grid settings updated");
+
+    /// Notify listeners that grid geometry needs regeneration
+    if (onGridGeometryDirty_) {
+      onGridGeometryDirty_();
+    }
+
+    /// Notify listeners of grid settings change
+    if (onGridSettingsChanged_) {
+      onGridSettingsChanged_();
+    }
+  }
+}
+
+bool UIFSMAdapter::getGridSettingsPanelVisible() const {
+  /// Return the grid settings panel visibility from local storage
+  return gridSettingsPanelVisible_;
+}
+
+void UIFSMAdapter::setGridSettingsPanelVisible(bool visible) {
+  /// Update grid settings panel visibility
+  gridSettingsPanelVisible_ = visible;
+}
+
+bool UIFSMAdapter::getSnapSettingsPanelVisible() const {
+  /// Return the snap settings panel visibility from local storage
+  return snapSettingsPanelVisible_;
+}
+
+void UIFSMAdapter::setSnapSettingsPanelVisible(bool visible) {
+  /// Update snap settings panel visibility
+  snapSettingsPanelVisible_ = visible;
+}
+
+bool UIFSMAdapter::getCoordinateInputWidgetVisible() const {
+  /// Return the coordinate input widget visibility from local storage
+  return coordinateInputWidgetVisible_;
+}
+
+void UIFSMAdapter::setCoordinateInputWidgetVisible(bool visible) {
+  /// Update coordinate input widget visibility
+  coordinateInputWidgetVisible_ = visible;
+}
+
+bool UIFSMAdapter::getMeasurementDisplayVisible() const {
+  /// Return the measurement display visibility from local storage
+  return measurementDisplayVisible_;
+}
+
+void UIFSMAdapter::setMeasurementDisplayVisible(bool visible) {
+  /// Update measurement display visibility
+  measurementDisplayVisible_ = visible;
+}
+
+SnapSettings UIFSMAdapter::getSnapSettings() const {
+  /// Return the current snap settings from local storage
+  return snapSettings_;
+}
+
+void UIFSMAdapter::setSnapSettings(const SnapSettings &settings) {
+  /// Update snap settings and notify listeners
+  if (snapSettings_ != settings) {
+    snapSettings_ = settings;
+    logger_->info("Snap settings updated");
+
+    /// Notify listeners of snap settings change
+    if (onSnapSettingsChanged_) {
+      onSnapSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setGridSettingsChangedCallback(
+    GridSettingsCallback callback) {
+  onGridSettingsChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setSnapSettingsChangedCallback(
+    SnapSettingsCallback callback) {
+  onSnapSettingsChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setFigureChangedCallback(FigureChangedCallback callback) {
+  onFigureChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setCameraChangedCallback(CameraChangedCallback callback) {
+  onCameraChanged_ = std::move(callback);
+}
+
+void UIFSMAdapter::setGridGeometryDirtyCallback(
+    GridGeometryDirtyCallback callback) {
+  onGridGeometryDirty_ = std::move(callback);
+}
+
+// ==========================================================================
+// Grid State Query Methods (for GridManager)
+// These methods provide access to individual grid settings properties
+// ==========================================================================
+
+bool UIFSMAdapter::isGridEnabled() const {
+  /// Return the grid visibility from local storage
+  return gridSettings_.visible;
+}
+
+float UIFSMAdapter::getGridMajorSpacing() const {
+  /// Return the major grid spacing from local storage
+  return gridSettings_.majorSpacing;
+}
+
+float UIFSMAdapter::getGridMinorSpacing() const {
+  /// Calculate and return the minor grid spacing
+  if (gridSettings_.showMinorLines && gridSettings_.minorDivisions > 0) {
+    return gridSettings_.majorSpacing / gridSettings_.minorDivisions;
+  }
+  return gridSettings_.majorSpacing;
+}
+
+glm::vec4 UIFSMAdapter::getGridMajorColor() const {
+  /// Return the major grid color from local storage
+  return gridSettings_.color;
+}
+
+glm::vec4 UIFSMAdapter::getGridMinorColor() const {
+  /// Return the minor grid color from local storage
+  return gridSettings_.minorColor;
+}
+
+float UIFSMAdapter::getGridOpacity() const {
+  /// Return the grid opacity from local storage
+  return gridSettings_.opacity;
+}
+
+bool UIFSMAdapter::getGridShowAxes() const {
+  /// Return the axes visibility from local storage
+  return gridSettings_.showAxes;
+}
+
+bool UIFSMAdapter::getGridShowOrigin() const {
+  /// Return the origin visibility from local storage
+  return gridSettings_.showOrigin;
+}
+
+bool UIFSMAdapter::getGridShowMinorLines() const {
+  /// Return the minor lines visibility from local storage
+  return gridSettings_.showMinorLines;
+}
+
+int UIFSMAdapter::getGridMinorDivisions() const {
+  /// Return the minor divisions from local storage
+  return gridSettings_.minorDivisions;
+}
+
+// ==========================================================================
+// Snap State Query Methods (for SnapManager)
+// These methods provide access to individual snap settings properties
+// ==========================================================================
+
+bool UIFSMAdapter::isSnapGridEnabled() const {
+  /// Return the grid snap enabled flag from local storage
+  return snapSettings_.gridEnabled;
+}
+
+bool UIFSMAdapter::isSnapEndpointEnabled() const {
+  /// Return the endpoint snap enabled flag from local storage
+  return snapSettings_.endpointEnabled;
+}
+
+bool UIFSMAdapter::isSnapMidpointEnabled() const {
+  /// Return the midpoint snap enabled flag from local storage
+  return snapSettings_.midpointEnabled;
+}
+
+bool UIFSMAdapter::isSnapCenterEnabled() const {
+  /// Return the center snap enabled flag from local storage
+  return snapSettings_.centerEnabled;
+}
+
+bool UIFSMAdapter::isSnapIntersectionEnabled() const {
+  /// Return the intersection snap enabled flag from local storage
+  return snapSettings_.intersectionEnabled;
+}
+
+bool UIFSMAdapter::isSnapNearestEnabled() const {
+  /// Return the nearest point snap enabled flag from local storage
+  return snapSettings_.nearestEnabled;
+}
+
+bool UIFSMAdapter::isSnapTangentEnabled() const {
+  /// Return the tangent snap enabled flag from local storage
+  return snapSettings_.tangentEnabled;
+}
+
+bool UIFSMAdapter::isSnapPerpendicularEnabled() const {
+  /// Return the perpendicular snap enabled flag from local storage
+  return snapSettings_.perpendicularEnabled;
+}
+
+float UIFSMAdapter::getSnapTolerance() const {
+  /// Return the snap tolerance from local storage
+  return snapSettings_.tolerancePixels;
+}
+
+bool UIFSMAdapter::getSnapShowIndicators() const {
+  /// Return the snap indicators visibility from local storage
+  return snapSettings_.showIndicators;
+}
+
+glm::vec4 UIFSMAdapter::getSnapIndicatorColor() const {
+  /// Return the snap indicator color from local storage
+  return snapSettings_.indicatorColor;
+}
+
+// ==========================================================================
+// Measurement Settings Methods
+// These methods provide access to measurement settings
+// ==========================================================================
+
+MeasurementSettings UIFSMAdapter::getMeasurementSettings() const {
+  /// Return the current measurement settings from local storage
+  return measurementSettings_;
+}
+
+void UIFSMAdapter::setMeasurementSettings(const MeasurementSettings &settings) {
+  /// Update measurement settings and notify listeners
+  if (measurementSettings_ != settings) {
+    measurementSettings_ = settings;
+    logger_->info("Measurement settings updated");
+
+    /// Notify listeners of measurement settings change
+    if (onMeasurementSettingsChanged_) {
+      onMeasurementSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setMeasurementSettingsChangedCallback(
+    MeasurementSettingsCallback callback) {
+  onMeasurementSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Measurement State Query Methods (for MeasurementManager)
+// These methods provide access to individual measurement settings properties
+// ==========================================================================
+
+bool UIFSMAdapter::isShowMeasurementsEnabled() const {
+  /// Return the show measurements flag from local storage
+  return measurementSettings_.showMeasurements;
+}
+
+bool UIFSMAdapter::isRealTimeMeasurementEnabled() const {
+  /// Return the real-time measurement flag from local storage
+  return measurementSettings_.realTimeMeasurement;
+}
+
+bool UIFSMAdapter::isShowDistanceEnabled() const {
+  /// Return the show distance flag from local storage
+  return measurementSettings_.showDistance;
+}
+
+bool UIFSMAdapter::isShowAngleEnabled() const {
+  /// Return the show angle flag from local storage
+  return measurementSettings_.showAngle;
+}
+
+bool UIFSMAdapter::isShowAreaEnabled() const {
+  /// Return the show area flag from local storage
+  return measurementSettings_.showArea;
+}
+
+bool UIFSMAdapter::isShowPerimeterEnabled() const {
+  /// Return the show perimeter flag from local storage
+  return measurementSettings_.showPerimeter;
+}
+
+int UIFSMAdapter::getMeasurementPrecision() const {
+  /// Return the measurement precision from local storage
+  return measurementSettings_.precision;
+}
+
+// ==========================================================================
+// Coordinate Input Settings Methods
+// These methods provide access to coordinate input settings
+// ==========================================================================
+
+CoordinateInputSettings UIFSMAdapter::getCoordinateInputSettings() const {
+  /// Return the current coordinate input settings from local storage
+  return coordinateInputSettings_;
+}
+
+void UIFSMAdapter::setCoordinateInputSettings(
+    const CoordinateInputSettings &settings) {
+  /// Update coordinate input settings and notify listeners
+  if (coordinateInputSettings_ != settings) {
+    coordinateInputSettings_ = settings;
+    logger_->info("Coordinate input settings updated");
+
+    /// Notify listeners of coordinate input settings change
+    if (onCoordinateInputSettingsChanged_) {
+      onCoordinateInputSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setCoordinateInputSettingsChangedCallback(
+    CoordinateInputSettingsCallback callback) {
+  onCoordinateInputSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Coordinate Input State Query Methods (for CoordinateInputManager)
+// These methods provide access to individual coordinate input settings
+// properties
+// ==========================================================================
+
+bool UIFSMAdapter::isExpressionParsingEnabled() const {
+  /// Return the expression parsing enabled flag from local storage
+  return coordinateInputSettings_.expressionParsingEnabled;
+}
+
+void UIFSMAdapter::setExpressionParsingEnabled(bool enabled) {
+  /// Update expression parsing enabled state
+  if (coordinateInputSettings_.expressionParsingEnabled != enabled) {
+    coordinateInputSettings_.expressionParsingEnabled = enabled;
+    logger_->info("Expression parsing {}", enabled ? "enabled" : "disabled");
+
+    /// Notify listeners of coordinate input settings change
+    if (onCoordinateInputSettingsChanged_) {
+      onCoordinateInputSettingsChanged_();
+    }
+  }
+}
+
+int UIFSMAdapter::getCoordinatePrecision() const {
+  /// Return the coordinate precision from local storage
+  return coordinateInputSettings_.precision;
+}
+
+int UIFSMAdapter::getAngularPrecision() const {
+  /// Return the angular precision from local storage
+  return coordinateInputSettings_.angularPrecision;
+}
+
+CoordinateInputMode UIFSMAdapter::getCoordinateInputMode() const {
+  /// Return the coordinate input mode from local storage
+  return coordinateInputSettings_.inputMode;
+}
+
+// ==========================================================================
+// Phase 7: Shortcut Settings Methods
+// These methods provide access to keyboard shortcut settings
+// ==========================================================================
+
+ShortcutSettings UIFSMAdapter::getShortcutSettings() const {
+  /// Return the current shortcut settings from local storage
+  return shortcutSettings_;
+}
+
+void UIFSMAdapter::setShortcutSettings(const ShortcutSettings &settings) {
+  /// Update shortcut settings and notify listeners
+  if (shortcutSettings_ != settings) {
+    shortcutSettings_ = settings;
+    logger_->info("Shortcut settings updated");
+
+    /// Notify listeners of shortcut settings change
+    if (onShortcutSettingsChanged_) {
+      onShortcutSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setShortcutSettingsChangedCallback(
+    ShortcutSettingsCallback callback) {
+  onShortcutSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Theme Settings Methods
+// These methods provide access to theme settings
+// ==========================================================================
+
+ThemeSettings UIFSMAdapter::getThemeSettings() const {
+  /// Return the current theme settings from local storage
+  return themeSettings_;
+}
+
+void UIFSMAdapter::setThemeSettings(const ThemeSettings &settings) {
+  /// Update theme settings and notify listeners
+  if (themeSettings_ != settings) {
+    themeSettings_ = settings;
+    logger_->info("Theme settings updated");
+
+    /// Notify listeners of theme settings change
+    if (onThemeSettingsChanged_) {
+      onThemeSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setThemeSettingsChangedCallback(
+    ThemeSettingsCallback callback) {
+  onThemeSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Tooltip Settings Methods
+// These methods provide access to tooltip settings
+// ==========================================================================
+
+TooltipSettings UIFSMAdapter::getTooltipSettings() const {
+  /// Return the current tooltip settings from local storage
+  return tooltipSettings_;
+}
+
+void UIFSMAdapter::setTooltipSettings(const TooltipSettings &settings) {
+  /// Update tooltip settings and notify listeners
+  if (tooltipSettings_ != settings) {
+    tooltipSettings_ = settings;
+    logger_->info("Tooltip settings updated");
+
+    /// Notify listeners of tooltip settings change
+    if (onTooltipSettingsChanged_) {
+      onTooltipSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setTooltipSettingsChangedCallback(
+    TooltipSettingsCallback callback) {
+  onTooltipSettingsChanged_ = std::move(callback);
+}
+
+// ==========================================================================
+// Phase 7: Help Settings Methods
+// These methods provide access to help system
+// ==========================================================================
+
+std::vector<HelpTopic> UIFSMAdapter::getHelpTopics() const {
+  /// Return the help topics from local storage
+  return helpTopics_;
+}
+
+HelpSettings UIFSMAdapter::getHelpSettings() const {
+  /// Return the current help settings from local storage
+  return helpSettings_;
+}
+
+void UIFSMAdapter::setHelpSettings(const HelpSettings &settings) {
+  /// Update help settings and notify listeners
+  if (helpSettings_ != settings) {
+    helpSettings_ = settings;
+    logger_->info("Help settings updated");
+
+    /// Notify listeners of help settings change
+    if (onHelpSettingsChanged_) {
+      onHelpSettingsChanged_();
+    }
+  } else {
+    /// Even if settings are the same, notify listeners to ensure consistency
+    if (onHelpSettingsChanged_) {
+      onHelpSettingsChanged_();
+    }
+  }
+}
+
+void UIFSMAdapter::setHelpSettingsChangedCallback(
+    HelpSettingsCallback callback) {
+  onHelpSettingsChanged_ = std::move(callback);
+}
+
+/// Get the current shortcut settings
+ShortcutSettings UIFSMAdapter::getShortcuts() const {
+  /// Return the shortcut settings from local storage
+  return shortcutSettings_;
+}
+
+// ==========================================================================
+// Phase 7: Performance Monitor Methods
+// These methods provide access to performance monitoring
+// ==========================================================================
+
+/**
+ * @brief Get performance monitor instance
+ * @return View::PerformanceMonitor Pointer to the performance monitor
+ */
+View::PerformanceMonitor *UIFSMAdapter::getPerformanceMonitor() {
+  /// Return the performance monitor from local storage
+  return performanceMonitor_.get();
+}
+
+/**
+ * @brief Get performance statistics
+ * @return View::PerformanceStats Current performance statistics
+ */
+View::PerformanceStats UIFSMAdapter::getPerformanceStats() const {
+  /// Return the performance stats from the monitor, or default if not available
+  return performanceMonitor_ ? performanceMonitor_->getStats()
+                             : View::PerformanceStats{};
+}
+
+/**
+ * @brief Get performance display configuration
+ * @return View::PerformanceDisplayConfig Current display configuration
+ */
+View::PerformanceDisplayConfig
+UIFSMAdapter::getPerformanceDisplayConfig() const {
+  /// Return the display config from the monitor, or default if not available
+  return performanceMonitor_ ? performanceMonitor_->getDisplayConfig()
+                             : View::PerformanceDisplayConfig{};
+}
+
+/**
+ * @brief Set performance display configuration
+ * @param config New display configuration
+ */
+void UIFSMAdapter::setPerformanceDisplayConfig(
+    const View::PerformanceDisplayConfig &config) {
+  /// Update the display config if the monitor is available
+  if (performanceMonitor_) {
+    performanceMonitor_->setDisplayConfig(config);
+  }
+}
+
+} // namespace view

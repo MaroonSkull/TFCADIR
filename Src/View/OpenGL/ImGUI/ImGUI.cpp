@@ -4,6 +4,7 @@
 // #include <boost/mp11/bind.hpp>
 // #include <boost/signals2.hpp>
 
+#include <GLFW/glfw3.h>
 #include <Resource.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -58,6 +59,19 @@ OpenglImguiView::OpenglImguiView(
 
     glViewport(0, 0, frameWidth_, frameHeight_);
     create_triangle();
+
+    // Initialize 3D rendering pipeline
+    renderingPipeline_ = std::make_unique<view::RenderingPipeline3D>();
+    if (!renderingPipeline_->initialize(frameWidth_, frameHeight_)) {
+      throw std::runtime_error{"Failed to initialize 3D rendering pipeline"};
+    }
+    spdlog::info("3D rendering pipeline initialized successfully");
+
+    // Connect CameraController to RenderingPipeline3D's camera
+    // This ensures debug window buttons affect the rendered view
+    UI_.setExternalCamera3D(&renderingPipeline_->getCamera());
+    spdlog::info("Camera systems unified: CameraController now uses "
+                 "RenderingPipeline3D's camera");
 
     // Shaiders
     Fragment_ = new Shader(LOAD_RESOURCE(Resources_glsl_1D_frag_glsl),
@@ -196,106 +210,164 @@ void OpenglImguiView::draw() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
 
-  // reinterpret_cast is inevitable here, it's a necessary measure to pass
-  // the texture from GLFWPP to imgui
+  // Cast GLuint to ImTextureID (ImU64 since ImGui v1.91.4)
+  // static_cast is used for widening conversion from 32-bit to 64-bit
   auto [frameSizes, momentWheel, mousePosition] =
-      UI_.DrawGUI(reinterpret_cast<ImTextureID>(textureId_));
+      UI_.DrawGUI(static_cast<ImTextureID>(textureId_));
 
   // todo observer would be useful here. If model and view haven't changed,
   // don't render new texture
 
-  // Render on the whole framebuffer
-  glViewport(0, 0, frameWidth_, frameHeight_);
-  // Render to our framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-  // Rescale binded framebuffer
-  if (frameWidth_ != frameSizes.x || frameHeight_ != frameSizes.y) {
-    frameWidth_ = frameSizes.x;
-    frameHeight_ = frameSizes.y;
-    rescale_framebuffer();
-  }
+  /// Skip OpenGL rendering when canvas is hidden/collapsed (zero dimensions)
+  /// This prevents GL_INVALID_FRAMEBUFFER_OPERATION errors (GLAD error 1286)
+  /// that occur when attempting to render to a framebuffer with invalid
+  /// dimensions
+  const bool canvasVisible = (frameSizes.x > 0 && frameSizes.y > 0);
 
-  // handling direct input operations via canvas
-  // maybe wrap in lambda, create callback
-  if (mousePosition.has_value()) {
-    const auto &[x, y] = mousePosition.value();
-    // to ndc and to model
-    // sp_model_->camera_
-
-    sp_controller_->updateWorkspaceHoverState(
-        controller::state::Workspace::
-            hovered /*, x / frameWidth_, y / frameHeight_ */);
-
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-      sp_controller_->updateLeftMouseButtonState(
-          controller::state::Button::down);
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-      sp_controller_->updateLeftMouseButtonState(
-          controller::state::Button::released);
-
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
-      sp_controller_->updateRightMouseButtonState(
-          controller::state::Button::down);
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-      sp_controller_->updateRightMouseButtonState(
-          controller::state::Button::released);
-
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
-      sp_controller_->updateWheelMouseButtonState(
-          controller::state::Button::down);
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
-      sp_controller_->updateWheelMouseButtonState(
-          controller::state::Button::released);
-
-    if (momentWheel != 0.0f)
-      sp_controller_->updateScroll(momentWheel);
-
-    // convert to normalised coords via glm
-  } else
-    sp_controller_->updateWorkspaceHoverState(
-        controller::state::Workspace::unhovered);
-
-  glClearColor(0.9f, 0.1f, 0.1f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT);
-
-  Pipeline_->useProgram();
-
-  // TODO: remove, temporary raw operations
-  sp_model_->model_ =
-      glm::rotate(sp_model_->model_, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-  const auto view =
-      glm::lookAt(sp_model_->camera_.position, sp_model_->camera_.target,
-                  sp_model_->camera_.up);
-  sp_model_->projection_ =
-      glm::perspective(glm::radians(45.0f), 1.33f, 0.1f, 100.0f);
-
-  auto setUniformMatrix = [&](const std::string &name,
-                              const glm::mat4 &matrix) {
-    if (const auto loc = Pipeline_->getUniformLocation(name); loc.has_value()) {
-      glUniformMatrix4fv(loc.value(), 1, GL_FALSE, glm::value_ptr(matrix));
+  if (canvasVisible) {
+    // Render on the whole framebuffer
+    glViewport(0, 0, frameWidth_, frameHeight_);
+    // Render to our framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
+    // Rescale binded framebuffer
+    if (frameWidth_ != frameSizes.x || frameHeight_ != frameSizes.y) {
+      frameWidth_ = frameSizes.x;
+      frameHeight_ = frameSizes.y;
+      rescale_framebuffer();
     }
-  };
 
-  setUniformMatrix("model", sp_model_->model_);
-  setUniformMatrix("view", view);
-  setUniformMatrix("projection", sp_model_->projection_);
+    // handling direct input operations via canvas
+    // maybe wrap in lambda, create callback
+    if (mousePosition.has_value()) {
+      const auto &[x, y] = mousePosition.value();
+      // to ndc and to model
+      // sp_model_->camera_
 
-  glBindVertexArray(VAO_);
+      sp_controller_->updateWorkspaceHoverState(
+          controller::state::Workspace::
+              hovered /*, x / frameWidth_, y / frameHeight_ */);
 
-  if (mousePosition) {
-    // get data from model and send to opengl
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_);
-    // glBufferSubData(GL_ARRAY_BUFFER, 0, vertices_.size() *
-    // sizeof(vertices_.at(0)), vertices_.data());
-    glBufferData(GL_ARRAY_BUFFER, vertices_.size() * sizeof(vertices_.at(0)),
-                 vertices_.data(), GL_DYNAMIC_DRAW);
+      if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        sp_controller_->updateLeftMouseButtonState(
+            controller::state::Button::down);
+      if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        sp_controller_->updateLeftMouseButtonState(
+            controller::state::Button::released);
+
+      if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+        sp_controller_->updateRightMouseButtonState(
+            controller::state::Button::down);
+      if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+        sp_controller_->updateRightMouseButtonState(
+            controller::state::Button::released);
+
+      if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+        sp_controller_->updateWheelMouseButtonState(
+            controller::state::Button::down);
+      if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
+        sp_controller_->updateWheelMouseButtonState(
+            controller::state::Button::released);
+
+      if (momentWheel != 0.0f)
+        sp_controller_->updateScroll(momentWheel);
+
+      // convert to normalised coords via glm
+    } else
+      sp_controller_->updateWorkspaceHoverState(
+          controller::state::Workspace::unhovered);
+
+    // Process camera controls input before rendering
+    if (renderingPipeline_ && renderingPipeline_->isInitialized()) {
+      // Update viewport if needed
+      renderingPipeline_->onViewportResize(frameWidth_, frameHeight_);
+
+      /// Get ImGui IO to check for input capture
+      /// This prevents camera movement when interacting with ImGui UI elements
+      /// (sliders, input fields, etc.)
+      ImGuiIO &io = ImGui::GetIO();
+      const bool imguiWantsKeyboard = io.WantCaptureKeyboard;
+
+      /// Process camera input when canvas is hovered (mousePosition has value)
+      /// The mousePosition is only set when the canvas is hovered, which means
+      /// the user wants to interact with the 3D view, not with other ImGui UI
+      /// elements. This fixes the issue where WantCaptureMouse was true when
+      /// hovering over the canvas (an ImGui window), which incorrectly blocked
+      /// camera controls.
+      if (mousePosition.has_value()) {
+        const auto &[x, y] = mousePosition.value();
+        auto &orbitControls = renderingPipeline_->getOrbitControls();
+
+        // Handle mouse button state changes for camera orbit/pan
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+          orbitControls.onMouseButton(0, 1,
+                                      0); // GLFW_MOUSE_BUTTON_1, GLFW_PRESS
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+          orbitControls.onMouseButton(0, 0,
+                                      0); // GLFW_MOUSE_BUTTON_1, GLFW_RELEASE
+        }
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
+          orbitControls.onMouseButton(2, 1,
+                                      0); // GLFW_MOUSE_BUTTON_3, GLFW_PRESS
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle)) {
+          orbitControls.onMouseButton(2, 0,
+                                      0); // GLFW_MOUSE_BUTTON_3, GLFW_RELEASE
+        }
+
+        // Handle mouse movement for orbit/pan
+        orbitControls.onCursorPos(static_cast<double>(x),
+                                  static_cast<double>(y));
+
+        // Handle scroll for zoom
+        if (momentWheel != 0.0f) {
+          orbitControls.onScroll(static_cast<double>(momentWheel));
+        }
+      }
+
+      /// Process keyboard input for camera controls when ImGui doesn't want
+      /// keyboard This allows keyboard camera controls (Arrow keys, W/S/A/D, R)
+      /// to work only when not typing in ImGui input fields
+      if (!imguiWantsKeyboard) {
+        auto &orbitControls = renderingPipeline_->getOrbitControls();
+
+        /// Forward keyboard input to OrbitControls
+        /// Keys: Arrow keys (orbit), W/S (zoom), A/D (pan), R (reset view)
+        /// Using ImGuiKey enum for cross-platform compatibility
+        /// ImGui converts GLFW keys internally via
+        /// ImGui_ImplGlfw_KeyToImGuiKey()
+        struct KeyMapping {
+          ImGuiKey imguiKey;
+          int glfwKey;
+        };
+        const KeyMapping cameraKeys[] = {{ImGuiKey_LeftArrow, GLFW_KEY_LEFT},
+                                         {ImGuiKey_RightArrow, GLFW_KEY_RIGHT},
+                                         {ImGuiKey_UpArrow, GLFW_KEY_UP},
+                                         {ImGuiKey_DownArrow, GLFW_KEY_DOWN},
+                                         {ImGuiKey_W, GLFW_KEY_W},
+                                         {ImGuiKey_S, GLFW_KEY_S},
+                                         {ImGuiKey_A, GLFW_KEY_A},
+                                         {ImGuiKey_D, GLFW_KEY_D},
+                                         {ImGuiKey_R, GLFW_KEY_R}};
+
+        for (const auto &key : cameraKeys) {
+          // Handle key press (single event)
+          if (ImGui::IsKeyPressed(key.imguiKey)) {
+            orbitControls.onKey(key.glfwKey, GLFW_PRESS, 0);
+          }
+          // Handle key repeat for continuous movement
+          if (ImGui::IsKeyDown(key.imguiKey)) {
+            orbitControls.onKey(key.glfwKey, GLFW_REPEAT, 0);
+          }
+        }
+      }
+
+      // Render the 3D world (grid, axes, objects)
+      renderingPipeline_->render();
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
-  glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices_.size() / 3));
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-  glUseProgram(0);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

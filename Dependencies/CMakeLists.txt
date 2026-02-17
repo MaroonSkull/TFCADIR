@@ -24,6 +24,10 @@ find_package(yaml-cpp REQUIRED)
 add_subdirectory_checked (${CMAKE_CURRENT_SOURCE_DIR}/FSMConfig)
 add_dependencies (${PROJECT_NAME} fsmconfig)
 
+# nlohmann_json
+add_subdirectory_checked (${CMAKE_CURRENT_SOURCE_DIR}/nlohmann_json)
+add_dependencies (${PROJECT_NAME} nlohmann_json)
+
 # imgui
 add_library (imgui
     imgui/imgui.cpp
@@ -52,6 +56,15 @@ target_include_directories (EmbedResource INTERFACE
     embed-resource
 )
 add_dependencies (${PROJECT_NAME} EmbedResource)
+
+#tinyexpr
+add_library (tinyexpr
+    tinyexpr/tinyexpr.c
+)
+target_include_directories (tinyexpr PUBLIC
+    tinyexpr
+)
+add_dependencies (${PROJECT_NAME} tinyexpr)
 
 #SWOGL
 FetchContent_Declare(swogl

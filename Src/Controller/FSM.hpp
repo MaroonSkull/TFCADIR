@@ -42,10 +42,102 @@ struct OnAddCircleByCenter {};
 struct OnAddLine {};
 struct OnFigureComplete {};
 struct OnFigureCancel {};
+
+/// Sketch mode events
+struct OnEnterSketchMode {};
+struct OnExitSketchMode {};
+struct OnPlaneSelected {
+  int planeIndex; // 0 = XY, 1 = XZ, 2 = YZ
+  OnPlaneSelected(int index) : planeIndex(index) {}
+};
+
+/// Sketch-specific drawing events (prevent ambiguity with 3D mode)
+struct OnAddTriangleByCenterInSketch {};
+struct OnAddCircleByCenterInSketch {};
+struct OnAddSquareByCenterInSketch {};
+struct OnAddSquareByCornersInSketch {};
+struct OnAddNgonByCenterInSketch {};
+struct OnAddLineInSketch {};
+struct OnFigureCompleteInSketch {};
+
+/// Phase 6: Cache invalidation events
+struct OnFigureAdded {
+  uint32_t figureId;
+};
+struct OnFigureRemoved {
+  uint32_t figureId;
+};
+struct OnFigureModified {
+  uint32_t figureId;
+};
+struct OnSelectionChanged {};
+struct OnCameraZoomed {};
+struct OnCameraPanned {};
+struct OnCameraOrbited {};
+struct OnGridSettingsChanged {};
+struct OnSnapSettingsChanged {};
+struct OnCoordinateInputSettingsChanged {};
+struct OnShortcutSettingsChanged {};
+
+/// Phase 7: Polish & Optimization Events
+
+/// @brief Event fired when a keyboard shortcut is registered
+struct OnShortcutRegistered {
+  std::string shortcut_id;
+  std::string action;
+  std::string key_combination;
+};
+
+/// @brief Event fired when a keyboard shortcut is unregistered
+struct OnShortcutUnregistered {
+  std::string shortcut_id;
+};
+
+/// @brief Event fired when a keyboard shortcut is activated
+struct OnShortcutActivated {
+  std::string shortcut_id;
+};
+
+/// @brief Event fired when a context menu is requested
+struct OnContextMenuRequested {
+  std::string menu_id;
+  glm::vec2 position;
+  std::vector<std::string> items;
+};
+
+/// @brief Event fired when theme is changed
+struct OnThemeChanged {
+  std::string theme_name;
+};
+
+/// @brief Event fired when tooltip content is changed
+struct OnTooltipChanged {
+  std::string tooltip_id;
+  std::string content;
+  glm::vec2 position;
+};
+
+/// @brief Event fired when help is requested
+struct OnHelpRequested {
+  std::string topic;
+};
+
+/// @brief Event fired when performance metrics are updated
+struct OnPerformanceUpdate {
+  float fps;
+  float frame_time;
+  std::string memory_usage;
+};
 } // namespace events
 
 // State enumeration (kept for backward compatibility)
-enum class State { Idle, DrawingProcessing, MoveFirstPoint };
+enum class State {
+  Idle,
+  DrawingProcessing,
+  MoveFirstPoint,
+  PlaneSelection,
+  SketchEdit
+};
 
 /**
  * @brief State Machine wrapper using FSMConfig library
@@ -193,14 +285,33 @@ public:
   void on_drawing_exit();
   void on_move_first_point_enter();
   void on_move_first_point_exit();
+  void on_plane_selection_enter();
+  void on_plane_selection_exit();
+  void on_sketch_edit_enter();
+  void on_sketch_edit_exit();
   void log_idle_state();
   void log_drawing_state();
   void log_move_first_point_state();
+  void log_plane_selection_state();
+  void log_sketch_edit_state();
   void on_start_drawing(const fsmconfig::TransitionEvent &event);
   void on_move_to_first_point(const fsmconfig::TransitionEvent &event);
   void on_update_drawing(const fsmconfig::TransitionEvent &event);
   void on_complete_figure(const fsmconfig::TransitionEvent &event);
   void on_cancel_figure(const fsmconfig::TransitionEvent &event);
+  void on_enter_sketch_mode(const fsmconfig::TransitionEvent &event);
+  void on_select_plane(const fsmconfig::TransitionEvent &event);
+  void on_exit_sketch_mode(const fsmconfig::TransitionEvent &event);
+
+  // Phase 7: Polish & Optimization Event Handlers
+  void on_shortcut_registered(const fsmconfig::TransitionEvent &event);
+  void on_shortcut_unregistered(const fsmconfig::TransitionEvent &event);
+  void on_shortcut_activated(const fsmconfig::TransitionEvent &event);
+  void on_context_menu_requested(const fsmconfig::TransitionEvent &event);
+  void on_theme_changed(const fsmconfig::TransitionEvent &event);
+  void on_tooltip_changed(const fsmconfig::TransitionEvent &event);
+  void on_help_requested(const fsmconfig::TransitionEvent &event);
+  void on_performance_update(const fsmconfig::TransitionEvent &event);
 };
 
 // Event handler implementations
@@ -233,6 +344,102 @@ template <typename Event> void Machine::process_event(const Event &event) {
     fsm_->triggerEvent("OnFigureComplete");
   } else if constexpr (std::is_same_v<Event, events::OnFigureCancel>) {
     fsm_->triggerEvent("OnFigureCancel");
+  } else if constexpr (std::is_same_v<Event, events::OnEnterSketchMode>) {
+    fsm_->triggerEvent("OnEnterSketchMode");
+  } else if constexpr (std::is_same_v<Event, events::OnExitSketchMode>) {
+    fsm_->triggerEvent("OnExitSketchMode");
+  } else if constexpr (std::is_same_v<Event, events::OnPlaneSelected>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["planeIndex"] =
+        fsmconfig::VariableValue(static_cast<int>(event.planeIndex));
+    fsm_->triggerEvent("OnPlaneSelected", data);
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddTriangleByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddTriangleByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddCircleByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddCircleByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddSquareByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddSquareByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddSquareByCornersInSketch>) {
+    fsm_->triggerEvent("OnAddSquareByCornersInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnAddNgonByCenterInSketch>) {
+    fsm_->triggerEvent("OnAddNgonByCenterInSketch");
+  } else if constexpr (std::is_same_v<Event, events::OnAddLineInSketch>) {
+    fsm_->triggerEvent("OnAddLineInSketch");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnFigureCompleteInSketch>) {
+    fsm_->triggerEvent("OnFigureCompleteInSketch");
+  } else if constexpr (std::is_same_v<Event, events::OnFigureAdded>) {
+    fsm_->triggerEvent("OnFigureAdded");
+  } else if constexpr (std::is_same_v<Event, events::OnFigureRemoved>) {
+    fsm_->triggerEvent("OnFigureRemoved");
+  } else if constexpr (std::is_same_v<Event, events::OnFigureModified>) {
+    fsm_->triggerEvent("OnFigureModified");
+  } else if constexpr (std::is_same_v<Event, events::OnSelectionChanged>) {
+    fsm_->triggerEvent("OnSelectionChanged");
+  } else if constexpr (std::is_same_v<Event, events::OnCameraZoomed>) {
+    fsm_->triggerEvent("OnCameraZoomed");
+  } else if constexpr (std::is_same_v<Event, events::OnCameraPanned>) {
+    fsm_->triggerEvent("OnCameraPanned");
+  } else if constexpr (std::is_same_v<Event, events::OnCameraOrbited>) {
+    fsm_->triggerEvent("OnCameraOrbited");
+  } else if constexpr (std::is_same_v<Event, events::OnGridSettingsChanged>) {
+    fsm_->triggerEvent("OnGridSettingsChanged");
+  } else if constexpr (std::is_same_v<Event, events::OnSnapSettingsChanged>) {
+    fsm_->triggerEvent("OnSnapSettingsChanged");
+  } else if constexpr (std::is_same_v<
+                           Event, events::OnCoordinateInputSettingsChanged>) {
+    fsm_->triggerEvent("OnCoordinateInputSettingsChanged");
+  } else if constexpr (std::is_same_v<Event,
+                                      events::OnShortcutSettingsChanged>) {
+    fsm_->triggerEvent("OnShortcutSettingsChanged");
+  } else if constexpr (std::is_same_v<Event, events::OnShortcutRegistered>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["shortcut_id"] = fsmconfig::VariableValue(event.shortcut_id);
+    data["action"] = fsmconfig::VariableValue(event.action);
+    data["key_combination"] = fsmconfig::VariableValue(event.key_combination);
+    fsm_->triggerEvent("OnShortcutRegistered", data);
+  } else if constexpr (std::is_same_v<Event, events::OnShortcutUnregistered>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["shortcut_id"] = fsmconfig::VariableValue(event.shortcut_id);
+    fsm_->triggerEvent("OnShortcutUnregistered", data);
+  } else if constexpr (std::is_same_v<Event, events::OnShortcutActivated>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["shortcut_id"] = fsmconfig::VariableValue(event.shortcut_id);
+    fsm_->triggerEvent("OnShortcutActivated", data);
+  } else if constexpr (std::is_same_v<Event, events::OnContextMenuRequested>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["menu_id"] = fsmconfig::VariableValue(event.menu_id);
+    auto pos_data = vec2ToVariableMap(event.position);
+    data["x"] = pos_data["x"];
+    data["y"] = pos_data["y"];
+    fsm_->triggerEvent("OnContextMenuRequested", data);
+  } else if constexpr (std::is_same_v<Event, events::OnThemeChanged>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["theme_name"] = fsmconfig::VariableValue(event.theme_name);
+    fsm_->triggerEvent("OnThemeChanged", data);
+  } else if constexpr (std::is_same_v<Event, events::OnTooltipChanged>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["tooltip_id"] = fsmconfig::VariableValue(event.tooltip_id);
+    data["content"] = fsmconfig::VariableValue(event.content);
+    auto pos_data = vec2ToVariableMap(event.position);
+    data["x"] = pos_data["x"];
+    data["y"] = pos_data["y"];
+    fsm_->triggerEvent("OnTooltipChanged", data);
+  } else if constexpr (std::is_same_v<Event, events::OnHelpRequested>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["topic"] = fsmconfig::VariableValue(event.topic);
+    fsm_->triggerEvent("OnHelpRequested", data);
+  } else if constexpr (std::is_same_v<Event, events::OnPerformanceUpdate>) {
+    std::map<std::string, fsmconfig::VariableValue> data;
+    data["fps"] = fsmconfig::VariableValue(event.fps);
+    data["frame_time"] = fsmconfig::VariableValue(event.frame_time);
+    data["memory_usage"] = fsmconfig::VariableValue(event.memory_usage);
+    fsm_->triggerEvent("OnPerformanceUpdate", data);
   }
 }
 
@@ -247,6 +454,10 @@ inline State Machine::get_current_state() const {
     return State::DrawingProcessing;
   } else if (state_name == "MoveFirstPoint") {
     return State::MoveFirstPoint;
+  } else if (state_name == "PlaneSelection") {
+    return State::PlaneSelection;
+  } else if (state_name == "SketchEdit") {
+    return State::SketchEdit;
   }
   return State::Idle;
 }

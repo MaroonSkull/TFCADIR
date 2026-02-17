@@ -71,7 +71,9 @@ foreach (library
     imgui
     EmbedResource
     fsmconfig
+    nlohmann_json::nlohmann_json
 #sources
+    Logging
     Model
     Controller
     View
@@ -80,6 +82,7 @@ foreach (library
     target_link_libraries (${PROJECT_NAME}
         PRIVATE
             ${library}
+            Tools
     )
 
 endforeach (library)

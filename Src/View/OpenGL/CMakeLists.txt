@@ -1,32 +1,69 @@
-﻿cmake_minimum_required (VERSION 3.23)
-project (${PROJECT_NAME})
+cmake_minimum_required(VERSION 3.23)
+project(${PROJECT_NAME})
 
-add_subdirectory ("Details")
-add_subdirectory ("ImGUI")
-
+add_subdirectory("Details")
+add_subdirectory("ImGUI")
 
 config_lib(ImGUIOpenGLView
-	BASE_DIR
-		../../
-	PRIVATE_SOURCES
-		ImGUI/ImGUI.cpp
-	PUBLIC_SOURCES
-		ImGUI.hpp
-	PUBLIC_DEPENDENCIES
-		Model
-		ImGUIOpenGLController
-		IController
-		IView
-		GUI
-		Shader
-		GLProgram
-		GLFWPP
-		glm
+    BASE_DIR
+        ../..
+    PRIVATE_SOURCES
+        ImGUI/ApplicationSettings.cpp
+        ImGUI/ContextMenu.cpp
+        ImGUI/CanvasContextMenu.cpp
+        ImGUI/ObjectContextMenu.cpp
+        ImGUI/GUI.cpp
+        ImGUI/ImGUI.cpp
+        ImGUI/PropertiesPanel.cpp
+        ImGUI/ShortcutDialog.cpp
+        ImGUI/ViewPresetButtons.cpp
+        ../Shortcuts/ShortcutManager.cpp
+        ../Presets/ViewPresetManager.cpp
+        ../Annotation/LinearDimensionTool.cpp
+        ../Annotation/AngularDimensionTool.cpp
+        ../Annotation/RadialDimensionTool.cpp
+        ../Annotation/DiameterDimensionTool.cpp
+        ../Annotation/LeaderTool.cpp
+        ../Annotation/TextAnnotationTool.cpp
+        ../Measurement/MeasurementTool.cpp
+        ../Help/HelpSystem.cpp
+        ../Help/HelpDialog.cpp
+    PUBLIC_SOURCES
+        ImGUI/ApplicationSettings.hpp
+        ImGUI/ContextMenu.hpp
+        ImGUI/CanvasContextMenu.hpp
+        ImGUI/ObjectContextMenu.hpp
+        ImGUI/GUI.hpp
+        ImGUI.hpp
+        ImGUI/PropertiesPanel.hpp
+        ImGUI/ShortcutDialog.hpp
+        ImGUI/ViewPresetButtons.hpp
+        ../Shortcuts/ShortcutManager.hpp
+        ../Presets/ViewPresetManager.hpp
+        ../Annotation/DimensionTool.hpp
+        ../Measurement/MeasurementTool.hpp
+        ../Help/HelpSystem.hpp
+        ../Help/HelpDialog.hpp
+    PUBLIC_DEPENDENCIES
+        Model
+        ImGUIOpenGLController
+        IController
+        IView
+        GUI
+        Shader
+        GLProgram
+        RenderingPipeline3D
+        GLFWPP
+        glm
+        Polish
+        LayerManager
+        ImportExport
+        Settings
     PRIVATE_DEPENDENCIES
-		spdlog::spdlog
-		EmbedResource
-		glad
-		imgui
-	COMPILE_FEATURES
-		cxx_std_17
+        spdlog::spdlog
+        EmbedResource
+        glad
+        imgui
+    COMPILE_FEATURES
+        cxx_std_17
 )
