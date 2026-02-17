@@ -71,6 +71,7 @@ jobs:
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
+        echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
         vcpkg install boost spdlog yaml-cpp googletest
         vcpkg integrate install
 
