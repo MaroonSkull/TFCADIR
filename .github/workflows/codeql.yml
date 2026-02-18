@@ -77,7 +77,8 @@ jobs:
           libxinerama-dev \
           libgtest-dev \
           libgmock-dev \
-          libwayland-dev
+          libwayland-dev \
+          libxkbcommon-dev
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`

@@ -84,33 +84,34 @@ jobs:
             libxinerama-dev \
             libgtest-dev \
             libgmock-dev \
-            libwayland-dev
+            libwayland-dev \
+            libxkbcommon-dev
 
       # ------------------------------------------------------------------------
-      # Step 3: Install system dependencies (Windows) using vcpkg
-      # Note: OpenGL is included in Windows SDK, no need to install
-      # ------------------------------------------------------------------------
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
-          vcpkg install boost:x64-windows spdlog:x64-windows yaml-cpp:x64-windows googletest:x64-windows
-          vcpkg integrate install
-
-      # ------------------------------------------------------------------------
-      # Step 4: Setup caching for vcpkg packages (Windows)
+      # Step 3: Setup caching for vcpkg packages (Windows)
       # Speeds up builds by caching installed packages
+      # Must be BEFORE install step to restore cache
       # ------------------------------------------------------------------------
       - name: Cache vcpkg packages (Windows)
         if: runner.os == 'Windows'
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.VCPKG_ROOT }}/installed
+            C:/vcpkg/installed
             ${{ github.workspace }}/build/vcpkg_installed
           key: ${{ runner.os }}-vcpkg-${{ hashFiles('.github/workflows/ci.yml') }}
           restore-keys: |
             ${{ runner.os }}-vcpkg-
+
+      # ------------------------------------------------------------------------
+      # Step 4: Install system dependencies (Windows) using vcpkg
+      # Note: OpenGL is included in Windows SDK, no need to install
+      # ------------------------------------------------------------------------
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          vcpkg install boost:x64-windows spdlog:x64-windows yaml-cpp:x64-windows googletest:x64-windows
+          vcpkg integrate install
 
       # ------------------------------------------------------------------------
       # Step 5: Cache CMake build directory
@@ -263,7 +264,8 @@ jobs:
             libxinerama-dev \
             libgtest-dev \
             libgmock-dev \
-            libwayland-dev
+            libwayland-dev \
+            libxkbcommon-dev
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

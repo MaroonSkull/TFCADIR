@@ -67,12 +67,23 @@ jobs:
           libxinerama-dev \
           libgtest-dev \
           libgmock-dev \
-          libwayland-dev
+          libwayland-dev \
+          libxkbcommon-dev
+
+    - name: Cache vcpkg packages (Windows)
+      if: runner.os == 'Windows'
+      uses: actions/cache@v4
+      with:
+        path: |
+          C:/vcpkg/installed
+          ${{ github.workspace }}/build/vcpkg_installed
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('.github/workflows/cmake-multi-platform.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
-        echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
         vcpkg install boost:x64-windows spdlog:x64-windows yaml-cpp:x64-windows googletest:x64-windows
         vcpkg integrate install
 
@@ -102,7 +113,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+        -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
         -S ${{ github.workspace }}
 
     - name: Build
