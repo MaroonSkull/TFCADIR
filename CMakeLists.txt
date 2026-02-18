@@ -33,7 +33,7 @@ target_compile_features (${PROJECT_NAME} PUBLIC cxx_std_23)
 
 #include system libraries
 find_package (OpenGL REQUIRED)
-find_package (Boost #[[COMPONENTS statechart]] REQUIRED)
+find_package (Boost) # Optional - not currently used, will be needed in future
 find_package (spdlog) # TODO: add check for spdlog availability
 
 add_subdirectory ("Dependencies")
@@ -58,7 +58,6 @@ target_sources (${PROJECT_NAME}
 #link libraries
 foreach (library
 #dependencies
-    Boost::headers
     OpenGL::GL
     swogl::swogl
     spdlog::spdlog
@@ -83,3 +82,8 @@ foreach (library
     )
 
 endforeach (library)
+
+# Link Boost if found (optional - not currently used)
+if(TARGET Boost::headers)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Boost::headers)
+endif()
