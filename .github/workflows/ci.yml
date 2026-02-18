@@ -84,7 +84,7 @@ jobs:
             libxinerama-dev \
             libgtest-dev \
             libgmock-dev \
-            wayland-scanner
+            wayland-utils
 
       # ------------------------------------------------------------------------
       # Step 3: Install system dependencies (Windows) using vcpkg
@@ -159,7 +159,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
-            -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -S ${{ github.workspace }}
 
       # ------------------------------------------------------------------------
@@ -263,7 +263,7 @@ jobs:
             libxinerama-dev \
             libgtest-dev \
             libgmock-dev \
-            wayland-scanner
+            wayland-utils
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

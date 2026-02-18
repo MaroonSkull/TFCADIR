@@ -67,7 +67,7 @@ jobs:
           libxinerama-dev \
           libgtest-dev \
           libgmock-dev \
-          wayland-scanner
+          wayland-utils
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
