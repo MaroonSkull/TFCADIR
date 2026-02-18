@@ -67,13 +67,13 @@ jobs:
           libxinerama-dev \
           libgtest-dev \
           libgmock-dev \
-          wayland-utils
+          libwayland-dev
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
         echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
-        vcpkg install boost spdlog yaml-cpp googletest
+        vcpkg install boost:x64-windows spdlog:x64-windows yaml-cpp:x64-windows googletest:x64-windows
         vcpkg integrate install
 
     - name: Set reusable strings
