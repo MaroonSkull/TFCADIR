@@ -106,11 +106,18 @@ jobs:
       # ------------------------------------------------------------------------
       # Step 4: Install system dependencies (Windows) using vcpkg
       # Note: OpenGL is included in Windows SDK, no need to install
+      # Using boost-headers instead of full boost for faster installation
       # ------------------------------------------------------------------------
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
-          vcpkg install boost:x64-windows spdlog:x64-windows yaml-cpp:x64-windows googletest:x64-windows
+          vcpkg install boost-headers:x64-windows
+          vcpkg install spdlog:x64-windows
+          vcpkg install glfw3:x64-windows
+          vcpkg install glad:x64-windows
+          vcpkg install glm:x64-windows
+          vcpkg install yaml-cpp:x64-windows
+          vcpkg install gtest:x64-windows
           vcpkg integrate install
 
       # ------------------------------------------------------------------------
