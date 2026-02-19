@@ -30,10 +30,9 @@ OpenglImguiView::OpenglImguiView(
     // mustBeRedrawSignal.connect(boost::bind(&OpenglImguiView::draw, this));
 
     // init glfwpp, glad, window, imgui
-    glfw::InitHints iHints;
-    // iHints.platform = glfw::GlfwPlatform::Wayland; // Let GLFW auto-detect
-    // platform
-    iHints.apply();
+    // Note: glfw::InitHints requires GLFW 3.4+. When using GLFW 3.3.x,
+    // this struct is not available. GLFW initialization hints can be set
+    // via raw GLFW calls if needed: glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
 
     // Window
     glfw::WindowHints wHints;
