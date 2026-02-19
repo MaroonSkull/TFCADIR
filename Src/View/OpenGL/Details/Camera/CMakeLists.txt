@@ -9,5 +9,5 @@ target_include_directories(Camera PUBLIC
 
 target_link_libraries(Camera
     glm::glm
-    glfw
+    GLFWPP
 )
