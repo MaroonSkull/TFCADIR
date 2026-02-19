@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 project(${PROJECT_NAME})
 
-config_lib(IView INTERFACE PUBLIC_SOURCES IView.hpp INTERFACE_DEPENDENCIES Boost::headers COMPILE_FEATURES cxx_std_17)
+config_lib(IView INTERFACE PUBLIC_SOURCES IView.hpp COMPILE_FEATURES cxx_std_17)
 
 #CameraController and UIFSMAdapter libraries for Phase 1
 config_lib(CameraController PRIVATE_SOURCES CameraController.cpp PUBLIC_SOURCES CameraController.hpp PUBLIC_DEPENDENCIES Model Camera COMPILE_FEATURES cxx_std_17)
