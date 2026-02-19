@@ -18,6 +18,9 @@ if (POLICY CMP0141)
     "$<IF:$<CXX_COMPILER_ID:MSVC>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
+# Add /utf-8 compiler flag for MSVC to fix Unicode encoding issues (required by fmt library)
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+
 include (CMake/utils.cmake)
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
