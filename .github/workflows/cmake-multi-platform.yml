@@ -84,7 +84,13 @@ jobs:
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
-        vcpkg install boost:x64-windows spdlog:x64-windows yaml-cpp:x64-windows googletest:x64-windows
+        vcpkg install boost:x64-windows
+        vcpkg install spdlog:x64-windows
+        vcpkg install glfw3:x64-windows
+        vcpkg install glad:x64-windows
+        vcpkg install glm:x64-windows
+        vcpkg install yaml-cpp:x64-windows
+        vcpkg install gtest:x64-windows
         vcpkg integrate install
 
     - name: Set reusable strings
@@ -113,7 +119,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
         -S ${{ github.workspace }}
 
     - name: Build
