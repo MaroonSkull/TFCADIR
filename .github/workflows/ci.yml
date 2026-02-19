@@ -63,7 +63,7 @@ jobs:
 
       # ------------------------------------------------------------------------
       # Step 2: Install system dependencies (Ubuntu)
-      # Required packages: OpenGL, Boost, spdlog, yaml-cpp
+      # Required packages: OpenGL, Boost, spdlog, yaml-cpp, GTest
       # ------------------------------------------------------------------------
       - name: Install dependencies (Ubuntu)
         if: runner.os == 'Linux'
@@ -81,32 +81,44 @@ jobs:
             libxext-dev \
             libxcursor-dev \
             libxi-dev \
-            libxinerama-dev
+            libxinerama-dev \
+            libgtest-dev \
+            libgmock-dev \
+            libwayland-dev \
+            libxkbcommon-dev
 
       # ------------------------------------------------------------------------
-      # Step 3: Install system dependencies (Windows) using vcpkg
-      # Note: OpenGL is included in Windows SDK, no need to install
-      # ------------------------------------------------------------------------
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          vcpkg install boost spdlog yaml-cpp
-          vcpkg integrate install
-
-      # ------------------------------------------------------------------------
-      # Step 4: Setup caching for vcpkg packages (Windows)
+      # Step 3: Setup caching for vcpkg packages (Windows)
       # Speeds up builds by caching installed packages
+      # Must be BEFORE install step to restore cache
       # ------------------------------------------------------------------------
       - name: Cache vcpkg packages (Windows)
         if: runner.os == 'Windows'
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.VCPKG_ROOT }}/installed
+            C:/vcpkg/installed
             ${{ github.workspace }}/build/vcpkg_installed
           key: ${{ runner.os }}-vcpkg-${{ hashFiles('.github/workflows/ci.yml') }}
           restore-keys: |
             ${{ runner.os }}-vcpkg-
+
+      # ------------------------------------------------------------------------
+      # Step 4: Install system dependencies (Windows) using vcpkg
+      # Note: OpenGL is included in Windows SDK, no need to install
+      # Using boost-headers instead of full boost for faster installation
+      # ------------------------------------------------------------------------
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          vcpkg install boost:x64-windows
+          vcpkg install spdlog:x64-windows
+          vcpkg install glfw3:x64-windows
+          vcpkg install glad:x64-windows
+          vcpkg install glm:x64-windows
+          vcpkg install yaml-cpp:x64-windows
+          vcpkg install gtest:x64-windows
+          vcpkg integrate install
 
       # ------------------------------------------------------------------------
       # Step 5: Cache CMake build directory
@@ -155,7 +167,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
-            -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -S ${{ github.workspace }}
 
       # ------------------------------------------------------------------------
@@ -256,16 +268,20 @@ jobs:
             libxext-dev \
             libxcursor-dev \
             libxi-dev \
-            libxinerama-dev
+            libxinerama-dev \
+            libgtest-dev \
+            libgmock-dev \
+            libwayland-dev \
+            libxkbcommon-dev
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: c-cpp
           build-mode: autobuild
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:c-cpp"
 

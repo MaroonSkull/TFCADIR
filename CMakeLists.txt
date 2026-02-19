@@ -3,15 +3,6 @@ cmake_minimum_required (VERSION 3.30) #for find Boost
 #Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
-    "$<IF:                                                 \
-        $<AND:                                             \
-            $<C_COMPILER_ID:MSVC>,                         \
-            $<CXX_COMPILER_ID:MSVC>                        \
-        >,                                                 \
-        $<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>, \
-        $<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>  \
-    >")
 endif()
 
 project ("TFCADIR"
@@ -20,6 +11,15 @@ project ("TFCADIR"
     HOMEPAGE_URL "https://github.com/MaroonSkull/TFCADIR"
     LANGUAGES CXX C
 )
+
+# Enable Hot Reload for MSVC compilers if supported (set after project() so compiler is determined)
+if (POLICY CMP0141)
+  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+    "$<IF:$<CXX_COMPILER_ID:MSVC>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
+endif()
+
+# Add /utf-8 compiler flag for MSVC to fix Unicode encoding issues (required by fmt library)
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
 include (CMake/utils.cmake)
 
@@ -36,7 +36,7 @@ target_compile_features (${PROJECT_NAME} PUBLIC cxx_std_23)
 
 #include system libraries
 find_package (OpenGL REQUIRED)
-find_package (Boost #[[COMPONENTS statechart]] REQUIRED)
+find_package (Boost) # Optional - not currently used, will be needed in future
 find_package (spdlog) # TODO: add check for spdlog availability
 
 add_subdirectory ("Dependencies")
@@ -61,7 +61,6 @@ target_sources (${PROJECT_NAME}
 #link libraries
 foreach (library
 #dependencies
-    Boost::headers
     OpenGL::GL
     swogl::swogl
     spdlog::spdlog
@@ -86,3 +85,8 @@ foreach (library
     )
 
 endforeach (library)
+
+# Link Boost if found (optional - not currently used)
+if(TARGET Boost::headers)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Boost::headers)
+endif()

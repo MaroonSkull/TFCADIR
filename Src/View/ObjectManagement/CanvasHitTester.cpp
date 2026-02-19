@@ -1,6 +1,8 @@
 #include "CanvasHitTester.hpp"
 #include <Model/FlatFigure.hpp>
 #include <algorithm>
+// Must be defined before including <cmath> for M_PI to be available on MSVC
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <memory>
 

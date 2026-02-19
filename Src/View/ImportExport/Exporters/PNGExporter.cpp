@@ -11,10 +11,13 @@
 
 #include "PNGExporter.hpp"
 
+// Must be defined before including <cmath> for M_PI to be available on MSVC
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <Model/FlatFigure.hpp>
 
 #include <algorithm>
-#include <cmath>
 #include <fstream>
 #include <limits>
 #include <vector>

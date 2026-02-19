@@ -42,7 +42,7 @@ target_include_directories (imgui PUBLIC
     imgui
     imgui/backends
 )
-target_link_libraries (imgui PUBLIC glfw glad)
+target_link_libraries (imgui PUBLIC GLFWPP glad)
 
 if (WIN32 AND NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
     target_link_libraries(imgui "Imm32.lib")
